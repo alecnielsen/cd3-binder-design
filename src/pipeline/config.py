@@ -1,0 +1,337 @@
+"""Pipeline configuration management."""
+
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Optional
+import yaml
+import json
+import hashlib
+import datetime
+
+
+@dataclass
+class DesignConfig:
+    """Configuration for design generation."""
+
+    # De novo design
+    num_vhh_designs: int = 200
+    num_scfv_designs: int = 200
+    target_structures: list[str] = field(default_factory=list)
+
+    # Optimization
+    starting_sequences: list[str] = field(default_factory=lambda: ["teplizumab", "sp34", "ucht1"])
+    affinity_variants: list[str] = field(default_factory=lambda: ["wild_type", "10x_weaker", "100x_weaker"])
+
+
+@dataclass
+class CalibrationConfig:
+    """Configuration for threshold calibration."""
+
+    positive_controls: list[str] = field(default_factory=lambda: ["teplizumab", "sp34", "ucht1"])
+
+    # Margins to subtract from known binder minimums
+    pdockq_margin: float = 0.05
+    interface_area_margin: float = 100.0
+    contacts_margin: int = 2
+
+
+@dataclass
+class FilteringConfig:
+    """Configuration for filtering cascade."""
+
+    # Binding quality (defaults - use calibrated if available)
+    min_pdockq: float = 0.5
+    min_interface_area: float = 800.0
+    min_contacts: int = 10
+    use_calibrated: bool = True
+
+    # Humanness
+    min_oasis_score: float = 0.8
+    generate_back_mutations: bool = True
+
+    # Liabilities
+    allow_deamidation_cdr: bool = False
+    allow_isomerization_cdr: bool = False
+    allow_glycosylation_cdr: bool = False
+    max_oxidation_sites: int = 2  # Soft filter
+
+    # Developability
+    cdr_h3_length_range: tuple[int, int] = (8, 20)
+    net_charge_range: tuple[int, int] = (-2, 4)
+    pi_range: tuple[float, float] = (6.0, 9.0)
+    max_hydrophobic_patches: int = 2
+
+    # Fallback
+    min_candidates: int = 10
+    relax_soft_filters_first: bool = True
+    max_threshold_relaxation: float = 0.1  # 10%
+
+
+@dataclass
+class FormattingConfig:
+    """Configuration for bispecific formatting."""
+
+    tumor_target: str = "trastuzumab"
+    formats: list[str] = field(default_factory=lambda: [
+        "crossmab", "fab_scfv", "fab_vhh", "igg_scfv", "igg_vhh"
+    ])
+    scfv_linker: str = "GGGGSGGGGSGGGGS"
+    fc_fusion_linker: str = "GGGGSGGGGS"
+
+
+@dataclass
+class OutputConfig:
+    """Configuration for pipeline output."""
+
+    num_final_candidates: int = 10
+    include_structures: bool = True
+    generate_report: bool = True
+    include_provenance: bool = True
+    output_dir: str = "data/outputs"
+
+
+@dataclass
+class ReproducibilityConfig:
+    """Configuration for reproducibility."""
+
+    boltzgen_seed: int = 42
+    sampling_seed: int = 12345
+    clustering_seed: int = 0
+
+
+@dataclass
+class EpitopeConfig:
+    """Configuration for epitope annotation."""
+
+    # OKT3 epitope residues on CD3ε
+    okt3_epitope_residues: list[int] = field(default_factory=lambda: [
+        23, 25, 26, 27, 28, 29, 30, 31, 32, 35, 38, 39, 40, 41, 42, 45, 47
+    ])
+    overlap_threshold: float = 0.5
+
+
+@dataclass
+class PipelineConfig:
+    """Complete pipeline configuration."""
+
+    design: DesignConfig = field(default_factory=DesignConfig)
+    calibration: CalibrationConfig = field(default_factory=CalibrationConfig)
+    filtering: FilteringConfig = field(default_factory=FilteringConfig)
+    formatting: FormattingConfig = field(default_factory=FormattingConfig)
+    output: OutputConfig = field(default_factory=OutputConfig)
+    reproducibility: ReproducibilityConfig = field(default_factory=ReproducibilityConfig)
+    epitope: EpitopeConfig = field(default_factory=EpitopeConfig)
+
+    # Calibrated thresholds (set after calibration)
+    calibrated_min_pdockq: Optional[float] = None
+    calibrated_min_interface_area: Optional[float] = None
+    calibrated_min_contacts: Optional[int] = None
+
+    def to_dict(self) -> dict:
+        """Convert to dictionary for serialization."""
+        return {
+            "design": {
+                "num_vhh_designs": self.design.num_vhh_designs,
+                "num_scfv_designs": self.design.num_scfv_designs,
+                "target_structures": self.design.target_structures,
+                "starting_sequences": self.design.starting_sequences,
+                "affinity_variants": self.design.affinity_variants,
+            },
+            "calibration": {
+                "positive_controls": self.calibration.positive_controls,
+                "pdockq_margin": self.calibration.pdockq_margin,
+                "interface_area_margin": self.calibration.interface_area_margin,
+                "contacts_margin": self.calibration.contacts_margin,
+            },
+            "filtering": {
+                "min_pdockq": self.filtering.min_pdockq,
+                "min_interface_area": self.filtering.min_interface_area,
+                "min_contacts": self.filtering.min_contacts,
+                "use_calibrated": self.filtering.use_calibrated,
+                "min_oasis_score": self.filtering.min_oasis_score,
+                "generate_back_mutations": self.filtering.generate_back_mutations,
+                "allow_deamidation_cdr": self.filtering.allow_deamidation_cdr,
+                "allow_isomerization_cdr": self.filtering.allow_isomerization_cdr,
+                "allow_glycosylation_cdr": self.filtering.allow_glycosylation_cdr,
+                "max_oxidation_sites": self.filtering.max_oxidation_sites,
+                "cdr_h3_length_range": self.filtering.cdr_h3_length_range,
+                "net_charge_range": self.filtering.net_charge_range,
+                "pi_range": self.filtering.pi_range,
+                "max_hydrophobic_patches": self.filtering.max_hydrophobic_patches,
+                "min_candidates": self.filtering.min_candidates,
+            },
+            "formatting": {
+                "tumor_target": self.formatting.tumor_target,
+                "formats": self.formatting.formats,
+                "scfv_linker": self.formatting.scfv_linker,
+                "fc_fusion_linker": self.formatting.fc_fusion_linker,
+            },
+            "output": {
+                "num_final_candidates": self.output.num_final_candidates,
+                "include_structures": self.output.include_structures,
+                "generate_report": self.output.generate_report,
+                "include_provenance": self.output.include_provenance,
+                "output_dir": self.output.output_dir,
+            },
+            "reproducibility": {
+                "boltzgen_seed": self.reproducibility.boltzgen_seed,
+                "sampling_seed": self.reproducibility.sampling_seed,
+                "clustering_seed": self.reproducibility.clustering_seed,
+            },
+            "epitope": {
+                "okt3_epitope_residues": self.epitope.okt3_epitope_residues,
+                "overlap_threshold": self.epitope.overlap_threshold,
+            },
+            "calibrated_thresholds": {
+                "min_pdockq": self.calibrated_min_pdockq,
+                "min_interface_area": self.calibrated_min_interface_area,
+                "min_contacts": self.calibrated_min_contacts,
+            },
+        }
+
+    def config_hash(self) -> str:
+        """Generate hash of configuration."""
+        config_str = json.dumps(self.to_dict(), sort_keys=True)
+        return hashlib.sha256(config_str.encode()).hexdigest()[:12]
+
+    def get_effective_thresholds(self) -> dict:
+        """Get effective filter thresholds (calibrated or default)."""
+        if self.filtering.use_calibrated and self.calibrated_min_pdockq is not None:
+            return {
+                "min_pdockq": self.calibrated_min_pdockq,
+                "min_interface_area": self.calibrated_min_interface_area,
+                "min_contacts": self.calibrated_min_contacts,
+            }
+        else:
+            return {
+                "min_pdockq": self.filtering.min_pdockq,
+                "min_interface_area": self.filtering.min_interface_area,
+                "min_contacts": self.filtering.min_contacts,
+            }
+
+    def save(self, output_path: str) -> str:
+        """Save configuration to YAML file."""
+        with open(output_path, "w") as f:
+            yaml.dump(self.to_dict(), f, default_flow_style=False)
+        return output_path
+
+    @classmethod
+    def load(cls, config_path: str) -> "PipelineConfig":
+        """Load configuration from YAML file."""
+        with open(config_path, "r") as f:
+            data = yaml.safe_load(f)
+
+        config = cls()
+
+        # Design
+        if "design" in data:
+            d = data["design"]
+            config.design.num_vhh_designs = d.get("num_vhh_designs", 200)
+            config.design.num_scfv_designs = d.get("num_scfv_designs", 200)
+            config.design.target_structures = d.get("target_structures", [])
+            config.design.starting_sequences = d.get("starting_sequences", ["teplizumab", "sp34", "ucht1"])
+            config.design.affinity_variants = d.get("affinity_variants", ["wild_type", "10x_weaker", "100x_weaker"])
+
+        # Calibration
+        if "calibration" in data:
+            c = data["calibration"]
+            config.calibration.positive_controls = c.get("positive_controls", ["teplizumab", "sp34", "ucht1"])
+            config.calibration.pdockq_margin = c.get("pdockq_margin", 0.05)
+            config.calibration.interface_area_margin = c.get("interface_area_margin", 100.0)
+            config.calibration.contacts_margin = c.get("contacts_margin", 2)
+
+        # Filtering
+        if "filtering" in data:
+            f = data["filtering"]
+            config.filtering.min_pdockq = f.get("min_pdockq", 0.5)
+            config.filtering.min_interface_area = f.get("min_interface_area", 800.0)
+            config.filtering.min_contacts = f.get("min_contacts", 10)
+            config.filtering.use_calibrated = f.get("use_calibrated", True)
+            config.filtering.min_oasis_score = f.get("min_oasis_score", 0.8)
+            config.filtering.generate_back_mutations = f.get("generate_back_mutations", True)
+            config.filtering.min_candidates = f.get("min_candidates", 10)
+
+        # Formatting
+        if "formatting" in data:
+            fmt = data["formatting"]
+            config.formatting.tumor_target = fmt.get("tumor_target", "trastuzumab")
+            config.formatting.formats = fmt.get("formats", ["crossmab", "fab_scfv", "fab_vhh", "igg_scfv", "igg_vhh"])
+
+        # Output
+        if "output" in data:
+            o = data["output"]
+            config.output.num_final_candidates = o.get("num_final_candidates", 10)
+            config.output.include_structures = o.get("include_structures", True)
+            config.output.generate_report = o.get("generate_report", True)
+            config.output.output_dir = o.get("output_dir", "data/outputs")
+
+        # Reproducibility
+        if "reproducibility" in data:
+            r = data["reproducibility"]
+            config.reproducibility.boltzgen_seed = r.get("boltzgen_seed", 42)
+            config.reproducibility.sampling_seed = r.get("sampling_seed", 12345)
+            config.reproducibility.clustering_seed = r.get("clustering_seed", 0)
+
+        # Epitope
+        if "epitope" in data:
+            e = data["epitope"]
+            config.epitope.okt3_epitope_residues = e.get("okt3_epitope_residues", config.epitope.okt3_epitope_residues)
+            config.epitope.overlap_threshold = e.get("overlap_threshold", 0.5)
+
+        # Calibrated thresholds
+        if "calibrated_thresholds" in data:
+            ct = data["calibrated_thresholds"]
+            config.calibrated_min_pdockq = ct.get("min_pdockq")
+            config.calibrated_min_interface_area = ct.get("min_interface_area")
+            config.calibrated_min_contacts = ct.get("min_contacts")
+
+        return config
+
+
+def get_provenance() -> dict:
+    """Get provenance information for output files."""
+    import subprocess
+
+    provenance = {
+        "pipeline_version": "1.0.0",
+        "run_timestamp": datetime.datetime.now().isoformat(),
+    }
+
+    # Try to get git commit
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode == 0:
+            provenance["git_commit"] = result.stdout.strip()[:12]
+    except Exception:
+        pass
+
+    return provenance
+
+
+def create_default_config(output_path: Optional[str] = None) -> PipelineConfig:
+    """Create a default configuration.
+
+    Args:
+        output_path: If provided, save config to this path.
+
+    Returns:
+        Default PipelineConfig.
+    """
+    config = PipelineConfig()
+
+    # Set default target structures
+    config.design.target_structures = [
+        "data/targets/cd3_epsilon_delta_1XIW.pdb",
+        "data/targets/cd3_epsilon_gamma_1SY6.pdb",
+    ]
+
+    if output_path:
+        config.save(output_path)
+        print(f"Default config saved to: {output_path}")
+
+    return config
