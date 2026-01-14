@@ -1,0 +1,154 @@
+# Affinity-Attenuating Mutations for CD3 Binders
+#
+# Literature-derived mutations that reduce CD3 binding affinity.
+# Goal: Generate variants with ~10x and ~100x reduced affinity to
+# balance efficacy with reduced cytokine release syndrome (CRS) risk.
+#
+# References:
+# - Staflin K, et al. (2021) Sci Rep - CD3 affinity tuning
+# - List MJ, et al. (2023) Expert Opin Drug Discov - CD3 affinity considerations
+# - Various bispecific antibody patents
+
+# Target affinity ranges
+affinity_strategy:
+  wild_type_kd_nm: 5-20
+  target_10x_weaker_kd_nm: 50-200
+  target_100x_weaker_kd_nm: 500-2000
+  rationale: >-
+    Many clinical bispecifics use CD3 arms with Kd ~50-200 nM.
+    Lower affinity reduces CRS while maintaining T-cell engagement
+    due to avidity effects when tumor antigen is also bound.
+
+# OKT3/Teplizumab-specific mutations
+teplizumab_variants:
+  wild_type:
+    name: WT
+    kd_fold_change: 1
+    mutations: []
+    notes: Original high-affinity binder (~5 nM)
+
+  # CDR-H2 mutations (major binding contribution)
+  cdr_h2_y50a:
+    name: Y50A
+    kd_fold_change: 10
+    mutations:
+      - chain: VH
+        position: 50  # IMGT numbering
+        from: Y
+        to: A
+        cdr: H2
+    notes: Tyrosine at position 50 makes key contact with CD3ε
+
+  cdr_h2_r52a:
+    name: R52A
+    kd_fold_change: 5
+    mutations:
+      - chain: VH
+        position: 52
+        from: R
+        to: A
+        cdr: H2
+    notes: Arginine contributes to electrostatic interactions
+
+  # CDR-H3 mutations
+  cdr_h3_y97a:
+    name: Y97A
+    kd_fold_change: 20
+    mutations:
+      - chain: VH
+        position: 97
+        from: Y
+        to: A
+        cdr: H3
+    notes: CDR-H3 aromatic residue at interface
+
+  # Combination variants
+  combo_10x:
+    name: 10x-weaker
+    kd_fold_change: 10
+    mutations:
+      - chain: VH
+        position: 50
+        from: Y
+        to: A
+        cdr: H2
+    notes: Single mutation for moderate attenuation
+
+  combo_50x:
+    name: 50x-weaker
+    kd_fold_change: 50
+    mutations:
+      - chain: VH
+        position: 50
+        from: Y
+        to: A
+        cdr: H2
+      - chain: VH
+        position: 52
+        from: R
+        to: A
+        cdr: H2
+    notes: Double mutation for significant attenuation
+
+  combo_100x:
+    name: 100x-weaker
+    kd_fold_change: 100
+    mutations:
+      - chain: VH
+        position: 50
+        from: Y
+        to: A
+        cdr: H2
+      - chain: VH
+        position: 97
+        from: Y
+        to: A
+        cdr: H3
+    notes: Mutations in H2 + H3 for strong attenuation
+
+# General strategies applicable to any CD3 binder
+general_strategies:
+  alanine_scanning:
+    description: >-
+      Systematically mutate CDR residues to alanine to identify
+      hot spots. Residues with >5x Kd change are binding hot spots.
+    priority_positions:
+      - CDR-H3 aromatics (F, W, Y)
+      - CDR-H2 charged residues (R, K)
+      - CDR-L3 aromatics
+
+  conservative_mutations:
+    description: >-
+      Replace hot spot residues with chemically similar but
+      smaller amino acids to reduce binding without disrupting fold.
+    examples:
+      - "Y→F (remove hydroxyl)"
+      - "R→K (reduce side chain)"
+      - "W→F (reduce size)"
+
+  framework_back_mutations:
+    description: >-
+      For humanized antibodies, some framework residues affect
+      CDR conformation. Back-mutating to germline may reduce affinity.
+    caution: May also affect humanness score
+
+# Validation recommendations
+validation:
+  assays:
+    - name: SPR/BLI
+      purpose: Measure Kd directly
+      required: true
+    - name: Cell binding (flow cytometry)
+      purpose: Confirm binding to CD3+ cells
+      required: true
+    - name: T-cell activation (CD69 upregulation)
+      purpose: Functional consequence of affinity change
+      required: true
+    - name: Cytokine release (IL-2, IFNγ, TNFα)
+      purpose: Safety indicator
+      required: true
+
+  controls:
+    - Wild-type (positive control)
+    - Non-binding mutant (negative control)
+    - Known clinical CD3 binders (benchmark)

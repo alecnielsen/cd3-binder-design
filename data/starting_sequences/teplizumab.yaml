@@ -1,0 +1,75 @@
+# Teplizumab (hOKT3γ1 Ala-Ala) - Humanized OKT3
+#
+# Source: MacroGenics/Eli Lilly
+# FDA Approved: 2022 (Tzield) for Type 1 Diabetes
+# Patent Status: Expired (original OKT3 patents from 1980s)
+#
+# Key features:
+# - IgG1 isotype with Fc mutations (L234A, L235A) to reduce FcR binding
+# - CDRs grafted from murine OKT3 onto human framework
+# - Does NOT cross-react with cynomolgus CD3
+#
+# References:
+# - Herold et al. (2002) NEJM - Phase I/II trial
+# - Keymeulen et al. (2005) NEJM - Efficacy in T1D
+
+name: teplizumab
+aliases:
+  - hOKT3γ1(Ala-Ala)
+  - MGA031
+  - PRV-031
+  - Tzield
+
+# Variable region sequences (mature, no signal peptide)
+vh_sequence: >-
+  QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPSRGYTNYNQKFKD
+  KATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTLTVSS
+
+vl_sequence: >-
+  QIVLTQSPAIMSASPGEKVTMTCSASSSVSYMNWYQQKSGTSPKRWIYDTSKLASGVPAHFRGSGS
+  GTSYSLTISGMEAEDAATYYCQQWSSNPFTFGSGTKLEINR
+
+# CDR definitions (IMGT numbering)
+cdrs:
+  cdr_h1: GYTFTRYT  # positions 26-33
+  cdr_h2: INPSRGYTNYNQKFKD  # positions 51-65
+  cdr_h3: YYDDHYCLDY  # positions 95-102
+  cdr_l1: SASSSVSYMN  # positions 27-38
+  cdr_l2: DTSKLAS  # positions 56-65
+  cdr_l3: QQWSSNPFT  # positions 89-97
+
+# Framework regions (for grafting to other frameworks if needed)
+frameworks:
+  fr_h1: QVQLQQSGAELARPGASVKMSCKAS
+  fr_h2: MHWVKQRPGQGLEWIG
+  fr_h3: KATLTTDKSSSTAYMQLSSLTSEDSAVYYCAR
+  fr_h4: WGQGTTLTVSS
+  fr_l1: QIVLTQSPAIMSASPGEKVTMTC
+  fr_l2: WYQQKSGTSPKRWIY
+  fr_l3: GVPAHFRGSGSGTSYSLTISGMEAEDAATYYC
+  fr_l4: FGSGTKLEINR
+
+# Constant region information
+constant_region:
+  isotype: IgG1
+  fc_mutations:
+    - position: L234A  # EU numbering
+      effect: Reduces FcγR binding
+    - position: L235A  # EU numbering
+      effect: Reduces FcγR binding
+
+# Binding properties (approximate from literature)
+binding:
+  target: CD3ε
+  epitope: OKT3 epitope on CD3ε
+  kd_nm: 5  # Approximate, high affinity
+  cross_reactivity:
+    human: true
+    cynomolgus: false
+    mouse: false
+
+# Notes for design
+notes:
+  - High affinity (~5 nM) - may want to attenuate for bispecific use
+  - Well-characterized clinically
+  - Does not cross-react with cyno - use SP34 for preclinical if needed

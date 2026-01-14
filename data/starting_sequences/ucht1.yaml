@@ -1,0 +1,77 @@
+# UCHT1 - Anti-CD3 Monoclonal Antibody
+#
+# Source: Callard et al. (1981) Clin Exp Immunol
+# Patent Status: Expired (1981 publication)
+#
+# Key features:
+# - Murine IgG1 antibody
+# - Cross-reacts with chimpanzee but NOT cynomolgus/macaque CD3
+# - Alternative epitope to OKT3 (different binding mode)
+#
+# References:
+# - Callard RE, et al. (1981) Clin Exp Immunol 43(3):497-505
+# - Zhu Z, Carter P (1995) J Immunol - V9 derivative
+
+name: ucht1
+aliases:
+  - UCHT-1
+  - HuM291  # Humanized version (visilizumab parent)
+
+# Variable region sequences (murine)
+vh_sequence: >-
+  EVKLDETGGGLVQPGRPMKLSCVASGFTFSDYWMNWVRQSPEKGLEWVAEIRLKSNNYATHYAESVK
+  GRFTISRDDSKSSVYLQMNNLRVEDTGIYYCTGSYYGMDYWGQGTSVTVSS
+
+vl_sequence: >-
+  DIQMTQSPSSLSASLGERVSLTCRASQDIRNYLNWYQQKPDGTVKLLIYYTSRLHSGVPSRFSGSGS
+  GTDYSLTISNLEQEDIATYFCQQGNTLPWTFGGGTKLEIK
+
+# CDR definitions (IMGT numbering, approximate)
+cdrs:
+  cdr_h1: GFTFSDYW
+  cdr_h2: IRLKSNNYATHYAESVKG
+  cdr_h3: GSYYGMDY
+  cdr_l1: RASQDIRNYL
+  cdr_l2: YTSRLHS
+  cdr_l3: QQGNTLPWT
+
+# Humanization
+humanization:
+  suggested_vh_framework: IGHV1-69*01
+  suggested_vl_framework: IGKV3-20*01
+
+  # Humanized VH
+  humanized_vh: >-
+    EVQLVESGGGLVQPGGSLRLSCAASGFTFSDYWMNWVRQAPGKGLEWVAEIRLKSNNYATHYAESVKG
+    RFTISRDNAKNSLYLQMNSLRAEDTAVYYCTGSYYGMDYWGQGTLVTVSS
+
+  # Humanized VL
+  humanized_vl: >-
+    EIVLTQSPATLSLSPGERATLSCRASQDIRNYLNWYQQKPGQAPRLLIYYTSRLHSGIPARFSGSGS
+    GTDFTLTISSLEPEDFAVYYCQQGNTLPWTFGQGTKVEIK
+
+# Known variants
+variants:
+  v9:
+    description: Affinity-matured UCHT1 derivative
+    reference: Zhu & Carter (1995) J Immunol
+    vh_mutations: []  # Specific mutations not publicly available
+    vl_mutations: []
+
+# Binding properties
+binding:
+  target: CD3ε
+  epitope: Different from OKT3 epitope
+  kd_nm: 20  # Approximate
+  cross_reactivity:
+    human: true
+    chimpanzee: true
+    cynomolgus: false  # Does NOT cross-react
+    mouse: false
+
+# Notes for design
+notes:
+  - Alternative epitope to OKT3/teplizumab
+  - Does NOT cross-react with cynomolgus - not suitable for standard preclinical
+  - Parent of visilizumab (development discontinued)
+  - Lower affinity than OKT3 - may be suitable without attenuation

@@ -1,0 +1,125 @@
+# Human IgG1 Constant Region Sequences
+#
+# Standard sequences for assembling full-length antibodies and bispecifics.
+# All sequences are human IgG1 with optional Fc-silencing mutations.
+#
+# Numbering: EU numbering system
+# Source: UniProt P01857 (IGHG1_HUMAN)
+
+# Light chain constant regions
+kappa_cl:
+  name: Human Kappa CL
+  sequence: >-
+    RTVAAPSVFIFPPSDEQLKSGTASVVCLLNNFYPREAKVQWKVDNALQSGNSQESVTEQDSKDSTYS
+    LSSTLTLSKADYEKHKVYACEVTHQGLSSPVTKSFNRGEC
+  length: 107
+  source: UniProt P01834
+
+lambda_cl:
+  name: Human Lambda CL
+  sequence: >-
+    GQPKANPTVTLFPPSSEELQANKATLVCLISDFYPGAVTVAWKADGSPVKAGVETTKPSKQSNNKYA
+    ASSYLSLTPEQWKSHRSYSCQVTHEGSTVEKTVAPTECS
+  length: 106
+  source: UniProt P0CG04
+
+# Heavy chain constant regions
+ch1:
+  name: Human IgG1 CH1
+  sequence: >-
+    ASTKGPSVFPLAPSSKSTSGGTAALGCLVKDYFPEPVTVSWNSGALTSGVHTFPAVLQSSGLYSLSS
+    VVTVPSSSLGTQTYICNVNHKPSNTKVDKRV
+  length: 98
+  source: UniProt P01857
+
+hinge:
+  name: Human IgG1 Hinge
+  sequence: EPKSCDKTHTCPPCP
+  length: 15
+  notes: Contains two disulfide bonds between heavy chains
+  source: UniProt P01857
+
+# IgG1 hinge variants
+hinge_variants:
+  standard:
+    sequence: EPKSCDKTHTCPPCP
+    notes: Wild-type IgG1 hinge
+
+  igg4_like:
+    sequence: ESKYGPPCPPCP
+    notes: IgG4-like hinge, reduced Fab arm exchange
+    use_case: When IgG4-like properties desired
+
+ch2:
+  name: Human IgG1 CH2
+  sequence: >-
+    APELLGGPSVFLFPPKPKDTLMISRTPEVTCVVVDVSHEDPEVKFNWYVDGVEVHNAKTKPREEQYN
+    STYRVVSVLTVLHQDWLNGKEYKCKVSNKALPAPIEKTISKAK
+  length: 110
+  source: UniProt P01857
+
+ch3:
+  name: Human IgG1 CH3
+  sequence: >-
+    GQPREPQVYTLPPSREEMTKNQVSLTCLVKGFYPSDIAVEWESNGQPENNYKTTPPVLDSDGSFFLY
+    SKLTVDKSRWQQGNVFSCSVMHEALHNHYTQKSLSLSPGK
+  length: 107
+  source: UniProt P01857
+
+# Complete Fc region (hinge + CH2 + CH3)
+fc_wild_type:
+  name: Human IgG1 Fc (wild-type)
+  sequence: >-
+    EPKSCDKTHTCPPCPAPELLGGPSVFLFPPKPKDTLMISRTPEVTCVVVDVSHEDPEVKFNWYVDGV
+    EVHNAKTKPREEQYNSTYRVVSVLTVLHQDWLNGKEYKCKVSNKALPAPIEKTISKAKGQPREPQVY
+    TLPPSREEMTKNQVSLTCLVKGFYPSDIAVEWESNGQPENNYKTTPPVLDSDGSFFLYSKLTVDKSR
+    WQQGNVFSCSVMHEALHNHYTQKSLSLSPGK
+  components:
+    - hinge
+    - ch2
+    - ch3
+  notes: Includes full effector function (ADCC, CDC)
+
+# Fc-silenced variant (LALA mutation)
+fc_lala:
+  name: Human IgG1 Fc (LALA - Fc-silenced)
+  sequence: >-
+    EPKSCDKTHTCPPCPAPEAAGGPSVFLFPPKPKDTLMISRTPEVTCVVVDVSHEDPEVKFNWYVDGV
+    EVHNAKTKPREEQYNSTYRVVSVLTVLHQDWLNGKEYKCKVSNKALPAPIEKTISKAKGQPREPQVY
+    TLPPSREEMTKNQVSLTCLVKGFYPSDIAVEWESNGQPENNYKTTPPVLDSDGSFFLYSKLTVDKSR
+    WQQGNVFSCSVMHEALHNHYTQKSLSLSPGK
+  mutations:
+    - position: 234
+      from: L
+      to: A
+      effect: Reduces FcγRI binding
+    - position: 235
+      from: L
+      to: A
+      effect: Reduces FcγRII/III binding
+  notes: >-
+    Standard Fc-silencing for bispecifics where effector function
+    is not desired. Reduces ADCC and CDC.
+  use_case: T-cell engaging bispecifics
+
+# Fc-silenced variant (LALAPG - enhanced silencing)
+fc_lalapg:
+  name: Human IgG1 Fc (LALA-PG - enhanced Fc-silenced)
+  sequence: >-
+    EPKSCDKTHTCPPCPAPEAAGGPSVFLFPPKPKDTLMISRTPEVTCVVVDVSHEDPEVKFNWYVDGV
+    EVHNAKTKPREEQYNSTYRVVSVLTVLHQDWLNGKEYKCKVSNKALGAPIEKTISKAKGQPREPQVY
+    TLPPSREEMTKNQVSLTCLVKGFYPSDIAVEWESNGQPENNYKTTPPVLDSDGSFFLYSKLTVDKSR
+    WQQGNVFSCSVMHEALHNHYTQKSLSLSPGK
+  mutations:
+    - position: 234
+      from: L
+      to: A
+    - position: 235
+      from: L
+      to: A
+    - position: 329
+      from: P
+      to: G
+      effect: Further reduces C1q binding (CDC)
+  notes: Enhanced silencing including reduced CDC
+  use_case: When complete effector silencing required

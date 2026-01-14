@@ -1,0 +1,141 @@
+# Linker Sequences for Antibody Engineering
+#
+# Standard linkers for scFv construction and Fc fusions.
+# Flexible glycine-serine linkers are most common.
+
+# scFv linkers (connecting VH to VL)
+scfv_linkers:
+  standard_15aa:
+    name: "(G4S)3 - Standard scFv linker"
+    sequence: GGGGSGGGGSGGGGS
+    length: 15
+    flexibility: High
+    use_case: Most common scFv linker
+    notes: >-
+      15 amino acids provides sufficient length for VH-VL or VL-VH
+      orientation. Highly flexible, low immunogenicity.
+
+  short_10aa:
+    name: "(G4S)2 - Short scFv linker"
+    sequence: GGGGSGGGGS
+    length: 10
+    flexibility: High
+    use_case: Compact scFv, may affect binding
+    notes: >-
+      Shorter linker can constrain VH-VL orientation.
+      May affect affinity but reduces size.
+
+  long_20aa:
+    name: "(G4S)4 - Long scFv linker"
+    sequence: GGGGSGGGGSGGGGSGGGGS
+    length: 20
+    flexibility: High
+    use_case: When standard linker causes steric issues
+    notes: >-
+      Longer linker provides more flexibility.
+      Use if standard linker causes aggregation or poor expression.
+
+  whitlow:
+    name: "Whitlow linker"
+    sequence: GSTSGSGKPGSGEGSTKG
+    length: 18
+    flexibility: Medium
+    use_case: Alternative to (G4S)n
+    notes: >-
+      Contains charged residues for solubility.
+      May have different immunogenicity profile.
+    reference: "Whitlow M, et al. (1993) Protein Eng"
+
+# Fc fusion linkers (connecting domain to Fc or VHH to Fc)
+fc_fusion_linkers:
+  short_5aa:
+    name: "G4S - Short Fc fusion"
+    sequence: GGGGS
+    length: 5
+    flexibility: High
+    use_case: Minimal spacing
+
+  standard_10aa:
+    name: "(G4S)2 - Standard Fc fusion"
+    sequence: GGGGSGGGGS
+    length: 10
+    flexibility: High
+    use_case: Most common for VHH-Fc or scFv-Fc fusions
+    notes: Recommended for Morrison format IgG-scFv/VHH
+
+  rigid_helical:
+    name: "A(EAAAK)3A - Rigid helical"
+    sequence: AEAAAKEAAAKEAAAKA
+    length: 17
+    flexibility: Low (alpha-helical)
+    use_case: When rigid spacing needed
+    notes: >-
+      Forms alpha helix, maintains fixed distance.
+      Use when flexible linker causes issues.
+
+  proline_rich:
+    name: "(GGGPP)2 - Semi-rigid"
+    sequence: GGGPPGGGPP
+    length: 10
+    flexibility: Medium
+    use_case: Intermediate flexibility
+    notes: Proline restricts backbone flexibility
+
+# Hinge-derived linkers
+hinge_linkers:
+  igg1_upper_hinge:
+    name: "IgG1 upper hinge"
+    sequence: EPKSCDKTHT
+    length: 10
+    flexibility: Medium
+    contains_cysteine: true
+    use_case: Natural antibody spacing
+    notes: Contains cysteine for potential disulfide
+
+  igg3_hinge:
+    name: "IgG3 hinge (extended)"
+    sequence: >-
+      ELKTPLGDTTHTCPRCPEPKSCDTPPPCPRCPEPKSCDTPPPCPRCPEPKSCDTPPPCPRCP
+    length: 62
+    flexibility: High
+    use_case: Maximum spacing between Fab and Fc
+    notes: Very long, highly flexible
+
+# Bispecific-specific linkers
+bispecific_linkers:
+  scfv_to_fc:
+    description: "Linker for fusing scFv to Fc (asymmetric formats)"
+    recommended: "(G4S)2"
+    sequence: GGGGSGGGGS
+
+  vhh_to_fc:
+    description: "Linker for fusing VHH to Fc (asymmetric formats)"
+    recommended: "G4S"
+    sequence: GGGGS
+    notes: VHH is smaller, may need less linker
+
+  c_terminal_fusion:
+    description: "Linker for Morrison format (IgG-scFv/VHH)"
+    recommended: "(G4S)2"
+    sequence: GGGGSGGGGS
+    notes: >-
+      Connects CH3 C-terminus to scFv/VHH N-terminus.
+      10 aa provides good flexibility without excessive length.
+
+# Selection guide
+selection_guide:
+  scfv_construction:
+    default: "(G4S)3 (15aa)"
+    if_aggregation: "Try (G4S)4 (20aa)"
+    if_low_expression: "Try Whitlow"
+
+  fc_fusion:
+    default: "(G4S)2 (10aa)"
+    for_vhh: "G4S (5aa) may be sufficient"
+    if_steric_issues: "Try rigid helical"
+
+  general_rules:
+    - "Longer is usually safer for initial designs"
+    - "Glycine-serine linkers have lowest immunogenicity"
+    - "Avoid linkers with protease cleavage sites"
+    - "Consider linker in structure prediction"

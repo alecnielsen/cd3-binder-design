@@ -14,8 +14,11 @@ A computational pipeline for designing CD3-binding domains (VHH nanobodies and s
 8. [Implementation Details](#implementation-details)
 9. [Expected Outputs](#expected-outputs)
 10. [Installation & Usage](#installation--usage)
-11. [Technical Considerations](#technical-considerations)
-12. [References](#references)
+11. [Known Limitations](#known-limitations)
+12. [Experimental Validation Requirements](#experimental-validation-requirements)
+13. [Reproducibility](#reproducibility)
+14. [Technical Considerations](#technical-considerations)
+15. [References](#references)
 
 ---
 
@@ -35,8 +38,9 @@ Design ~10 CD3-binding protein sequences with favorable developability propertie
 ### Key Constraints
 
 - All tools must have **permissive licenses** (MIT, BSD, Apache, CC-BY) for commercial use
-- Target **~50 nM Kd** for CD3 binding to balance efficacy with reduced cytokine release syndrome (CRS) risk
+- **Design hypothesis**: ~50 nM Kd may balance efficacy with reduced CRS (see [Known Limitations](#known-limitations) for why this cannot be computationally enforced)
 - Output sequences must be experimentally testable (expressible, stable, non-immunogenic)
+- **Experimental validation is required** - computational filtering reduces risk but does not guarantee success
 
 ---
 
@@ -66,7 +70,7 @@ Higher-affinity CD3 binders cause more T-cell activation and cytokine release:
 - Many modern bispecifics intentionally use ~50-100 nM CD3 arms to reduce CRS while maintaining efficacy
 - Affinity attenuation of 10-100x from high-affinity binders can maintain killing while reducing cytokines
 
-**Design target**: ~50 nM Kd as a starting point, with variants spanning 10-500 nM range.
+**Design hypothesis**: ~50 nM Kd may be optimal, with variants spanning 10-500 nM range. However, computational tools cannot predict absolute Kd values (see [Known Limitations](#known-limitations)). This hypothesis must be validated experimentally across an affinity panel.
 
 ### Source Structures
 
@@ -180,16 +184,41 @@ For scFv designs:
                                     │
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────────┐
+│                    CALIBRATION PHASE (Run Once)                          │
+├─────────────────────────────────────────────────────────────────────────┤
+│  Purpose: Establish filter thresholds using KNOWN BINDERS               │
+│                                                                         │
+│  Step 1: Run Boltz-2 on teplizumab/SP34/UCHT1 + CD3ε complexes         │
+│  Step 2: Record pDockQ, interface area, contact counts for each         │
+│  Step 3: Set thresholds to ACCEPT all known binders:                    │
+│          • min_pdockq = min(known_binder_pdockq) - 0.05                │
+│          • min_interface_area = min(known_binder_area) - 100           │
+│          • min_contacts = min(known_binder_contacts) - 2               │
+│  Step 4: Document calibration results in config.yaml                    │
+│                                                                         │
+│  CRITICAL: If known binders fail default thresholds, thresholds are     │
+│  wrong, not the binders. Calibration prevents false negative filtering. │
+└─────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────┐
 │                        FILTERING CASCADE                                 │
 ├─────────────────────────────────────────────────────────────────────────┤
-│  Filter 1: BINDING QUALITY                                              │
-│  • Boltz-2 pDockQ > 0.5 (or pTM > 0.6)                                 │
-│  • Interface buried surface area > 800 Å²                               │
-│  • Contact residues with CD3ε > 10                                      │
+│  NOTE: All thresholds below are DEFAULTS. Use calibrated thresholds     │
+│  from the calibration phase for actual filtering runs.                  │
+│                                                                         │
+│  Filter 1: BINDING QUALITY (calibrated thresholds)                      │
+│  • Boltz-2 pDockQ > [calibrated, default 0.5]                          │
+│  • Interface buried surface area > [calibrated, default 800 Å²]        │
+│  • Contact residues with CD3ε > [calibrated, default 10]               │
+│  NOTE: pDockQ is a structural confidence score, NOT an affinity         │
+│  predictor. High pDockQ ≠ high affinity. See Known Limitations.         │
 │                                                                         │
 │  Filter 2: HUMANNESS                                                    │
 │  • BioPhi OASis score > 0.8 (for VH/VL)                                │
 │  • Sapiens humanization suggestions applied                             │
+│  • If humanization significantly changes CDRs, FLAG for back-mutation   │
+│    testing (humanized + key CDR residues restored)                      │
 │                                                                         │
 │  Filter 3: SEQUENCE LIABILITIES                                         │
 │  • Deamidation: No NG, NS motifs in CDRs                               │
@@ -212,6 +241,21 @@ For scFv designs:
                                     │
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────────┐
+│                       EPITOPE ANNOTATION                                 │
+├─────────────────────────────────────────────────────────────────────────┤
+│  For de novo designs, annotate predicted epitope vs OKT3 epitope:       │
+│  • Extract CD3ε contact residues from Boltz-2 complex                   │
+│  • Compare to OKT3 epitope residues (from 1SY6 structure)              │
+│  • Calculate epitope overlap percentage                                 │
+│  • Flag designs with < 50% overlap as "NOVEL EPITOPE"                  │
+│                                                                         │
+│  NOTE: Novel epitopes may have different biology (efficacy, safety).    │
+│  OKT3-like epitopes have clinical validation. Both are included in      │
+│  final candidates, but epitope type is tracked for prioritization.      │
+└─────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────┐
 │                       CANDIDATE RANKING                                  │
 ├─────────────────────────────────────────────────────────────────────────┤
 │  Composite score based on:                                              │
@@ -219,6 +263,18 @@ For scFv designs:
 │  • Humanness (OASis score, 25% weight)                                  │
 │  • Liability count (inverse, 25% weight)                               │
 │  • Developability metrics (20% weight)                                  │
+│                                                                         │
+│  DIVERSITY REQUIREMENT:                                                 │
+│  • Cluster candidates by CDR-H3 sequence similarity (70% identity)     │
+│  • Select top candidate from each cluster                               │
+│  • Ensure mix of: de novo + optimized, VHH + scFv, OKT3 + novel epitope │
+│                                                                         │
+│  INSUFFICIENT CANDIDATES FALLBACK:                                      │
+│  If < 10 candidates survive filtering:                                  │
+│  1. Relax soft filters (oxidation, hydrophobic patches)                │
+│  2. Relax thresholds by 10% toward calibration baseline                │
+│  3. Include "borderline" candidates with explicit risk flags           │
+│  4. Document relaxations in output report                              │
 │                                                                         │
 │  Select top 15-20 candidates for format conversion                      │
 └─────────────────────────────────────────────────────────────────────────┘
@@ -546,6 +602,7 @@ cd3-binder-design/
 │   └── abodybuilder_app.py              # ABodyBuilder2 Modal deployment
 │
 ├── scripts/
+│   ├── 00_run_calibration.py            # Calibrate thresholds with known binders
 │   ├── 01_setup_targets.py              # Download and prepare structures
 │   ├── 02_run_denovo_design.py          # Run BoltzGen on Modal
 │   ├── 03_run_optimization.py           # Generate optimized variants
@@ -597,14 +654,33 @@ design:
       - 10x_weaker
       - 100x_weaker
 
+calibration:
+  # Known binders for threshold calibration
+  positive_controls:
+    - teplizumab
+    - sp34
+    - ucht1
+  # Calibrated thresholds (set after calibration run)
+  calibrated_thresholds:
+    min_pdockq: null              # Set by calibration
+    min_interface_area: null      # Set by calibration
+    min_contacts: null            # Set by calibration
+  calibration_margin:
+    pdockq: 0.05                  # Subtract from min known binder
+    interface_area: 100           # Subtract from min known binder
+    contacts: 2                   # Subtract from min known binder
+
 filtering:
   binding:
-    min_pdockq: 0.5
-    min_interface_area: 800       # Å²
-    min_contacts: 10
+    # DEFAULTS - use calibrated values if available
+    min_pdockq: 0.5               # Default, override with calibrated
+    min_interface_area: 800       # Å², override with calibrated
+    min_contacts: 10              # Override with calibrated
+    use_calibrated: true          # Use calibrated thresholds if available
 
   humanness:
     min_oasis_score: 0.8
+    generate_back_mutations: true # Generate CDR back-mutation variants
 
   liabilities:
     allow_deamidation_cdr: false
@@ -617,6 +693,11 @@ filtering:
     net_charge_range: [-2, 4]
     pi_range: [6.0, 9.0]
     max_hydrophobic_patches: 2
+
+  fallback:
+    min_candidates: 10            # Trigger fallback if fewer survive
+    relax_soft_filters_first: true
+    max_threshold_relaxation: 0.1 # 10% toward calibration baseline
 
 formatting:
   tumor_target: trastuzumab       # Placeholder, configurable
@@ -635,6 +716,16 @@ output:
   num_final_candidates: 10
   include_structures: true
   generate_report: true
+  include_provenance: true        # Add metadata to all outputs
+
+reproducibility:
+  boltzgen_seed: 42
+  sampling_seed: 12345
+  clustering_seed: 0
+
+epitope_annotation:
+  okt3_epitope_residues: [23, 25, 26, 27, 28, 29, 30, 31, 32]  # CD3ε residues from 1SY6
+  overlap_threshold: 0.5          # Flag as "novel epitope" if < 50% overlap
 ```
 
 ### Sequence Liability Detection
@@ -778,17 +869,26 @@ For each of the ~10 final candidates:
      "source": "boltzgen_1XIW",
      "binding": {
        "pdockq": 0.72,
+       "pdockq_note": "Structural confidence, NOT affinity predictor",
        "interface_area": 1245.3,
-       "contacts": 18
+       "contacts": 18,
+       "passed_calibrated_threshold": true
+     },
+     "epitope": {
+       "cd3_contact_residues": [23, 25, 26, 28, 29, 31, 45, 47],
+       "okt3_overlap_percent": 0.75,
+       "epitope_class": "OKT3-like"
      },
      "humanness": {
-       "oasis_score": 0.87
+       "oasis_score": 0.87,
+       "sapiens_mutations_applied": 3,
+       "back_mutation_variant_generated": true
      },
      "liabilities": {
        "deamidation_sites": [],
        "glycosylation_sites": [],
        "isomerization_sites": [],
-       "oxidation_sites": [{"position": 55, "residue": "M"}],
+       "oxidation_sites": [{"position": 55, "residue": "M", "severity": "soft"}],
        "unpaired_cys": 0
      },
      "developability": {
@@ -797,8 +897,14 @@ For each of the ~10 final candidates:
        "isoelectric_point": 7.8,
        "hydrophobic_patches": 1
      },
+     "risk_flags": [],
      "composite_score": 0.82,
-     "rank": 3
+     "rank": 3,
+     "_provenance": {
+       "pipeline_version": "1.0.0",
+       "git_commit": "abc1234",
+       "run_timestamp": "2026-01-15T10:30:00Z"
+     }
    }
    ```
 
@@ -848,18 +954,23 @@ modal deploy modal/boltz2_app.py
 ### Running the Pipeline
 
 ```bash
+# Step 0: Calibration (RUN FIRST - sets filter thresholds)
+python scripts/00_run_calibration.py    # Calibrate with known binders
+
 # Step-by-step execution
 python scripts/01_setup_targets.py      # Download CD3 structures
 python scripts/02_run_denovo_design.py  # Run BoltzGen (Modal)
 python scripts/03_run_optimization.py   # Generate optimized variants
 python scripts/04_predict_structures.py # Predict structures (Modal)
-python scripts/05_filter_candidates.py  # Apply filters
+python scripts/05_filter_candidates.py  # Apply filters (uses calibrated thresholds)
 python scripts/06_format_bispecifics.py # Generate bispecific sequences
 python scripts/07_generate_report.py    # Create final report
 
-# Or run everything
+# Or run everything (includes calibration)
 python scripts/run_full_pipeline.py --config config.yaml
 ```
+
+**Important**: Always run calibration before filtering. The calibration step uses known binders (teplizumab, SP34, UCHT1) to set appropriate filter thresholds. Skipping calibration may result in incorrect filtering.
 
 ### Configuration
 
@@ -871,19 +982,186 @@ Edit `config.yaml` to customize:
 
 ---
 
+## Known Limitations
+
+This section explicitly states what this computational pipeline **cannot do**. These limitations are fundamental to the current state of computational antibody design and should inform experimental planning.
+
+### 1. Affinity Cannot Be Predicted Computationally
+
+**Critical limitation**: No computational tool can reliably predict absolute Kd values.
+
+- **Boltz-2 pDockQ** is a structural confidence score (how confident the model is in the predicted structure), NOT an affinity predictor
+- High pDockQ does NOT mean high affinity; low pDockQ does NOT mean low affinity
+- The ~50 nM Kd target is a **design hypothesis based on literature**, not a computationally enforced constraint
+- Interface metrics (buried surface area, contact counts) correlate weakly with affinity but have wide error margins
+
+**Implication**: The entire affinity range must be validated experimentally. Computational filtering removes structurally implausible binders, not affinity-inappropriate ones.
+
+### 2. Filter Thresholds Are Not Validated
+
+**Critical limitation**: Default filter thresholds are heuristics from literature, not validated on this specific system.
+
+- pDockQ > 0.5 is a commonly used cutoff, but may exclude valid binders or include non-binders
+- Humanness thresholds (OASis > 0.8) are reasonable but not validated for CD3 binders specifically
+- The calibration phase (using known binders) addresses this, but calibration quality depends on Boltz-2 accuracy
+
+**Implication**: Always run calibration with known binders before filtering. If known binders fail filters, adjust thresholds.
+
+### 3. Humanization May Destroy Binding
+
+**Critical limitation**: BioPhi/Sapiens humanization suggests mutations to increase humanness, but these may disrupt binding.
+
+- CDR mutations during humanization can eliminate antigen binding
+- Framework mutations can alter CDR loop conformations
+- No computational method reliably predicts which humanization mutations are safe
+
+**Mitigation strategy**:
+1. For each humanized candidate, generate a "back-mutation" variant with original CDR residues restored
+2. Include both humanized and back-mutated versions in experimental testing
+3. Prioritize humanization mutations in framework regions over CDRs
+
+### 4. De Novo Designs May Have Different Biology
+
+**Critical limitation**: BoltzGen designs may bind epitopes different from the clinically validated OKT3 epitope.
+
+- Novel epitopes may have different T-cell activation profiles
+- Novel epitopes may have different safety profiles (CRS, neurotoxicity)
+- Cross-reactivity patterns (human vs cynomolgus) are unpredictable
+
+**Mitigation strategy**:
+1. Annotate epitope overlap with OKT3 for all de novo designs
+2. Prioritize OKT3-like epitopes for initial testing
+3. Include novel epitope designs with explicit risk acknowledgment
+
+### 5. Immunogenicity Cannot Be Fully Predicted
+
+**Critical limitation**: T-cell epitope prediction tools (NetMHCIIpan) are excluded due to license restrictions.
+
+- BioPhi OASis scores humanness (similarity to human antibody repertoire)
+- Humanness is a proxy for low immunogenicity, but not a guarantee
+- Some human-like sequences are still immunogenic; some non-human sequences are tolerated
+
+**Implication**: Immunogenicity must be assessed experimentally or with licensed prediction tools outside this pipeline.
+
+### 6. Developability Is Probabilistic, Not Deterministic
+
+**Critical limitation**: Computational filters reduce risk but don't guarantee success.
+
+- Sequences passing all filters may still aggregate, express poorly, or be unstable
+- Sequences failing soft filters may still be developable
+- Context matters: CDR liabilities in buried positions may be acceptable
+
+**Implication**: Plan for 50-70% attrition in experimental validation, even for computationally "clean" candidates.
+
+---
+
+## Experimental Validation Requirements
+
+Computational design produces **candidates for experimental testing**, not finished therapeutics. The following experimental validation is required.
+
+### Minimum Viable Validation
+
+| Assay | Purpose | Required For |
+|-------|---------|--------------|
+| SPR/BLI binding | Confirm binding, measure Kd | All candidates |
+| CD3ε-Fc ELISA | Confirm specificity | All candidates |
+| T-cell activation (CD69/CD25) | Confirm functional engagement | Top 5 candidates |
+| Cytokine release (IL-2, IFN-γ, TNF-α) | Assess CRS potential | Top 5 candidates |
+| Expression titer (transient) | Assess manufacturability | All candidates |
+| SEC-HPLC | Assess aggregation | All candidates |
+| DSF/DSC | Assess thermal stability | Top 5 candidates |
+
+### Validation of Affinity Hypothesis
+
+The ~50 nM Kd hypothesis requires an **affinity panel** experiment:
+
+1. Select 2-3 candidates with varying predicted binding metrics
+2. Generate affinity variants (if using optimized track): WT, 10x weaker, 100x weaker
+3. Measure Kd for all variants by SPR
+4. Measure T-cell killing and cytokine release for all variants
+5. Plot Kd vs. killing efficacy and Kd vs. cytokine release
+6. Identify optimal Kd range empirically
+
+### Validation of Epitope Effects
+
+If de novo designs with novel epitopes are advanced:
+
+1. Perform epitope binning with OKT3
+2. Compare T-cell activation kinetics to OKT3-like binders
+3. Assess cross-blocking with endogenous TCR signaling
+
+---
+
+## Reproducibility
+
+### Version Pinning
+
+All tool versions are pinned in `requirements.txt` and `pyproject.toml`:
+
+```
+boltzgen==0.2.1
+boltz2==0.3.0
+anarci==1.3.1
+biophi==1.0.5
+abnumber==0.3.5
+abodybuilder2==1.0.2
+```
+
+### Random Seeds
+
+All stochastic operations use explicit seeds documented in `config.yaml`:
+
+```yaml
+reproducibility:
+  boltzgen_seed: 42
+  sampling_seed: 12345
+  train_test_split_seed: 0
+```
+
+### Modal Container Hashes
+
+GPU compute containers are versioned by hash:
+
+```yaml
+modal:
+  boltzgen_image_hash: "sha256:abc123..."
+  boltz2_image_hash: "sha256:def456..."
+```
+
+### Output Provenance
+
+Each output file includes provenance metadata:
+
+```yaml
+# In each output YAML/JSON
+_provenance:
+  pipeline_version: "1.0.0"
+  git_commit: "abc1234"
+  run_timestamp: "2026-01-15T10:30:00Z"
+  config_hash: "sha256:..."
+  tool_versions:
+    boltzgen: "0.2.1"
+    boltz2: "0.3.0"
+```
+
+### Reproducing Results
+
+```bash
+# Clone at specific commit
+git clone https://github.com/alecnielsen/cd3-binder-design.git
+cd cd3-binder-design
+git checkout <commit_hash>
+
+# Install exact versions
+pip install -r requirements.txt --no-deps
+
+# Run with same config
+python scripts/run_full_pipeline.py --config config.yaml
+```
+
+---
+
 ## Technical Considerations
-
-### Limitations
-
-1. **Affinity prediction**: Computational tools predict binding mode but not precise Kd. Experimental validation required.
-
-2. **BoltzGen novelty**: De novo designs may bind different epitopes than OKT3. This could be advantageous (novel IP) or problematic (different biology).
-
-3. **Cross-reactivity**: BoltzGen designs may not cross-react with cynomolgus CD3. SP34-derived sequences recommended for preclinical studies.
-
-4. **Developability predictions**: Computational filters reduce risk but don't guarantee expressibility or stability. Experimental screening required.
-
-5. **Immunogenicity**: T-cell epitope prediction (NetMHCIIpan) excluded due to license restrictions. Humanness scoring (BioPhi) provides partial mitigation.
 
 ### Assumptions
 
@@ -894,12 +1172,17 @@ Edit `config.yaml` to customize:
 
 ### Risks and Mitigations
 
-| Risk | Mitigation |
-|------|------------|
-| BoltzGen fails to generate binders | Optimization track provides fallback |
-| All designs fail filters | Relax thresholds iteratively |
-| Poor binding predictions | Include known binders as positive controls |
-| Aggregation issues | Include aggregation-prone sequence filters |
+| Risk | Likelihood | Impact | Mitigation |
+|------|------------|--------|------------|
+| BoltzGen fails to generate binders | Low | High | Optimization track provides fallback; use both target structures |
+| All designs fail filters | Medium | High | Calibration phase sets appropriate thresholds; iterative relaxation |
+| Humanization destroys binding | Medium | Medium | Include back-mutation variants; test both humanized and original |
+| De novo epitopes have poor biology | Medium | High | Annotate epitope overlap; prioritize OKT3-like; include SP34/UCHT1 track |
+| Insufficient candidates survive | Medium | Medium | Fallback protocol: relax soft filters, then hard filters with documentation |
+| Poor Kd range for CRS balance | High | High | Generate affinity panel; validate hypothesis experimentally |
+| Cross-reactivity issues for preclinical | Medium | Medium | Include SP34-derived sequences; test cynomolgus binding early |
+
+See [Known Limitations](#known-limitations) for detailed discussion of fundamental constraints.
 
 ---
 

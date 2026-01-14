@@ -1,0 +1,173 @@
+# Knob-in-Hole Mutations for Heterodimeric Fc
+#
+# Engineering mutations to force heavy chain heterodimerization.
+# Essential for asymmetric bispecific formats (Fab+scFv, Fab+VHH, CrossMab).
+#
+# References:
+# - Ridgway JB, et al. (1996) Protein Eng - Original knob-into-hole
+# - Atwell S, et al. (1997) J Mol Biol - Optimization
+# - Merchant AM, et al. (1998) Nat Biotechnol - Additional variants
+
+# EU numbering positions
+eu_numbering:
+  T366: CH3 domain
+  L368: CH3 domain
+  Y407: CH3 domain
+
+# Standard knob-into-hole (most common)
+standard:
+  knob:
+    name: Knob (bulky mutation)
+    mutations:
+      - position: T366W
+        from: T
+        to: W
+        domain: CH3
+    ch3_sequence: >-
+      GQPREPQVYTLPPSREEMTKNQVSLTCLVKGFYPSDIAVEWESNGQPENNYKTTPPVLDSDGSFFLY
+      SKLWVDKSRWQQGNVFSCSVMHEALHNHYTQKSLSLSPGK
+    notes: Tryptophan creates "knob" that fits into hole
+
+  hole:
+    name: Hole (cavity-creating mutations)
+    mutations:
+      - position: T366S
+        from: T
+        to: S
+        domain: CH3
+      - position: L368A
+        from: L
+        to: A
+        domain: CH3
+      - position: Y407V
+        from: Y
+        to: V
+        domain: CH3
+    ch3_sequence: >-
+      GQPREPQVYTLPPSREEMTKNQVSLTCLVKGFYPSDIAVEWESNGQPENNYKTTPPVLDSDGSFFLY
+      SKLSVDKSRWQQGNVFSCSVMHEAAHNVYTQKSLSLSPGK
+    notes: Three mutations create complementary cavity
+
+  heterodimer_purity: ">95%"
+  reference: "Merchant et al. (1998) Nat Biotechnol"
+
+# Enhanced knob-into-hole with disulfide
+enhanced_with_disulfide:
+  description: >-
+    Additional inter-chain disulfide for increased stability.
+    Cysteine pair at S354C/Y349C further stabilizes heterodimer.
+
+  knob:
+    mutations:
+      - position: T366W
+        from: T
+        to: W
+      - position: S354C
+        from: S
+        to: C
+        notes: Forms disulfide with Y349C on hole chain
+    notes: Knob with additional cysteine
+
+  hole:
+    mutations:
+      - position: T366S
+        from: T
+        to: S
+      - position: L368A
+        from: L
+        to: A
+      - position: Y407V
+        from: Y
+        to: V
+      - position: Y349C
+        from: Y
+        to: C
+        notes: Forms disulfide with S354C on knob chain
+    notes: Hole with additional cysteine
+
+  heterodimer_purity: ">99%"
+  stability: Increased vs standard knob-hole
+  reference: "Carter P (2001) J Immunol Methods"
+
+# Electrostatic steering (alternative to knob-hole)
+electrostatic_steering:
+  description: >-
+    Charge pair mutations that favor heterodimerization through
+    electrostatic complementarity. Can be combined with knob-hole.
+
+  chain_a:
+    mutations:
+      - position: K409D
+        from: K
+        to: D
+      - position: K392D
+        from: K
+        to: D
+    charge: Negative
+
+  chain_b:
+    mutations:
+      - position: D399K
+        from: D
+        to: K
+      - position: E356K
+        from: E
+        to: K
+    charge: Positive
+
+  notes: >-
+    Favorable for expression as charge repulsion disfavors
+    homodimers during assembly.
+  reference: "Gunasekaran K, et al. (2010) JBC"
+
+# Full Fc sequences with knob-hole mutations
+complete_sequences:
+  fc_knob:
+    name: IgG1 Fc with Knob (LALA + T366W)
+    hinge: EPKSCDKTHTCPPCP
+    ch2: >-
+      APEAAGGPSVFLFPPKPKDTLMISRTPEVTCVVVDVSHEDPEVKFNWYVDGVEVHNAKTKPREEQYN
+      STYRVVSVLTVLHQDWLNGKEYKCKVSNKALPAPIEKTISKAK
+    ch3: >-
+      GQPREPQVYTLPPSREEMTKNQVSLTCLVKGFYPSDIAVEWESNGQPENNYKTTPPVLDSDGSFFLY
+      SKLWVDKSRWQQGNVFSCSVMHEALHNHYTQKSLSLSPGK
+    full_sequence: >-
+      EPKSCDKTHTCPPCPAPEAAGGPSVFLFPPKPKDTLMISRTPEVTCVVVDVSHEDPEVKFNWYVDGV
+      EVHNAKTKPREEQYNSTYRVVSVLTVLHQDWLNGKEYKCKVSNKALPAPIEKTISKAKGQPREPQVY
+      TLPPSREEMTKNQVSLTCLVKGFYPSDIAVEWESNGQPENNYKTTPPVLDSDGSFFLYSKLWVDKSR
+      WQQGNVFSCSVMHEALHNHYTQKSLSLSPGK
+    mutations: [L234A, L235A, T366W]
+
+  fc_hole:
+    name: IgG1 Fc with Hole (LALA + T366S/L368A/Y407V)
+    hinge: EPKSCDKTHTCPPCP
+    ch2: >-
+      APEAAGGPSVFLFPPKPKDTLMISRTPEVTCVVVDVSHEDPEVKFNWYVDGVEVHNAKTKPREEQYN
+      STYRVVSVLTVLHQDWLNGKEYKCKVSNKALPAPIEKTISKAK
+    ch3: >-
+      GQPREPQVYTLPPSREEMTKNQVSLTCLVKGFYPSDIAVEWESNGQPENNYKTTPPVLDSDGSFFLY
+      SKLSVDKSRWQQGNVFSCSVMHEAAHNVYTQKSLSLSPGK
+    full_sequence: >-
+      EPKSCDKTHTCPPCPAPEAAGGPSVFLFPPKPKDTLMISRTPEVTCVVVDVSHEDPEVKFNWYVDGV
+      EVHNAKTKPREEQYNSTYRVVSVLTVLHQDWLNGKEYKCKVSNKALPAPIEKTISKAKGQPREPQVY
+      TLPPSREEMTKNQVSLTCLVKGFYPSDIAVEWESNGQPENNYKTTPPVLDSDGSFFLYSKLS VDKSR
+      WQQGNVFSCSVMHEAAHNVYTQKSLSLSPGK
+    mutations: [L234A, L235A, T366S, L368A, Y407V]
+
+# Usage notes
+usage:
+  asymmetric_formats:
+    - CrossMab (Fab × Fab)
+    - Fab + scFv
+    - Fab + VHH
+  symmetric_formats:
+    - IgG-scFv Morrison (does NOT need knob-hole)
+    - IgG-VHH Morrison (does NOT need knob-hole)
+
+  chain_assignment:
+    convention: >-
+      By convention, the knob chain is often the "primary" arm
+      (e.g., tumor target) and hole chain is the "secondary" arm
+      (e.g., CD3). However, this is arbitrary.
+    recommendation: >-
+      Assign knob to the larger/more complex arm for expression balance.

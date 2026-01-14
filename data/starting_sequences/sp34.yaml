@@ -1,0 +1,68 @@
+# SP34 - Anti-CD3 Monoclonal Antibody
+#
+# Source: Pessano et al. (1985) EMBO J
+# Patent Status: Expired (1985 publication, no active patents)
+#
+# Key features:
+# - Murine IgG1 antibody
+# - Cross-reacts with cynomolgus CD3 (critical for preclinical studies)
+# - Does not cross-react with mouse CD3
+#
+# References:
+# - Pessano S, et al. (1985) EMBO J 4(2):337-344
+# - Conrad ML, et al. (2007) MAbs evaluation
+
+name: sp34
+aliases:
+  - SP34-2  # Commercial clone
+
+# Variable region sequences (murine)
+# Note: These are the murine sequences - humanization required for therapeutic use
+vh_sequence: >-
+  QVQLQQPGAELVKPGASVKLSCKASGYTFTDYNMHWVKQTPGQGLEWIGVIHPNYGGTSYNQKFKG
+  KATLTVDKSSSTAYMELRSLTSEDSAVYYCARDYYGSSHYAMDYWGQGTSVTVSS
+
+vl_sequence: >-
+  DIQMTQSPASLSASVGETVTITCRASENIYSYLAWYQQKQGKSPQLLVYNTKTLAEGVPSRFSGSGS
+  GTQFSLKINSLQPEDFGSYYCQHHYGTPFTFGSGTKLEIK
+
+# CDR definitions (IMGT numbering, approximate)
+cdrs:
+  cdr_h1: GYTFTDYN
+  cdr_h2: IHPNYGGTSYNQKFKG
+  cdr_h3: DYYGSSHYAMDY
+  cdr_l1: RASENIYSYLA
+  cdr_l2: NTKTLAE
+  cdr_l3: QHHYGTPFT
+
+# Humanization suggestions
+# These frameworks were selected for high homology to the murine sequences
+humanization:
+  suggested_vh_framework: IGHV3-23*01  # High homology to SP34 VH
+  suggested_vl_framework: IGKV1-39*01  # High homology to SP34 VL
+
+  # Humanized VH (CDRs grafted onto IGHV3-23 framework)
+  humanized_vh: >-
+    EVQLVESGGGLVQPGGSLRLSCAASGYTFTDYNMHWVRQAPGKGLEWVSVIHPNYGGTSYNQKFKG
+    RFTISRDNAKNSLYLQMNSLRAEDTAVYYCARDYYGSSHYAMDYWGQGTLVTVSS
+
+  # Humanized VL (CDRs grafted onto IGKV1-39 framework)
+  humanized_vl: >-
+    DIQMTQSPSSLSASVGDRVTITCRASENIYSYLAWYQQKPGKAPKLLIYYNTKTLAEGVPSRFSGSGS
+    GTDFTLTISSLQPEDFATYYCQHHYGTPFTFGQGTKVEIK
+
+# Binding properties
+binding:
+  target: CD3ε
+  kd_nm: 10  # Approximate
+  cross_reactivity:
+    human: true
+    cynomolgus: true  # KEY FEATURE - enables preclinical studies
+    mouse: false
+
+# Notes for design
+notes:
+  - Critical for preclinical studies in cynomolgus macaques
+  - Murine sequences require humanization
+  - Humanized versions provided above are suggestions - verify humanness scores
+  - Moderate affinity - may be suitable without attenuation

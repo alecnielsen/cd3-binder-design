@@ -1,0 +1,115 @@
+# Placeholder Target Arm Sequences
+#
+# These are well-characterized therapeutic antibodies to use as the
+# tumor-targeting arm in bispecific constructs for testing/demonstration.
+#
+# The CD3 binder designed in this project will be paired with one of
+# these target arms. Replace with your actual target antibody.
+
+# Trastuzumab (Herceptin) - Anti-HER2
+# Most common placeholder for bispecific development
+trastuzumab:
+  name: Trastuzumab (Herceptin)
+  target: HER2 (ERBB2)
+  indication: HER2+ breast cancer, gastric cancer
+  approval: FDA 1998
+  isotype: IgG1
+
+  vh_sequence: >-
+    EVQLVESGGGLVQPGGSLRLSCAASGFNIKDTYIHWVRQAPGKGLEWVARIYPTNGYTRYADSV
+    KGRFTISADTSKNTAYLQMNSLRAEDTAVYYCSRWGGDGFYAMDYWGQGTLVTVSS
+
+  vl_sequence: >-
+    DIQMTQSPSSLSASVGDRVTITCRASQDVNTAVAWYQQKPGKAPKLLIYSASFLYSGVPSRFSG
+    SRSGTDFTLTISSLQPEDFATYYCQQHYTTPPTFGQGTKVEIK
+
+  cdrs:
+    cdr_h1: DTYIH
+    cdr_h2: RIYPTNGYTRYADSV
+    cdr_h3: WGGDGFYAMDY
+    cdr_l1: RASQDVNTAVA
+    cdr_l2: SASFLYS
+    cdr_l3: QQHYTTPPT
+
+  binding:
+    target_epitope: Domain IV of HER2 ECD
+    kd_nm: 5
+    cross_reactivity:
+      human: true
+      cynomolgus: true
+      mouse: false
+
+  notes: >-
+    Standard choice for bispecific development. Well-characterized,
+    cross-reacts with cynomolgus HER2 for preclinical studies.
+
+# Rituximab - Anti-CD20
+rituximab:
+  name: Rituximab (Rituxan)
+  target: CD20
+  indication: B-cell lymphomas, CLL, autoimmune diseases
+  approval: FDA 1997
+  isotype: IgG1
+
+  vh_sequence: >-
+    QVQLQQPGAELVKPGASVKMSCKASGYTFTSYNMHWVKQTPGRGLEWIGAIYPGNGDTSYNQKF
+    KGKATLTADKSSSTAYMQLSSLTSEDSAVYYCARSTYYGGDWYFNVWGAGTTVTVSS
+
+  vl_sequence: >-
+    QIVLSQSPAILSASPGEKVTMTCRASSSVSYIHWFQQKPGSSPKPWIYATSNLASGVPVRFSGS
+    GSGTSYSLTISRVEAEDAATYYCQQWTSNPPTFGGGTKLEIK
+
+  binding:
+    target_epitope: CD20 extracellular loop
+    kd_nm: 8
+    cross_reactivity:
+      human: true
+      cynomolgus: true
+      mouse: false
+
+  notes: >-
+    Good for B-cell targeting bispecifics. Blinatumomab (CD19xCD3)
+    is the approved BiTE in this space.
+
+# Cetuximab - Anti-EGFR
+cetuximab:
+  name: Cetuximab (Erbitux)
+  target: EGFR (HER1)
+  indication: Colorectal cancer, head and neck cancer
+  approval: FDA 2004
+  isotype: IgG1
+
+  vh_sequence: >-
+    QVQLKQSGPGLVQPSQSLSITCTVSGFSLTNYGVHWVRQSPGKGLEWLGVIWSGGNTDYNTPFT
+    SRLSINKDNSKSQVFFKMNSLQSNDTAIYYCARALTYYDYEFAYWGQGTLVTVSA
+
+  vl_sequence: >-
+    DILLTQSPVILSVSPGERVSFSCRASQSIGTNIHWYQQRTNGSPRLLIKYASESISGIPSRFSG
+    SGSGTDFTLSINSVESEDIADYYCQQNNNWPTTFGAGTKLELK
+
+  binding:
+    target_epitope: EGFR domain III
+    kd_nm: 0.4
+
+  notes: >-
+    Very high affinity. Good for solid tumor bispecifics.
+    Chimeric (mouse/human), so less ideal as template.
+
+# Configuration for bispecific assembly
+default_target:
+  name: trastuzumab
+  rationale: >-
+    Well-characterized, FDA-approved, cross-reacts with cynomolgus,
+    humanized (good template for human frameworks).
+
+# How to swap target
+usage:
+  description: >-
+    To use a different target arm, modify config.yaml:
+
+    formatting:
+      tumor_target: rituximab  # or your custom target
+
+  custom_target: >-
+    To add a custom target, create a new YAML file in this directory
+    following the trastuzumab format, then reference it in config.yaml.
