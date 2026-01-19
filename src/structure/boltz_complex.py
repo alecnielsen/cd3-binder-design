@@ -323,6 +323,9 @@ def run_calibration(
     target_pdb_path: str,
     target_chain: str = "A",
     use_modal: bool = True,
+    pdockq_margin: float = 0.05,
+    interface_area_margin: float = 100.0,
+    contacts_margin: int = 2,
 ) -> dict:
     """Run calibration to establish filter thresholds.
 
@@ -334,6 +337,9 @@ def run_calibration(
         target_pdb_path: Path to target structure.
         target_chain: Target chain ID.
         use_modal: If True, use Modal.
+        pdockq_margin: Margin to subtract from min pDockQ.
+        interface_area_margin: Margin to subtract from min interface area.
+        contacts_margin: Margin to subtract from min contacts.
 
     Returns:
         Dictionary with calibrated thresholds.
@@ -359,9 +365,14 @@ def run_calibration(
     calibration = {
         "known_binder_results": [r.to_dict() for r in results],
         "calibrated_thresholds": {
-            "min_pdockq": min(pdockq_values) - 0.05,
-            "min_interface_area": min(area_values) - 100,
-            "min_contacts": min(contact_values) - 2,
+            "min_pdockq": min(pdockq_values) - pdockq_margin,
+            "min_interface_area": min(area_values) - interface_area_margin,
+            "min_contacts": min(contact_values) - contacts_margin,
+        },
+        "margins_used": {
+            "pdockq_margin": pdockq_margin,
+            "interface_area_margin": interface_area_margin,
+            "contacts_margin": contacts_margin,
         },
         "known_binder_stats": {
             "pdockq": {"min": min(pdockq_values), "max": max(pdockq_values), "mean": sum(pdockq_values) / len(pdockq_values)},

@@ -203,13 +203,15 @@ class ReportGenerator:
 
         for c in candidates:
             flags = ", ".join(c.risk_flags) if c.risk_flags else "None"
+            pdockq_str = f"{c.pdockq:.3f}" if c.pdockq is not None else "N/A"
+            humanness_str = f"{c.oasis_score_mean:.3f}" if c.oasis_score_mean is not None else "N/A"
             html += f"""        <tr>
             <td>{c.rank}</td>
             <td>{c.candidate_id}</td>
             <td>{c.binder_type}</td>
             <td>{c.source}</td>
-            <td>{c.pdockq:.3f if c.pdockq else 'N/A'}</td>
-            <td>{c.oasis_score_mean:.3f if c.oasis_score_mean else 'N/A'}</td>
+            <td>{pdockq_str}</td>
+            <td>{humanness_str}</td>
             <td>{c.epitope_class}</td>
             <td>{c.composite_score:.3f}</td>
             <td>{flags}</td>
@@ -249,32 +251,47 @@ class ReportGenerator:
         for c in candidates:
             scorecard = self.generate_scorecard(c, provenance)
 
+            # Pre-format values that may be None
+            pdockq_val = f"{c.pdockq:.3f}" if c.pdockq is not None else "N/A"
+            humanness_val = f"{c.oasis_score_mean:.3f}" if c.oasis_score_mean is not None else "N/A"
+            overlap_val = f"{c.okt3_overlap:.1%}" if c.okt3_overlap is not None else "N/A"
+            binding_class = "pass" if c.filter_results.get("binding") else ""
+            binding_status = c.filter_results.get("binding", "N/A") if hasattr(c, "filter_results") and c.filter_results else "N/A"
+            humanness_status = c.filter_results.get("humanness", "N/A") if hasattr(c, "filter_results") and c.filter_results else "N/A"
+            liabilities_status = c.filter_results.get("liabilities", "N/A") if hasattr(c, "filter_results") and c.filter_results else "N/A"
+            seq_preview = c.sequence[:50] if c.sequence and len(c.sequence) > 50 else (c.sequence or "N/A")
+
+            # Count liabilities safely
+            deam_count = len(c.deamidation_sites) if c.deamidation_sites else 0
+            glyc_count = len(c.glycosylation_sites) if c.glycosylation_sites else 0
+            ox_count = len(c.oxidation_sites) if c.oxidation_sites else 0
+
             html += f"""    <h3>{c.candidate_id} (Rank {c.rank})</h3>
     <div class="info">
         <strong>Composite Score:</strong> {c.composite_score:.3f}<br>
-        <strong>Sequence:</strong> <code>{c.sequence[:50]}...</code><br>
+        <strong>Sequence:</strong> <code>{seq_preview}...</code><br>
     </div>
     <table>
         <tr><th>Metric</th><th>Value</th><th>Status</th></tr>
         <tr>
             <td>pDockQ</td>
-            <td>{c.pdockq:.3f if c.pdockq else 'N/A'}</td>
-            <td class="{'pass' if c.filter_results.get('binding', {}) else ''}">{c.filter_results.get('binding', 'N/A')}</td>
+            <td>{pdockq_val}</td>
+            <td class="{binding_class}">{binding_status}</td>
         </tr>
         <tr>
             <td>Humanness (OASis)</td>
-            <td>{c.oasis_score_mean:.3f if c.oasis_score_mean else 'N/A'}</td>
-            <td>{c.filter_results.get('humanness', 'N/A')}</td>
+            <td>{humanness_val}</td>
+            <td>{humanness_status}</td>
         </tr>
         <tr>
             <td>Epitope Class</td>
             <td>{c.epitope_class}</td>
-            <td>OKT3 overlap: {c.okt3_overlap:.1%}</td>
+            <td>OKT3 overlap: {overlap_val}</td>
         </tr>
         <tr>
             <td>Liabilities</td>
-            <td>Deam: {len(c.deamidation_sites)}, Glyc: {len(c.glycosylation_sites)}, Ox: {len(c.oxidation_sites)}</td>
-            <td>{c.filter_results.get('liabilities', 'N/A')}</td>
+            <td>Deam: {deam_count}, Glyc: {glyc_count}, Ox: {ox_count}</td>
+            <td>{liabilities_status}</td>
         </tr>
     </table>
 """

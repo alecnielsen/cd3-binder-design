@@ -134,12 +134,25 @@ class DeNovoDesigner:
             List of VHH designs from all targets.
         """
         all_designs = []
-        designs_per_target = self.config.num_vhh_designs // len(self.config.target_structures)
+        num_targets = len(self.config.target_structures)
+
+        if num_targets == 0:
+            return all_designs
+
+        # Distribute designs evenly with remainder going to first targets
+        base_per_target = self.config.num_vhh_designs // num_targets
+        remainder = self.config.num_vhh_designs % num_targets
 
         for i, target in enumerate(self.config.target_structures):
+            # First 'remainder' targets get one extra design
+            num_designs = base_per_target + (1 if i < remainder else 0)
+
+            if num_designs == 0:
+                continue
+
             config = BoltzGenConfig(
                 binder_type="vhh",
-                num_designs=designs_per_target,
+                num_designs=num_designs,
                 target_pdb_path=target,
                 hotspot_residues=self.config.hotspot_residues,
                 seed=self.config.seed + i,
@@ -166,12 +179,25 @@ class DeNovoDesigner:
             List of scFv designs from all targets.
         """
         all_designs = []
-        designs_per_target = self.config.num_scfv_designs // len(self.config.target_structures)
+        num_targets = len(self.config.target_structures)
+
+        if num_targets == 0:
+            return all_designs
+
+        # Distribute designs evenly with remainder going to first targets
+        base_per_target = self.config.num_scfv_designs // num_targets
+        remainder = self.config.num_scfv_designs % num_targets
 
         for i, target in enumerate(self.config.target_structures):
+            # First 'remainder' targets get one extra design
+            num_designs = base_per_target + (1 if i < remainder else 0)
+
+            if num_designs == 0:
+                continue
+
             config = BoltzGenConfig(
                 binder_type="scfv",
-                num_designs=designs_per_target,
+                num_designs=num_designs,
                 target_pdb_path=target,
                 hotspot_residues=self.config.hotspot_residues,
                 seed=self.config.seed + 1000 + i,  # Different seed space for scFv

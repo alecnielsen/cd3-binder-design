@@ -26,7 +26,7 @@ def main():
     from src.pipeline.config import PipelineConfig
     from src.pipeline.filter_cascade import CandidateScore, run_filter_cascade
     from src.analysis.liabilities import LiabilityScanner
-    from src.analysis.developability import DevelopabilityScorer
+    from src.analysis.developability import DevelopabilityAssessor
     from src.structure.interface_analysis import InterfaceAnalyzer
 
     # Load config
@@ -66,16 +66,25 @@ def main():
 
     # Convert to CandidateScore objects
     scanner = LiabilityScanner()
-    dev_scorer = DevelopabilityScorer()
+    dev_assessor = DevelopabilityAssessor()
     interface_analyzer = InterfaceAnalyzer()
 
     scored_candidates = []
     for c in candidates_data:
+        # Extract sequences - handle both single sequence and vh/vl pairs
+        vh_seq = c.get("sequence") or c.get("vh", "")
+        vl_seq = c.get("sequence_vl") or c.get("vl")
+
+        # Determine binder type
+        binder_type = c.get("binder_type")
+        if binder_type is None:
+            binder_type = "vhh" if vl_seq is None else "scfv"
+
         score = CandidateScore(
             candidate_id=c.get("design_id", c.get("name", "unknown")),
-            sequence=c.get("sequence", c.get("vh", "")),
-            sequence_vl=c.get("sequence_vl", c.get("vl")),
-            binder_type=c.get("binder_type", "vhh"),
+            sequence=vh_seq,
+            sequence_vl=vl_seq,
+            binder_type=binder_type,
             source=c.get("source", "unknown"),
         )
 
@@ -94,23 +103,24 @@ def main():
                 score.epitope_class = epitope_class
                 score.okt3_overlap = overlap
 
-        # Liability analysis
+        # Liability analysis - scan full sequence
         try:
-            liabilities = scanner.scan_sequence(score.sequence)
-            score.deamidation_sites = liabilities.get("deamidation", [])
-            score.isomerization_sites = liabilities.get("isomerization", [])
-            score.glycosylation_sites = liabilities.get("glycosylation", [])
-            score.oxidation_sites = liabilities.get("oxidation", [])
-        except:
+            full_sequence = vh_seq + (vl_seq or "")
+            liability_report = scanner.scan(full_sequence)
+            score.deamidation_sites = liability_report.deamidation_sites
+            score.isomerization_sites = liability_report.isomerization_sites
+            score.glycosylation_sites = liability_report.glycosylation_sites
+            score.oxidation_sites = liability_report.oxidation_sites
+        except Exception:
             pass
 
         # Developability
         try:
-            dev = dev_scorer.score(score.sequence)
-            score.cdr_h3_length = dev.get("cdr_h3_length")
-            score.net_charge = dev.get("net_charge")
-            score.isoelectric_point = dev.get("isoelectric_point")
-        except:
+            dev_report = dev_assessor.assess(vh_seq, vl_seq, include_humanness=False)
+            score.cdr_h3_length = dev_report.cdr_h3_length
+            score.net_charge = dev_report.physicochemical.net_charge
+            score.isoelectric_point = dev_report.physicochemical.isoelectric_point
+        except Exception:
             pass
 
         scored_candidates.append(score)
@@ -148,7 +158,8 @@ def main():
     # Print top candidates
     print(f"\nTop 5 candidates:")
     for c in filtered[:5]:
-        print(f"  {c.rank}. {c.candidate_id}: score={c.composite_score:.3f}, pDockQ={c.pdockq:.3f if c.pdockq else 'N/A'}")
+        pdockq_str = f"{c.pdockq:.3f}" if c.pdockq is not None else "N/A"
+        print(f"  {c.rank}. {c.candidate_id}: score={c.composite_score:.3f}, pDockQ={pdockq_str}")
 
     print("\n" + "=" * 60)
     print("Filtering complete!")

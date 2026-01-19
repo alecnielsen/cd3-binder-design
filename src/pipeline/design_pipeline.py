@@ -120,6 +120,9 @@ class DesignPipeline:
             known_binder_sequences=known_sequences,
             target_pdb_path=target_pdb,
             use_modal=use_modal,
+            pdockq_margin=self.config.calibration.pdockq_margin,
+            interface_area_margin=self.config.calibration.interface_area_margin,
+            contacts_margin=self.config.calibration.contacts_margin,
         )
 
         # Update config with calibrated thresholds
@@ -228,12 +231,38 @@ class DesignPipeline:
         from src.structure.boltz_complex import Boltz2Predictor
 
         predictor = Boltz2Predictor(use_modal=use_modal)
-        target_pdb = self.config.design.target_structures[0]
+
+        # Default to first target structure
+        default_target = self.config.design.target_structures[0] if self.config.design.target_structures else None
+        scfv_linker = self.config.formatting.scfv_linker
 
         for i, candidate in enumerate(candidates):
             try:
+                # Get binder sequence - handle vh/vl pairs by creating scFv
+                if "sequence" in candidate and candidate["sequence"]:
+                    binder_sequence = candidate["sequence"]
+                elif "vh" in candidate:
+                    vh = candidate["vh"]
+                    vl = candidate.get("vl")
+                    if vl:
+                        # Create scFv: VH-linker-VL
+                        binder_sequence = vh + scfv_linker + vl
+                    else:
+                        binder_sequence = vh
+                else:
+                    print(f"  Warning: No sequence found for candidate {i}")
+                    candidate["structure_prediction"] = None
+                    continue
+
+                # Use target structure from candidate if available, otherwise default
+                target_pdb = candidate.get("target_structure", default_target)
+                if target_pdb is None:
+                    print(f"  Warning: No target structure for candidate {i}")
+                    candidate["structure_prediction"] = None
+                    continue
+
                 result = predictor.predict_complex(
-                    binder_sequence=candidate["sequence"],
+                    binder_sequence=binder_sequence,
                     target_pdb_path=target_pdb,
                     seed=self.config.reproducibility.sampling_seed + i,
                 )
@@ -245,6 +274,8 @@ class DesignPipeline:
                     "interface_area": result.interface_area,
                     "num_contacts": result.num_contacts,
                     "interface_residues_target": result.interface_residues_target,
+                    "target_structure": target_pdb,
+                    "binder_sequence_used": binder_sequence,
                 }
 
                 if (i + 1) % 10 == 0:
@@ -268,23 +299,31 @@ class DesignPipeline:
         print(f"Running analysis on {len(candidates)} candidates...")
 
         from src.analysis.liabilities import LiabilityScanner
-        from src.analysis.humanness import HumannessScorer
-        from src.analysis.developability import DevelopabilityScorer
+        from src.analysis.humanness import score_humanness_pair
+        from src.analysis.developability import DevelopabilityAssessor
         from src.structure.interface_analysis import InterfaceAnalyzer
 
         liability_scanner = LiabilityScanner()
-        humanness_scorer = HumannessScorer()
-        developability_scorer = DevelopabilityScorer()
+        developability_assessor = DevelopabilityAssessor()
         interface_analyzer = InterfaceAnalyzer()
 
         scored_candidates = []
 
         for candidate in candidates:
+            # Extract sequences - handle both single sequence and vh/vl pairs
+            vh_seq = candidate.get("sequence") or candidate.get("vh", "")
+            vl_seq = candidate.get("sequence_vl") or candidate.get("vl")
+
+            # Determine binder type
+            binder_type = candidate.get("binder_type")
+            if binder_type is None:
+                binder_type = "vhh" if vl_seq is None else "scfv"
+
             score = CandidateScore(
                 candidate_id=candidate.get("design_id", candidate.get("name", "unknown")),
-                sequence=candidate.get("sequence", candidate.get("vh", "")),
-                sequence_vl=candidate.get("sequence_vl", candidate.get("vl")),
-                binder_type=candidate.get("binder_type", "vhh"),
+                sequence=vh_seq,
+                sequence_vl=vl_seq,
+                binder_type=binder_type,
                 source=candidate.get("source", "unknown"),
             )
 
@@ -304,33 +343,34 @@ class DesignPipeline:
                     score.epitope_class = epitope_class
                     score.okt3_overlap = overlap
 
-            # Liability analysis
+            # Liability analysis - scan full sequence (vh + vl for scFv)
             try:
-                liabilities = liability_scanner.scan_sequence(score.sequence)
-                score.deamidation_sites = liabilities.get("deamidation", [])
-                score.isomerization_sites = liabilities.get("isomerization", [])
-                score.glycosylation_sites = liabilities.get("glycosylation", [])
-                score.oxidation_sites = liabilities.get("oxidation", [])
-                score.unpaired_cys = liabilities.get("unpaired_cysteine", 0)
+                full_sequence = vh_seq + (vl_seq or "")
+                liability_report = liability_scanner.scan(full_sequence)
+                score.deamidation_sites = liability_report.deamidation_sites
+                score.isomerization_sites = liability_report.isomerization_sites
+                score.glycosylation_sites = liability_report.glycosylation_sites
+                score.oxidation_sites = liability_report.oxidation_sites
+                score.unpaired_cys = liability_report.unpaired_cysteines
             except Exception as e:
                 print(f"  Warning: Liability analysis failed: {e}")
 
             # Humanness scoring
             try:
-                humanness = humanness_scorer.score_oasis(score.sequence, score.sequence_vl)
-                score.oasis_score_vh = humanness.get("vh_oasis")
-                score.oasis_score_vl = humanness.get("vl_oasis")
-                score.oasis_score_mean = humanness.get("mean_oasis")
+                humanness_report = score_humanness_pair(vh_seq, vl_seq)
+                score.oasis_score_vh = humanness_report.vh_report.oasis_score
+                score.oasis_score_vl = humanness_report.vl_report.oasis_score if humanness_report.vl_report else None
+                score.oasis_score_mean = humanness_report.mean_score
             except Exception as e:
                 print(f"  Warning: Humanness scoring failed: {e}")
 
             # Developability scoring
             try:
-                dev = developability_scorer.score(score.sequence)
-                score.cdr_h3_length = dev.get("cdr_h3_length")
-                score.net_charge = dev.get("net_charge")
-                score.isoelectric_point = dev.get("isoelectric_point")
-                score.hydrophobic_patches = dev.get("hydrophobic_patches", 0)
+                dev_report = developability_assessor.assess(vh_seq, vl_seq, include_humanness=False)
+                score.cdr_h3_length = dev_report.cdr_h3_length
+                score.net_charge = dev_report.physicochemical.net_charge
+                score.isoelectric_point = dev_report.physicochemical.isoelectric_point
+                score.hydrophobic_patches = dev_report.aggregation.hydrophobic_patches
             except Exception as e:
                 print(f"  Warning: Developability scoring failed: {e}")
 

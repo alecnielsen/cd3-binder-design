@@ -1,6 +1,6 @@
 # CD3 Binder Design Pipeline - Status
 
-Last updated: 2026-01-14
+Last updated: 2026-01-19
 
 ## Completed
 
@@ -20,11 +20,17 @@ Last updated: 2026-01-14
 - [x] Calibration phase for filter threshold validation
 - [x] Epitope annotation comparing designs to OKT3 epitope
 - [x] Fallback handling for insufficient candidates
+- [x] Default config.yaml at repo root
+- [x] Fixed API mismatches (non-existent classes/methods in design_pipeline.py, optimization.py, filter script)
+- [x] Fixed config loader to support nested schema from README (backwards compatible)
+- [x] Fixed structure prediction to handle VH/VL pairs (creates scFv with linker)
+- [x] Fixed f-string format specifier errors in report_generator.py and filter script
+- [x] Fixed calibration to use configurable margins from config
+- [x] Fixed de novo design count truncation (even distribution with remainder)
 
 ## Optional / Future Work
 
 - [ ] Unit tests for core modules (tests/ directory exists but is empty)
-- [ ] Default config.yaml at repo root (currently generated programmatically)
 - [ ] Example Jupyter notebooks (notebooks/ mentioned in README)
 - [ ] Update src/analysis/__init__.py with full exports
 

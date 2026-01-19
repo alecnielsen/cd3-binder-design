@@ -94,7 +94,26 @@ python scripts/06_format_bispecifics.py # Generate formats
 ```python
 from src.analysis.liabilities import LiabilityScanner
 scanner = LiabilityScanner()
-results = scanner.scan_sequence("EVQLVESGGGLVQ...", region="CDR")
+report = scanner.scan("EVQLVESGGGLVQ...")  # Returns LiabilityReport object
+print(report.deamidation_sites)  # List of LiabilitySite objects
+print(report.cdr_liabilities)    # Count of CDR liabilities
+```
+
+### Humanness Scoring
+```python
+from src.analysis.humanness import score_humanness_pair
+report = score_humanness_pair(vh_sequence, vl_sequence)  # vl optional for VHH
+print(report.mean_score)         # Mean OASis score
+print(report.vh_report.oasis_score)
+```
+
+### Developability Assessment
+```python
+from src.analysis.developability import DevelopabilityAssessor
+assessor = DevelopabilityAssessor()
+report = assessor.assess(vh_sequence, vl_sequence)  # vl optional for VHH
+print(report.physicochemical.net_charge)
+print(report.aggregation.hydrophobic_patches)
 ```
 
 ## Important Constants
@@ -162,6 +181,9 @@ pytest tests/test_liabilities.py -v  # Specific module
 4. **CrossMab uses CH1-CL swap** - on the CD3 arm only, for correct light chain pairing
 5. **Modal is required for GPU** - BoltzGen won't work locally without NVIDIA GPU
 6. **Placeholder target is trastuzumab (HER2)** - configurable for actual use
+7. **VH/VL pairs modeled as scFv** - structure prediction uses VH + linker + VL for paired chains
+8. **Analysis modules use functions, not classes** - e.g., `score_humanness_pair()` not `HumannessScorer`
+9. **Config supports nested schema** - `filtering.binding.min_pdockq` or flat `filtering.min_pdockq`
 
 ## Dependencies
 

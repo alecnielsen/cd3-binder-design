@@ -1,0 +1,90 @@
+# CD3 Binder Design Pipeline Configuration
+# See README.md for full documentation
+
+design:
+  denovo:
+    num_vhh_designs: 200          # VHH candidates from BoltzGen
+    num_scfv_designs: 200         # scFv candidates from BoltzGen
+    target_structures:
+      - data/targets/cd3_epsilon_delta_1XIW.pdb
+      - data/targets/cd3_epsilon_gamma_1SY6.pdb
+
+  optimization:
+    starting_sequences:
+      - teplizumab                # Primary optimization target
+      - sp34                      # Cynomolgus cross-reactive
+      - ucht1                     # Alternative epitope
+    affinity_variants:
+      - wild_type
+      - 10x_weaker
+      - 100x_weaker
+
+calibration:
+  # Known binders for threshold calibration
+  positive_controls:
+    - teplizumab
+    - sp34
+    - ucht1
+  # Margins to subtract from known binder minimums
+  calibration_margin:
+    pdockq: 0.05
+    interface_area: 100
+    contacts: 2
+
+filtering:
+  binding:
+    # DEFAULTS - use calibrated values if available
+    min_pdockq: 0.5               # Default, override with calibrated
+    min_interface_area: 800       # Angstrom^2, override with calibrated
+    min_contacts: 10              # Override with calibrated
+    use_calibrated: true          # Use calibrated thresholds if available
+
+  humanness:
+    min_oasis_score: 0.8
+    generate_back_mutations: true # Generate CDR back-mutation variants
+
+  liabilities:
+    allow_deamidation_cdr: false
+    allow_isomerization_cdr: false
+    allow_glycosylation_cdr: false
+    max_oxidation_sites: 2        # Soft filter
+
+  developability:
+    cdr_h3_length_range: [8, 20]
+    net_charge_range: [-2, 4]
+    pi_range: [6.0, 9.0]
+    max_hydrophobic_patches: 2
+
+  fallback:
+    min_candidates: 10            # Trigger fallback if fewer survive
+    relax_soft_filters_first: true
+    max_threshold_relaxation: 0.1 # 10% toward calibration baseline
+
+formatting:
+  tumor_target: trastuzumab       # Placeholder, configurable
+  formats:
+    - crossmab
+    - fab_scfv
+    - fab_vhh
+    - igg_scfv
+    - igg_vhh
+
+  linkers:
+    scfv: "GGGGSGGGGSGGGGS"       # (G4S)3
+    fc_fusion: "GGGGSGGGGS"       # (G4S)2
+
+output:
+  num_final_candidates: 10
+  include_structures: true
+  generate_report: true
+  include_provenance: true
+  output_dir: data/outputs
+
+reproducibility:
+  boltzgen_seed: 42
+  sampling_seed: 12345
+  clustering_seed: 0
+
+epitope_annotation:
+  okt3_epitope_residues: [23, 25, 26, 27, 28, 29, 30, 31, 32, 35, 38, 39, 40, 41, 42, 45, 47]
+  overlap_threshold: 0.5          # Flag as "novel epitope" if < 50% overlap

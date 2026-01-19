@@ -217,45 +217,101 @@ class PipelineConfig:
 
     @classmethod
     def load(cls, config_path: str) -> "PipelineConfig":
-        """Load configuration from YAML file."""
+        """Load configuration from YAML file.
+
+        Supports both flat and nested schemas for backwards compatibility.
+        Nested schema (from README):
+            design:
+              denovo:
+                num_vhh_designs: 200
+            filtering:
+              binding:
+                min_pdockq: 0.5
+
+        Flat schema:
+            design:
+              num_vhh_designs: 200
+            filtering:
+              min_pdockq: 0.5
+        """
         with open(config_path, "r") as f:
             data = yaml.safe_load(f)
 
         config = cls()
 
-        # Design
+        # Design - support nested (design.denovo) and flat (design) schemas
         if "design" in data:
             d = data["design"]
-            config.design.num_vhh_designs = d.get("num_vhh_designs", 200)
-            config.design.num_scfv_designs = d.get("num_scfv_designs", 200)
-            config.design.target_structures = d.get("target_structures", [])
-            config.design.starting_sequences = d.get("starting_sequences", ["teplizumab", "sp34", "ucht1"])
-            config.design.affinity_variants = d.get("affinity_variants", ["wild_type", "10x_weaker", "100x_weaker"])
+            # Check for nested 'denovo' key
+            denovo = d.get("denovo", {})
+            optimization = d.get("optimization", {})
 
-        # Calibration
+            config.design.num_vhh_designs = denovo.get("num_vhh_designs", d.get("num_vhh_designs", 200))
+            config.design.num_scfv_designs = denovo.get("num_scfv_designs", d.get("num_scfv_designs", 200))
+            config.design.target_structures = denovo.get("target_structures", d.get("target_structures", []))
+            config.design.starting_sequences = optimization.get("starting_sequences", d.get("starting_sequences", ["teplizumab", "sp34", "ucht1"]))
+            config.design.affinity_variants = optimization.get("affinity_variants", d.get("affinity_variants", ["wild_type", "10x_weaker", "100x_weaker"]))
+
+        # Calibration - support nested calibration_margin and flat
         if "calibration" in data:
             c = data["calibration"]
-            config.calibration.positive_controls = c.get("positive_controls", ["teplizumab", "sp34", "ucht1"])
-            config.calibration.pdockq_margin = c.get("pdockq_margin", 0.05)
-            config.calibration.interface_area_margin = c.get("interface_area_margin", 100.0)
-            config.calibration.contacts_margin = c.get("contacts_margin", 2)
+            margins = c.get("calibration_margin", {})
 
-        # Filtering
+            config.calibration.positive_controls = c.get("positive_controls", ["teplizumab", "sp34", "ucht1"])
+            config.calibration.pdockq_margin = margins.get("pdockq", c.get("pdockq_margin", 0.05))
+            config.calibration.interface_area_margin = margins.get("interface_area", c.get("interface_area_margin", 100.0))
+            config.calibration.contacts_margin = margins.get("contacts", c.get("contacts_margin", 2))
+
+        # Filtering - support nested (filtering.binding, filtering.humanness, etc.) and flat
         if "filtering" in data:
             f = data["filtering"]
-            config.filtering.min_pdockq = f.get("min_pdockq", 0.5)
-            config.filtering.min_interface_area = f.get("min_interface_area", 800.0)
-            config.filtering.min_contacts = f.get("min_contacts", 10)
-            config.filtering.use_calibrated = f.get("use_calibrated", True)
-            config.filtering.min_oasis_score = f.get("min_oasis_score", 0.8)
-            config.filtering.generate_back_mutations = f.get("generate_back_mutations", True)
-            config.filtering.min_candidates = f.get("min_candidates", 10)
+            binding = f.get("binding", {})
+            humanness = f.get("humanness", {})
+            liabilities = f.get("liabilities", {})
+            developability = f.get("developability", {})
+            fallback = f.get("fallback", {})
+
+            # Binding thresholds
+            config.filtering.min_pdockq = binding.get("min_pdockq", f.get("min_pdockq", 0.5))
+            config.filtering.min_interface_area = binding.get("min_interface_area", f.get("min_interface_area", 800.0))
+            config.filtering.min_contacts = binding.get("min_contacts", f.get("min_contacts", 10))
+            config.filtering.use_calibrated = binding.get("use_calibrated", f.get("use_calibrated", True))
+
+            # Humanness
+            config.filtering.min_oasis_score = humanness.get("min_oasis_score", f.get("min_oasis_score", 0.8))
+            config.filtering.generate_back_mutations = humanness.get("generate_back_mutations", f.get("generate_back_mutations", True))
+
+            # Liabilities
+            config.filtering.allow_deamidation_cdr = liabilities.get("allow_deamidation_cdr", f.get("allow_deamidation_cdr", False))
+            config.filtering.allow_isomerization_cdr = liabilities.get("allow_isomerization_cdr", f.get("allow_isomerization_cdr", False))
+            config.filtering.allow_glycosylation_cdr = liabilities.get("allow_glycosylation_cdr", f.get("allow_glycosylation_cdr", False))
+            config.filtering.max_oxidation_sites = liabilities.get("max_oxidation_sites", f.get("max_oxidation_sites", 2))
+
+            # Developability
+            cdr_h3_range = developability.get("cdr_h3_length_range", f.get("cdr_h3_length_range", [8, 20]))
+            if isinstance(cdr_h3_range, list):
+                config.filtering.cdr_h3_length_range = tuple(cdr_h3_range)
+            charge_range = developability.get("net_charge_range", f.get("net_charge_range", [-2, 4]))
+            if isinstance(charge_range, list):
+                config.filtering.net_charge_range = tuple(charge_range)
+            pi_range = developability.get("pi_range", f.get("pi_range", [6.0, 9.0]))
+            if isinstance(pi_range, list):
+                config.filtering.pi_range = tuple(pi_range)
+            config.filtering.max_hydrophobic_patches = developability.get("max_hydrophobic_patches", f.get("max_hydrophobic_patches", 2))
+
+            # Fallback
+            config.filtering.min_candidates = fallback.get("min_candidates", f.get("min_candidates", 10))
+            config.filtering.relax_soft_filters_first = fallback.get("relax_soft_filters_first", f.get("relax_soft_filters_first", True))
+            config.filtering.max_threshold_relaxation = fallback.get("max_threshold_relaxation", f.get("max_threshold_relaxation", 0.1))
 
         # Formatting
         if "formatting" in data:
             fmt = data["formatting"]
             config.formatting.tumor_target = fmt.get("tumor_target", "trastuzumab")
             config.formatting.formats = fmt.get("formats", ["crossmab", "fab_scfv", "fab_vhh", "igg_scfv", "igg_vhh"])
+            linkers = fmt.get("linkers", {})
+            config.formatting.scfv_linker = linkers.get("scfv", fmt.get("scfv_linker", "GGGGSGGGGSGGGGS"))
+            config.formatting.fc_fusion_linker = linkers.get("fc_fusion", fmt.get("fc_fusion_linker", "GGGGSGGGGS"))
 
         # Output
         if "output" in data:
@@ -263,6 +319,7 @@ class PipelineConfig:
             config.output.num_final_candidates = o.get("num_final_candidates", 10)
             config.output.include_structures = o.get("include_structures", True)
             config.output.generate_report = o.get("generate_report", True)
+            config.output.include_provenance = o.get("include_provenance", True)
             config.output.output_dir = o.get("output_dir", "data/outputs")
 
         # Reproducibility
@@ -272,8 +329,12 @@ class PipelineConfig:
             config.reproducibility.sampling_seed = r.get("sampling_seed", 12345)
             config.reproducibility.clustering_seed = r.get("clustering_seed", 0)
 
-        # Epitope
-        if "epitope" in data:
+        # Epitope - support nested epitope_annotation and flat epitope
+        if "epitope_annotation" in data:
+            e = data["epitope_annotation"]
+            config.epitope.okt3_epitope_residues = e.get("okt3_epitope_residues", config.epitope.okt3_epitope_residues)
+            config.epitope.overlap_threshold = e.get("overlap_threshold", 0.5)
+        elif "epitope" in data:
             e = data["epitope"]
             config.epitope.okt3_epitope_residues = e.get("okt3_epitope_residues", config.epitope.okt3_epitope_residues)
             config.epitope.overlap_threshold = e.get("overlap_threshold", 0.5)

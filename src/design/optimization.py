@@ -167,26 +167,22 @@ class SequenceOptimizer:
             Updated AntibodySequences with CDR fields populated.
         """
         try:
-            from src.analysis.numbering import AnarciNumberer
+            from src.analysis.numbering import number_sequence, extract_cdrs
 
-            numberer = AnarciNumberer()
+            # Number and extract CDRs from VH
+            vh_numbered = number_sequence(sequences.vh, chain_type="H")
+            if vh_numbered:
+                sequences.cdr_h1 = vh_numbered.cdr1
+                sequences.cdr_h2 = vh_numbered.cdr2
+                sequences.cdr_h3 = vh_numbered.cdr3
 
-            # Number VH
-            vh_result = numberer.number_sequence(sequences.vh, chain_type="H")
-            if vh_result:
-                cdrs = numberer.extract_cdrs(vh_result)
-                sequences.cdr_h1 = cdrs.get("CDR-H1", "")
-                sequences.cdr_h2 = cdrs.get("CDR-H2", "")
-                sequences.cdr_h3 = cdrs.get("CDR-H3", "")
-
-            # Number VL if present
+            # Number and extract CDRs from VL if present
             if sequences.vl:
-                vl_result = numberer.number_sequence(sequences.vl, chain_type="L")
-                if vl_result:
-                    cdrs = numberer.extract_cdrs(vl_result)
-                    sequences.cdr_l1 = cdrs.get("CDR-L1", "")
-                    sequences.cdr_l2 = cdrs.get("CDR-L2", "")
-                    sequences.cdr_l3 = cdrs.get("CDR-L3", "")
+                vl_numbered = number_sequence(sequences.vl, chain_type="L")
+                if vl_numbered:
+                    sequences.cdr_l1 = vl_numbered.cdr1
+                    sequences.cdr_l2 = vl_numbered.cdr2
+                    sequences.cdr_l3 = vl_numbered.cdr3
 
         except ImportError:
             print("Warning: ANARCI not available, CDR extraction skipped")
@@ -210,18 +206,24 @@ class SequenceOptimizer:
             OptimizedVariant with humanized sequences.
         """
         try:
-            from src.analysis.humanness import HumannessScorer
+            from src.analysis.humanness import (
+                get_humanization_suggestions,
+                score_humanness_pair,
+            )
 
-            scorer = HumannessScorer()
-
-            # Get humanization suggestions
+            # Get humanization suggestions and apply them
             if method == "sapiens":
-                vh_humanized, vh_mutations = scorer.humanize_sapiens(sequences.vh, "H")
+                vh_suggestions = get_humanization_suggestions(sequences.vh, "H")
+                vh_humanized = self._apply_mutations(sequences.vh, vh_suggestions)
+                vh_mutations = [f"{s['original']}{s['position']}{s['suggested']}" for s in vh_suggestions]
+
                 vl_humanized = None
                 vl_mutations = []
 
                 if sequences.vl:
-                    vl_humanized, vl_mutations = scorer.humanize_sapiens(sequences.vl, "L")
+                    vl_suggestions = get_humanization_suggestions(sequences.vl, "L")
+                    vl_humanized = self._apply_mutations(sequences.vl, vl_suggestions)
+                    vl_mutations = [f"{s['original']}{s['position']}{s['suggested']}" for s in vl_suggestions]
 
                 all_mutations = (
                     [f"VH:{m}" for m in vh_mutations] +
@@ -229,7 +231,7 @@ class SequenceOptimizer:
                 )
 
                 # Score humanness of result
-                humanness = scorer.score_oasis(vh_humanized, vl_humanized)
+                humanness_report = score_humanness_pair(vh_humanized, vl_humanized)
 
                 return OptimizedVariant(
                     name=f"{sequences.name}_humanized",
@@ -238,7 +240,7 @@ class SequenceOptimizer:
                     vl=vl_humanized,
                     variant_type="humanized",
                     mutations=all_mutations,
-                    humanness_score=humanness.get("mean_oasis"),
+                    humanness_score=humanness_report.mean_score,
                     notes=f"Humanized with {method}",
                 )
 
@@ -256,6 +258,32 @@ class SequenceOptimizer:
                 mutations=[],
                 notes="Humanization skipped (BioPhi not available)",
             )
+
+    def _apply_mutations(self, sequence: str, suggestions: list[dict]) -> str:
+        """Apply humanization mutation suggestions to a sequence.
+
+        Args:
+            sequence: Original amino acid sequence.
+            suggestions: List of mutation dicts with 'position', 'original', 'suggested'.
+
+        Returns:
+            Mutated sequence.
+        """
+        if not suggestions:
+            return sequence
+
+        seq_list = list(sequence)
+        for mut in suggestions:
+            pos = mut.get("position")
+            original = mut.get("original")
+            suggested = mut.get("suggested")
+
+            if pos is not None and 0 <= pos < len(seq_list):
+                # Verify original matches (safety check)
+                if seq_list[pos] == original:
+                    seq_list[pos] = suggested
+
+        return "".join(seq_list)
 
     def generate_back_mutations(
         self,

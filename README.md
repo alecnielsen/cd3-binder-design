@@ -632,10 +632,10 @@ cd3-binder-design/
 
 ### Configuration
 
-Pipeline behavior is controlled by a YAML configuration file:
+Pipeline behavior is controlled by `config.yaml` at the repository root. Copy and modify this file to customize pipeline behavior:
 
 ```yaml
-# config.yaml
+# config.yaml (included in repo)
 design:
   denovo:
     num_vhh_designs: 200          # VHH candidates from BoltzGen
@@ -717,6 +717,7 @@ output:
   include_structures: true
   generate_report: true
   include_provenance: true        # Add metadata to all outputs
+  output_dir: data/outputs
 
 reproducibility:
   boltzgen_seed: 42
@@ -724,7 +725,7 @@ reproducibility:
   clustering_seed: 0
 
 epitope_annotation:
-  okt3_epitope_residues: [23, 25, 26, 27, 28, 29, 30, 31, 32]  # CD3ε residues from 1SY6
+  okt3_epitope_residues: [23, 25, 26, 27, 28, 29, 30, 31, 32, 35, 38, 39, 40, 41, 42, 45, 47]  # CD3ε residues from 1SY6
   overlap_threshold: 0.5          # Flag as "novel epitope" if < 50% overlap
 ```
 
