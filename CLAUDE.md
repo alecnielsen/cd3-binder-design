@@ -184,6 +184,9 @@ pytest tests/test_liabilities.py -v  # Specific module
 7. **VH/VL pairs modeled as scFv** - structure prediction uses VH + linker + VL for paired chains
 8. **Analysis modules use functions, not classes** - e.g., `score_humanness_pair()` not `HumannessScorer`
 9. **Config supports nested schema** - `filtering.binding.min_pdockq` or flat `filtering.min_pdockq`
+10. **scFv parsing available** - `parse_scfv()` and `is_likely_scfv()` in `src/utils/constants.py` extract VH/VL from concatenated scFv sequences
+11. **CDR-specific liability filtering** - `CandidateScore` has `cdr_*_count` fields; `allow_deamidation_cdr=False` only rejects CDR liabilities
+12. **Calibration uses full scFv** - For VH/VL pairs, calibration constructs scFv (not VH-only) for accurate threshold setting
 
 ## Dependencies
 

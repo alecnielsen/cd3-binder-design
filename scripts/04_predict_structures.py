@@ -77,6 +77,9 @@ def main():
 
     print(f"Target: {target_pdb}")
 
+    # Get scFv linker from config
+    scfv_linker = config.formatting.scfv_linker
+
     # Run predictions
     use_modal = not args.no_modal
     predictor = Boltz2Predictor(use_modal=use_modal)
@@ -86,18 +89,32 @@ def main():
 
     results = []
     for i, candidate in enumerate(candidates):
-        seq = candidate.get("sequence", candidate.get("vh", ""))
-        if not seq:
+        # Get binder sequence - handle vh/vl pairs by creating scFv
+        if "sequence" in candidate and candidate["sequence"]:
+            binder_sequence = candidate["sequence"]
+        elif "vh" in candidate:
+            vh = candidate["vh"]
+            vl = candidate.get("vl")
+            if vl:
+                # Create scFv: VH-linker-VL
+                binder_sequence = vh + scfv_linker + vl
+            else:
+                binder_sequence = vh
+        else:
+            print(f"  Warning: No sequence found for candidate {i}")
+            candidate["structure_prediction"] = None
+            results.append(candidate)
             continue
 
         try:
             result = predictor.predict_complex(
-                binder_sequence=seq,
+                binder_sequence=binder_sequence,
                 target_pdb_path=target_pdb,
                 seed=config.reproducibility.sampling_seed + i,
             )
 
             candidate["structure_prediction"] = result.to_dict()
+            candidate["structure_prediction"]["binder_sequence_used"] = binder_sequence
             results.append(candidate)
 
             if (i + 1) % 10 == 0:

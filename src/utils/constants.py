@@ -78,3 +78,59 @@ DEFAULT_FILTER_THRESHOLDS = {
     "max_hydrophobic_patches": 2,
     "max_cdr_aromatic_fraction": 0.2,
 }
+
+# Common scFv linker patterns for parsing
+SCFV_LINKER_PATTERNS = [
+    "GGGGSGGGGSGGGGS",  # (G4S)₃ - most common
+    "GGGGSGGGGSGGGGSGGGGS",  # (G4S)₄
+    "GGGGSGGGGS",  # (G4S)₂
+    "GSTSGSGKPGSGEGSTKG",  # Whitlow linker
+]
+
+
+def parse_scfv(sequence: str, linker: str = None) -> tuple[str, str] | None:
+    """Parse an scFv sequence into VH and VL components.
+
+    Args:
+        sequence: Full scFv sequence (VH-linker-VL format).
+        linker: Specific linker to search for. If None, tries common linkers.
+
+    Returns:
+        Tuple of (vh, vl) if linker found, None otherwise.
+    """
+    if linker:
+        linkers_to_try = [linker]
+    else:
+        linkers_to_try = SCFV_LINKER_PATTERNS
+
+    for lnk in linkers_to_try:
+        if lnk in sequence:
+            idx = sequence.find(lnk)
+            vh = sequence[:idx]
+            vl = sequence[idx + len(lnk):]
+            # Sanity check: VH and VL should be reasonable lengths
+            if 100 <= len(vh) <= 140 and 100 <= len(vl) <= 130:
+                return vh, vl
+
+    return None
+
+
+def is_likely_scfv(sequence: str) -> bool:
+    """Check if a sequence is likely an scFv (VH-linker-VL).
+
+    Args:
+        sequence: Amino acid sequence to check.
+
+    Returns:
+        True if sequence appears to be scFv format.
+    """
+    # scFv typically 240-280 aa (VH ~120 + linker ~15 + VL ~110)
+    if not (230 <= len(sequence) <= 300):
+        return False
+
+    # Check for common linker patterns
+    for linker in SCFV_LINKER_PATTERNS:
+        if linker in sequence:
+            return True
+
+    return False

@@ -56,12 +56,19 @@ def main():
 
     optimizer = SequenceOptimizer()
     known_sequences = []
+    scfv_linker = config.formatting.scfv_linker
 
     for name in config.calibration.positive_controls:
         try:
             seq = optimizer.load_starting_sequence(name)
-            known_sequences.append(seq.vh)
-            print(f"  Loaded {name}: {len(seq.vh)} aa")
+            # For paired antibodies (VH+VL), construct scFv for accurate calibration
+            if seq.vl:
+                binder_seq = seq.vh + scfv_linker + seq.vl
+                print(f"  Loaded {name}: {len(seq.vh)} aa VH + {len(seq.vl)} aa VL = {len(binder_seq)} aa scFv")
+            else:
+                binder_seq = seq.vh
+                print(f"  Loaded {name}: {len(binder_seq)} aa VHH")
+            known_sequences.append(binder_seq)
         except Exception as e:
             print(f"  Warning: Could not load {name}: {e}")
 

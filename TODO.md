@@ -28,6 +28,32 @@ Last updated: 2026-01-19
 - [x] Fixed calibration to use configurable margins from config
 - [x] Fixed de novo design count truncation (even distribution with remainder)
 
+### Bug Fixes (2026-01-19 code review session)
+
+- [x] **Critical: JSON serialization** - Fixed LiabilitySite objects causing TypeError on json.dump()
+  - Changed to store positions as integers in CandidateScore
+  - Files: `design_pipeline.py:350-396`, `scripts/05_filter_candidates.py:107-152`
+
+- [x] **High: VL ignored in step-by-step structure prediction** - scripts/04_predict_structures.py now constructs scFv for VH/VL pairs
+  - File: `scripts/04_predict_structures.py:80-126`
+
+- [x] **High: Calibration used VH-only** - Now constructs scFv for paired antibodies during calibration
+  - Files: `scripts/00_run_calibration.py:59-73`, `design_pipeline.py:99-113`
+
+- [x] **Medium: Liability filtering was whole-sequence** - Now checks CDR-specific counts when `allow_*_cdr=False`
+  - Added `cdr_deamidation_count`, etc. fields to CandidateScore
+  - File: `filter_cascade.py:53-57, 213-236`
+
+- [x] **Medium: De novo scFv treated as VHH** - Added scFv parsing to extract VH/VL from concatenated sequences
+  - Added `parse_scfv()` and `is_likely_scfv()` utilities
+  - Files: `src/utils/constants.py:82-136`, `src/formatting/__init__.py:86-94`
+
+- [x] **Medium: Humanness filtering disabled in step-by-step** - Added `score_humanness_pair()` call
+  - File: `scripts/05_filter_candidates.py:155-162`
+
+- [x] **BioPhi position indexing** - `_apply_mutations()` now tries both 0-based and 1-based indexing
+  - File: `src/design/optimization.py:262-295`
+
 ## Optional / Future Work
 
 - [ ] Unit tests for core modules (tests/ directory exists but is empty)

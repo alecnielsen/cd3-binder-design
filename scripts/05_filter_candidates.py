@@ -26,6 +26,7 @@ def main():
     from src.pipeline.config import PipelineConfig
     from src.pipeline.filter_cascade import CandidateScore, run_filter_cascade
     from src.analysis.liabilities import LiabilityScanner
+    from src.analysis.humanness import score_humanness_pair
     from src.analysis.developability import DevelopabilityAssessor
     from src.structure.interface_analysis import InterfaceAnalyzer
 
@@ -103,14 +104,60 @@ def main():
                 score.epitope_class = epitope_class
                 score.okt3_overlap = overlap
 
-        # Liability analysis - scan full sequence
+        # Liability analysis - scan with CDR detection for accurate filtering
         try:
-            full_sequence = vh_seq + (vl_seq or "")
-            liability_report = scanner.scan(full_sequence)
-            score.deamidation_sites = liability_report.deamidation_sites
-            score.isomerization_sites = liability_report.isomerization_sites
-            score.glycosylation_sites = liability_report.glycosylation_sites
-            score.oxidation_sites = liability_report.oxidation_sites
+            # Scan VH with CDR detection
+            vh_report = scanner.scan_with_cdr_detection(vh_seq, chain_type="H")
+
+            # Scan VL if present
+            if vl_seq:
+                vl_report = scanner.scan_with_cdr_detection(vl_seq, chain_type="L")
+                # Combine reports - offset VL positions by VH length
+                vh_len = len(vh_seq)
+                from src.analysis.liabilities import LiabilitySite
+                all_deamidation = vh_report.deamidation_sites + [
+                    LiabilitySite(s.motif, s.position + vh_len, s.liability_type, s.in_cdr, s.cdr_name, s.severity)
+                    for s in vl_report.deamidation_sites
+                ]
+                all_isomerization = vh_report.isomerization_sites + [
+                    LiabilitySite(s.motif, s.position + vh_len, s.liability_type, s.in_cdr, s.cdr_name, s.severity)
+                    for s in vl_report.isomerization_sites
+                ]
+                all_glycosylation = vh_report.glycosylation_sites + [
+                    LiabilitySite(s.motif, s.position + vh_len, s.liability_type, s.in_cdr, s.cdr_name, s.severity)
+                    for s in vl_report.glycosylation_sites
+                ]
+                all_oxidation = vh_report.oxidation_sites + [
+                    LiabilitySite(s.motif, s.position + vh_len, s.liability_type, s.in_cdr, s.cdr_name, s.severity)
+                    for s in vl_report.oxidation_sites
+                ]
+            else:
+                all_deamidation = vh_report.deamidation_sites
+                all_isomerization = vh_report.isomerization_sites
+                all_glycosylation = vh_report.glycosylation_sites
+                all_oxidation = vh_report.oxidation_sites
+
+            # Extract positions as integers for JSON serialization
+            score.deamidation_sites = [s.position for s in all_deamidation]
+            score.isomerization_sites = [s.position for s in all_isomerization]
+            score.glycosylation_sites = [s.position for s in all_glycosylation]
+            score.oxidation_sites = [s.position for s in all_oxidation]
+            score.unpaired_cys = vh_report.unpaired_cysteines + (vl_report.unpaired_cysteines if vl_seq else 0)
+
+            # Count CDR-specific liabilities for filtering
+            score.cdr_deamidation_count = sum(1 for s in all_deamidation if s.in_cdr)
+            score.cdr_isomerization_count = sum(1 for s in all_isomerization if s.in_cdr)
+            score.cdr_glycosylation_count = sum(1 for s in all_glycosylation if s.in_cdr)
+            score.cdr_oxidation_count = sum(1 for s in all_oxidation if s.in_cdr)
+        except Exception:
+            pass
+
+        # Humanness scoring
+        try:
+            humanness_report = score_humanness_pair(vh_seq, vl_seq)
+            score.oasis_score_vh = humanness_report.vh_report.oasis_score
+            score.oasis_score_vl = humanness_report.vl_report.oasis_score if humanness_report.vl_report else None
+            score.oasis_score_mean = humanness_report.mean_score
         except Exception:
             pass
 
@@ -120,6 +167,7 @@ def main():
             score.cdr_h3_length = dev_report.cdr_h3_length
             score.net_charge = dev_report.physicochemical.net_charge
             score.isoelectric_point = dev_report.physicochemical.isoelectric_point
+            score.hydrophobic_patches = dev_report.aggregation.hydrophobic_patches
         except Exception:
             pass
 

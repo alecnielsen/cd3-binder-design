@@ -43,12 +43,18 @@ class CandidateScore:
     oasis_score_mean: Optional[float] = None
     has_back_mutation_variant: bool = False
 
-    # Liabilities
+    # Liabilities (positions)
     deamidation_sites: list[int] = field(default_factory=list)
     isomerization_sites: list[int] = field(default_factory=list)
     glycosylation_sites: list[int] = field(default_factory=list)
     oxidation_sites: list[int] = field(default_factory=list)
     unpaired_cys: int = 0
+
+    # CDR-specific liability counts (for targeted filtering)
+    cdr_deamidation_count: int = 0
+    cdr_isomerization_count: int = 0
+    cdr_glycosylation_count: int = 0
+    cdr_oxidation_count: int = 0
 
     # Developability
     cdr_h3_length: Optional[int] = None
@@ -94,6 +100,10 @@ class CandidateScore:
                 "glycosylation_sites": self.glycosylation_sites,
                 "oxidation_sites": self.oxidation_sites,
                 "unpaired_cys": self.unpaired_cys,
+                "cdr_deamidation_count": self.cdr_deamidation_count,
+                "cdr_isomerization_count": self.cdr_isomerization_count,
+                "cdr_glycosylation_count": self.cdr_glycosylation_count,
+                "cdr_oxidation_count": self.cdr_oxidation_count,
             },
             "developability": {
                 "cdr_h3_length": self.cdr_h3_length,
@@ -201,21 +211,25 @@ class FilterCascade:
         return FilterResult.PASS
 
     def filter_liabilities(self, candidate: CandidateScore) -> FilterResult:
-        """Filter by sequence liabilities."""
-        # Hard filters
-        if not self._thresholds["allow_deamidation_cdr"] and candidate.deamidation_sites:
+        """Filter by sequence liabilities.
+
+        When allow_*_cdr is False, only CDR liabilities are rejected.
+        Framework region liabilities are allowed as they're less likely to affect binding.
+        """
+        # Hard filters - check CDR-specific counts when configured
+        if not self._thresholds["allow_deamidation_cdr"] and candidate.cdr_deamidation_count > 0:
             return FilterResult.FAIL
 
-        if not self._thresholds["allow_isomerization_cdr"] and candidate.isomerization_sites:
+        if not self._thresholds["allow_isomerization_cdr"] and candidate.cdr_isomerization_count > 0:
             return FilterResult.FAIL
 
-        if not self._thresholds["allow_glycosylation_cdr"] and candidate.glycosylation_sites:
+        if not self._thresholds["allow_glycosylation_cdr"] and candidate.cdr_glycosylation_count > 0:
             return FilterResult.FAIL
 
         if candidate.unpaired_cys > 0:
             return FilterResult.FAIL
 
-        # Soft filter: oxidation
+        # Soft filter: oxidation (check total, as even framework oxidation matters for stability)
         if len(candidate.oxidation_sites) > self._thresholds["max_oxidation_sites"]:
             return FilterResult.SOFT_FAIL
 

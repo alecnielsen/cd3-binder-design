@@ -265,6 +265,7 @@ class SequenceOptimizer:
         Args:
             sequence: Original amino acid sequence.
             suggestions: List of mutation dicts with 'position', 'original', 'suggested'.
+                Position can be 0-based or 1-based; we try both if needed.
 
         Returns:
             Mutated sequence.
@@ -278,10 +279,18 @@ class SequenceOptimizer:
             original = mut.get("original")
             suggested = mut.get("suggested")
 
-            if pos is not None and 0 <= pos < len(seq_list):
-                # Verify original matches (safety check)
-                if seq_list[pos] == original:
-                    seq_list[pos] = suggested
+            if pos is None or original is None or suggested is None:
+                continue
+
+            # Try 0-based indexing first
+            if 0 <= pos < len(seq_list) and seq_list[pos] == original:
+                seq_list[pos] = suggested
+            # Try 1-based indexing (BioPhi/Sapiens may use 1-based positions)
+            elif 1 <= pos <= len(seq_list) and seq_list[pos - 1] == original:
+                seq_list[pos - 1] = suggested
+            # Log if neither worked
+            else:
+                print(f"  Warning: Could not apply mutation {original}{pos}{suggested} - position mismatch")
 
         return "".join(seq_list)
 

@@ -22,6 +22,7 @@ from src.formatting.fab_scfv import FabScFvFormatter, assemble_fab_scfv
 from src.formatting.fab_vhh import FabVhhFormatter, assemble_fab_vhh
 from src.formatting.igg_scfv import IggScfvFormatter, assemble_igg_scfv
 from src.formatting.igg_vhh import IggVhhFormatter, assemble_igg_vhh
+from src.utils.constants import parse_scfv, is_likely_scfv
 
 
 # Registry of all formatters
@@ -68,8 +69,9 @@ def format_all(
     Args:
         target_vh: VH sequence for tumor target.
         target_vl: VL sequence for tumor target.
-        cd3_binder: CD3 binder sequence (VHH or VH).
+        cd3_binder: CD3 binder sequence (VHH, VH, or full scFv).
         cd3_binder_vl: VL for CD3 (required for scFv/CrossMab formats).
+            If None but cd3_binder is a full scFv, will attempt to parse.
         name_prefix: Prefix for construct names.
         target_name: Name of tumor target.
         formats: List of formats to generate (default: all compatible).
@@ -81,8 +83,18 @@ def format_all(
     results = {}
     library = sequence_library or SequenceLibrary()
 
+    # If no VL provided, check if cd3_binder is a full scFv that we can parse
+    effective_cd3_vh = cd3_binder
+    effective_cd3_vl = cd3_binder_vl
+
+    if effective_cd3_vl is None and is_likely_scfv(cd3_binder):
+        parsed = parse_scfv(cd3_binder)
+        if parsed:
+            effective_cd3_vh, effective_cd3_vl = parsed
+            print(f"  Parsed scFv into VH ({len(effective_cd3_vh)} aa) + VL ({len(effective_cd3_vl)} aa)")
+
     # Determine which formats are compatible
-    is_vhh = cd3_binder_vl is None
+    is_vhh = effective_cd3_vl is None
     all_formats = formats or list(FORMATTERS.keys())
 
     for fmt in all_formats:
@@ -95,8 +107,8 @@ def format_all(
             construct = formatter.assemble(
                 target_vh=target_vh,
                 target_vl=target_vl,
-                cd3_binder=cd3_binder,
-                cd3_binder_vl=cd3_binder_vl,
+                cd3_binder=effective_cd3_vh,
+                cd3_binder_vl=effective_cd3_vl,
                 name=f"{name_prefix}_{fmt}",
                 target_name=target_name,
             )
@@ -126,4 +138,6 @@ __all__ = [
     "get_formatter",
     "format_all",
     "FORMATTERS",
+    "parse_scfv",
+    "is_likely_scfv",
 ]
