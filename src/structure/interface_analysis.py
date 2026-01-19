@@ -272,7 +272,7 @@ def analyze_complex_interface(
             "epitope_class": epitope_class,
             "okt3_overlap_fraction": overlap,
             "target_contact_residues": metrics.interface_residues_target,
-            "okt3_epitope_residues": analyzer.OKT3_EPITOPE_RESIDUES,
+            "okt3_epitope_residues": analyzer.okt3_epitope_residues,
         }
 
     return result

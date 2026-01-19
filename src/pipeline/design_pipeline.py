@@ -316,6 +316,9 @@ class DesignPipeline:
             okt3_epitope_residues=self.config.epitope.okt3_epitope_residues
         )
 
+        # Get scFv linker for developability assessment
+        scfv_linker = self.config.formatting.scfv_linker
+
         scored_candidates = []
 
         for candidate in candidates:
@@ -366,9 +369,13 @@ class DesignPipeline:
                     score.okt3_overlap = overlap
 
             # Liability analysis - scan with CDR detection for accurate filtering
+            # Also collect CDR positions for developability assessment
+            vh_cdr_positions = {}
             try:
                 # Scan VH with CDR detection
                 vh_report = liability_scanner.scan_with_cdr_detection(vh_seq, chain_type="H")
+                # Capture CDR positions for developability (especially CDR-H3 length)
+                vh_cdr_positions = dict(liability_scanner.cdr_positions)
 
                 # Scan VL if present
                 if vl_seq:
@@ -421,9 +428,15 @@ class DesignPipeline:
             except Exception as e:
                 print(f"  Warning: Humanness scoring failed: {e}")
 
-            # Developability scoring
+            # Developability scoring - pass CDR positions for CDR-H3 length calculation
+            # and scFv linker for accurate metrics when VL is present
             try:
-                dev_report = developability_assessor.assess(vh_seq, vl_seq, include_humanness=False)
+                dev_report = developability_assessor.assess(
+                    vh_seq, vl_seq,
+                    include_humanness=False,
+                    cdr_positions=vh_cdr_positions if vh_cdr_positions else None,
+                    scfv_linker=scfv_linker if vl_seq else None,
+                )
                 score.cdr_h3_length = dev_report.cdr_h3_length
                 score.net_charge = dev_report.physicochemical.net_charge
                 score.isoelectric_point = dev_report.physicochemical.isoelectric_point

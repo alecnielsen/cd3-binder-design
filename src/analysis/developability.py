@@ -253,6 +253,7 @@ class DevelopabilityAssessor:
         vl_sequence: Optional[str] = None,
         include_humanness: bool = True,
         cdr_positions: Optional[dict] = None,
+        scfv_linker: Optional[str] = None,
     ) -> DevelopabilityReport:
         """Perform complete developability assessment.
 
@@ -261,13 +262,22 @@ class DevelopabilityAssessor:
             vl_sequence: Light chain variable region (optional for VHH).
             include_humanness: Whether to run humanness scoring.
             cdr_positions: Pre-computed CDR positions.
+            scfv_linker: Linker sequence for scFv (VH-linker-VL). If None and
+                        vl_sequence is provided, defaults to (G4S)₃.
 
         Returns:
             DevelopabilityReport with all metrics.
         """
         # Determine sequence type
         chain_type = "VHH" if vl_sequence is None else "Fv"
-        full_sequence = vh_sequence + (vl_sequence or "")
+
+        # For scFv/Fv, include linker in full sequence for accurate metrics
+        if vl_sequence:
+            # Default to (G4S)₃ if no linker specified
+            linker = scfv_linker if scfv_linker is not None else "GGGGSGGGGSGGGGS"
+            full_sequence = vh_sequence + linker + vl_sequence
+        else:
+            full_sequence = vh_sequence
 
         # Liability scanning
         scanner = LiabilityScanner(cdr_positions)
@@ -311,9 +321,10 @@ class DevelopabilityAssessor:
             flags.append("Unpaired cysteine")
             passes = False
 
-        # Check humanness
-        if humanness_report and humanness_report.mean_score < self.thresholds["min_oasis_score"]:
-            flags.append(f"Low humanness: {humanness_report.mean_score:.2f}")
+        # Check humanness (guard against None when BioPhi unavailable)
+        if humanness_report and humanness_report.mean_score is not None:
+            if humanness_report.mean_score < self.thresholds["min_oasis_score"]:
+                flags.append(f"Low humanness: {humanness_report.mean_score:.2f}")
 
         # Check physicochemical
         if not (self.thresholds["net_charge_min"] <= physicochemical.net_charge <= self.thresholds["net_charge_max"]):
@@ -367,8 +378,8 @@ class DevelopabilityAssessor:
         scores.append(liability_score)
         weights.append(0.25)
 
-        # Humanness score (25% weight)
-        if humanness:
+        # Humanness score (25% weight) - guard against None when BioPhi unavailable
+        if humanness and humanness.mean_score is not None:
             scores.append(humanness.mean_score)
             weights.append(0.25)
 

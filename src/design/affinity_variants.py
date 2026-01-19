@@ -89,7 +89,12 @@ class AffinityMutationLibrary:
         self._loaded = False
 
     def load(self) -> list[AffinityMutation]:
-        """Load mutations from YAML file."""
+        """Load mutations from YAML file.
+
+        Supports two YAML formats:
+        1. Flat format: top-level 'mutations' list with wild_type/mutant keys
+        2. Nested format: variants under 'teplizumab_variants' with from/to keys
+        """
         if self._loaded:
             return self._mutations
 
@@ -100,7 +105,38 @@ class AffinityMutationLibrary:
         with open(self.data_path, "r") as f:
             data = yaml.safe_load(f)
 
+        # Try flat format first (top-level 'mutations' list)
         mutations_data = data.get("mutations", [])
+
+        # If no flat mutations, parse nested teplizumab_variants structure
+        if not mutations_data and "teplizumab_variants" in data:
+            seen_mutations = set()  # Deduplicate mutations across variants
+            for variant_key, variant_data in data["teplizumab_variants"].items():
+                if not isinstance(variant_data, dict):
+                    continue
+                variant_mutations = variant_data.get("mutations", [])
+                fold_change = variant_data.get("kd_fold_change", 10.0)
+                variant_notes = variant_data.get("notes", "")
+
+                for m in variant_mutations:
+                    # Create a unique key for deduplication
+                    mutation_key = (m.get("chain"), m.get("position"), m.get("to"))
+                    if mutation_key in seen_mutations:
+                        continue
+                    seen_mutations.add(mutation_key)
+
+                    # Map from/to to wild_type/mutant for compatibility
+                    mutations_data.append({
+                        "position": m.get("position"),
+                        "chain": m.get("chain"),
+                        "wild_type": m.get("from") or m.get("wild_type"),
+                        "mutant": m.get("to") or m.get("mutant"),
+                        "effect": m.get("effect", "weaker"),
+                        "fold_change": m.get("fold_change", fold_change),
+                        "source": m.get("source", "literature"),
+                        "notes": m.get("notes", variant_notes),
+                        "cdr": m.get("cdr", ""),
+                    })
 
         for m in mutations_data:
             mutation = AffinityMutation(
