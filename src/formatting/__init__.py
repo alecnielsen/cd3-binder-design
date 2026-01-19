@@ -11,6 +11,10 @@ Available formats:
 - IgG-VHH: Symmetric Morrison format (2x VHH on C-terminus)
 """
 
+from pathlib import Path
+from typing import Optional
+import yaml
+
 from src.formatting.base import (
     BispecificConstruct,
     AntibodyChain,
@@ -33,6 +37,64 @@ FORMATTERS = {
     "igg_scfv": IggScfvFormatter,
     "igg_vhh": IggVhhFormatter,
 }
+
+
+def load_target_sequences(
+    target_name: str,
+    targets_file: Optional[str] = None,
+) -> tuple[str, str, str]:
+    """Load target arm sequences from placeholder_targets.yaml.
+
+    Args:
+        target_name: Name of target (e.g., 'trastuzumab', 'rituximab', 'cetuximab').
+        targets_file: Path to targets YAML file. Defaults to data/frameworks/placeholder_targets.yaml.
+
+    Returns:
+        Tuple of (vh_sequence, vl_sequence, display_name).
+
+    Raises:
+        ValueError: If target_name not found in targets file.
+        FileNotFoundError: If targets file not found.
+    """
+    if targets_file is None:
+        # Try to find the file relative to common locations
+        candidates = [
+            Path("data/frameworks/placeholder_targets.yaml"),
+            Path(__file__).parent.parent.parent / "data/frameworks/placeholder_targets.yaml",
+        ]
+        for candidate in candidates:
+            if candidate.exists():
+                targets_file = str(candidate)
+                break
+
+    if targets_file is None or not Path(targets_file).exists():
+        raise FileNotFoundError(
+            f"Targets file not found. Tried: {candidates if targets_file is None else targets_file}"
+        )
+
+    with open(targets_file, "r") as f:
+        targets_data = yaml.safe_load(f)
+
+    # Normalize target name for lookup
+    target_key = target_name.lower().replace("-", "_").replace(" ", "_")
+
+    if target_key not in targets_data:
+        available = [k for k in targets_data.keys() if not k.startswith(("default", "usage"))]
+        raise ValueError(
+            f"Target '{target_name}' not found. Available targets: {available}"
+        )
+
+    target = targets_data[target_key]
+
+    # Extract sequences (handle YAML multi-line strings)
+    vh_seq = target.get("vh_sequence", "").replace("\n", "").replace(" ", "")
+    vl_seq = target.get("vl_sequence", "").replace("\n", "").replace(" ", "")
+    display_name = target.get("target", target.get("name", target_name.upper()))
+
+    if not vh_seq or not vl_seq:
+        raise ValueError(f"Target '{target_name}' missing vh_sequence or vl_sequence")
+
+    return vh_seq, vl_seq, display_name
 
 
 def get_formatter(format_type: str, sequence_library: SequenceLibrary = None) -> BispecificFormatter:
@@ -137,6 +199,7 @@ __all__ = [
     "assemble_igg_vhh",
     "get_formatter",
     "format_all",
+    "load_target_sequences",
     "FORMATTERS",
     "parse_scfv",
     "is_likely_scfv",

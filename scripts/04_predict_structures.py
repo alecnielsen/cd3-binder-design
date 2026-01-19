@@ -35,47 +35,58 @@ def main():
 
     # Find input candidates
     if args.input:
-        input_path = Path(args.input)
+        input_paths = [Path(args.input)]
     else:
-        # Auto-detect from outputs
+        # Auto-detect from outputs - aggregate ALL files from both directories
         output_dir = Path("data/outputs")
         denovo_files = list(output_dir.glob("denovo/*.json"))
         optimized_files = list(output_dir.glob("optimized/*.json"))
-        input_files = denovo_files + optimized_files
+        input_paths = denovo_files + optimized_files
 
-        if not input_files:
+        if not input_paths:
             print("ERROR: No input candidate files found")
             print("Run steps 02 and 03 first, or specify --input")
             return 1
 
-        input_path = sorted(input_files)[-1]  # Use most recent
+    print(f"\nFound {len(input_paths)} input file(s):")
+    for p in input_paths:
+        print(f"  - {p}")
 
-    print(f"\nInput: {input_path}")
+    # Load and aggregate candidates from all input files
+    candidates = []
+    for input_path in input_paths:
+        with open(input_path, "r") as f:
+            data = json.load(f)
 
-    # Load candidates
-    with open(input_path, "r") as f:
-        data = json.load(f)
+        if "designs" in data:
+            file_candidates = data["designs"]
+        elif "variants" in data:
+            file_candidates = data["variants"]
+        else:
+            file_candidates = data if isinstance(data, list) else [data]
 
-    if "designs" in data:
-        candidates = data["designs"]
-    elif "variants" in data:
-        candidates = data["variants"]
+        # Tag source file for traceability
+        for c in file_candidates:
+            if "source_file" not in c:
+                c["source_file"] = str(input_path)
+
+        candidates.extend(file_candidates)
+        print(f"  Loaded {len(file_candidates)} candidates from {input_path.name}")
+
+    print(f"\nTotal candidates: {len(candidates)}")
+
+    # Get default target structure (fallback for candidates without specific target)
+    default_target_pdb = None
+    if config.design.target_structures:
+        default_target_pdb = config.design.target_structures[0]
+        if not Path(default_target_pdb).exists():
+            print(f"WARNING: Default target not found: {default_target_pdb}")
+            default_target_pdb = None
+
+    if default_target_pdb:
+        print(f"Default target: {default_target_pdb}")
     else:
-        candidates = data if isinstance(data, list) else [data]
-
-    print(f"Loaded {len(candidates)} candidates")
-
-    # Get target structure
-    if not config.design.target_structures:
-        print("ERROR: No target structure in config")
-        return 1
-
-    target_pdb = config.design.target_structures[0]
-    if not Path(target_pdb).exists():
-        print(f"ERROR: Target not found: {target_pdb}")
-        return 1
-
-    print(f"Target: {target_pdb}")
+        print("No default target - candidates must have target_structure field")
 
     # Get scFv linker from config
     scfv_linker = config.formatting.scfv_linker
@@ -106,6 +117,19 @@ def main():
             results.append(candidate)
             continue
 
+        # Use per-candidate target_structure if available, otherwise fall back to default
+        target_pdb = candidate.get("target_structure", default_target_pdb)
+        if target_pdb and not Path(target_pdb).exists():
+            print(f"  Warning: Target not found for candidate {i}: {target_pdb}")
+            candidate["structure_prediction"] = None
+            results.append(candidate)
+            continue
+        if not target_pdb:
+            print(f"  Warning: No target structure for candidate {i}")
+            candidate["structure_prediction"] = None
+            results.append(candidate)
+            continue
+
         try:
             result = predictor.predict_complex(
                 binder_sequence=binder_sequence,
@@ -115,6 +139,7 @@ def main():
 
             candidate["structure_prediction"] = result.to_dict()
             candidate["structure_prediction"]["binder_sequence_used"] = binder_sequence
+            candidate["structure_prediction"]["target_structure"] = target_pdb
             results.append(candidate)
 
             if (i + 1) % 10 == 0:

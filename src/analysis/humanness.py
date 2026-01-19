@@ -15,7 +15,7 @@ class HumannessReport:
 
     sequence: str
     chain_type: str
-    oasis_score: float  # 0-1, higher is more human
+    oasis_score: Optional[float]  # 0-1, higher is more human; None if scoring unavailable
     oasis_percentile: Optional[float] = None
     closest_human_germline: Optional[str] = None
     germline_identity: Optional[float] = None
@@ -24,6 +24,8 @@ class HumannessReport:
     @property
     def is_human_like(self) -> bool:
         """Check if sequence passes typical humanness threshold."""
+        if self.oasis_score is None:
+            return False  # Can't assess without score
         return self.oasis_score >= 0.8
 
     def to_dict(self) -> dict:
@@ -43,11 +45,13 @@ class PairedHumannessReport:
 
     vh_report: HumannessReport
     vl_report: Optional[HumannessReport]
-    mean_score: float
+    mean_score: Optional[float]  # None if scoring unavailable
 
     @property
     def is_human_like(self) -> bool:
         """Check if both chains pass humanness threshold."""
+        if self.mean_score is None:
+            return False  # Can't assess without score
         if self.vl_report:
             return self.vh_report.is_human_like and self.vl_report.is_human_like
         return self.vh_report.is_human_like
@@ -109,20 +113,22 @@ def score_humanness(
 
     except ImportError:
         warnings.warn(
-            "BioPhi not installed. Install with: pip install biophi"
+            "BioPhi not installed. Install with: pip install biophi. "
+            "Humanness scoring will be skipped (soft-fail)."
         )
-        # Return a default report with neutral score
+        # Return None for oasis_score to trigger soft-fail in filter cascade
+        # This allows the pipeline to continue without BioPhi installed
         return HumannessReport(
             sequence=sequence,
             chain_type=chain_type,
-            oasis_score=0.5,  # Neutral score when BioPhi unavailable
+            oasis_score=None,  # None triggers soft-fail, not hard-fail
         )
     except Exception as e:
-        warnings.warn(f"Humanness scoring failed: {e}")
+        warnings.warn(f"Humanness scoring failed: {e}. Will soft-fail.")
         return HumannessReport(
             sequence=sequence,
             chain_type=chain_type,
-            oasis_score=0.5,
+            oasis_score=None,  # None triggers soft-fail
         )
 
 
@@ -143,10 +149,18 @@ def score_humanness_pair(
 
     if vl_sequence:
         vl_report = score_humanness(vl_sequence, chain_type="L")
-        mean_score = (vh_report.oasis_score + vl_report.oasis_score) / 2
+        # Handle None scores (BioPhi unavailable)
+        if vh_report.oasis_score is not None and vl_report.oasis_score is not None:
+            mean_score = (vh_report.oasis_score + vl_report.oasis_score) / 2
+        elif vh_report.oasis_score is not None:
+            mean_score = vh_report.oasis_score
+        elif vl_report.oasis_score is not None:
+            mean_score = vl_report.oasis_score
+        else:
+            mean_score = None
     else:
         vl_report = None
-        mean_score = vh_report.oasis_score
+        mean_score = vh_report.oasis_score  # May be None
 
     return PairedHumannessReport(
         vh_report=vh_report,

@@ -181,20 +181,38 @@ class FilterCascade:
         }
 
     def filter_binding(self, candidate: CandidateScore) -> FilterResult:
-        """Filter by binding quality metrics."""
+        """Filter by binding quality metrics.
+
+        Hard fails if pdockq is missing or below threshold, or if
+        interface_area/num_contacts are present but below threshold.
+
+        Soft fails if interface_area or num_contacts are missing,
+        as this indicates incomplete binding evidence.
+        """
         if candidate.pdockq is None:
             return FilterResult.FAIL
 
         if candidate.pdockq < self._thresholds["min_pdockq"]:
             return FilterResult.FAIL
 
+        # Track if we have incomplete binding data
+        has_incomplete_data = False
+
         if candidate.interface_area is not None:
             if candidate.interface_area < self._thresholds["min_interface_area"]:
                 return FilterResult.FAIL
+        else:
+            has_incomplete_data = True
 
         if candidate.num_contacts is not None:
             if candidate.num_contacts < self._thresholds["min_contacts"]:
                 return FilterResult.FAIL
+        else:
+            has_incomplete_data = True
+
+        # Soft-fail if binding evidence is incomplete
+        if has_incomplete_data:
+            return FilterResult.SOFT_FAIL
 
         return FilterResult.PASS
 

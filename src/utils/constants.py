@@ -79,13 +79,77 @@ DEFAULT_FILTER_THRESHOLDS = {
     "max_cdr_aromatic_fraction": 0.2,
 }
 
-# Common scFv linker patterns for parsing
+# Common scFv linker patterns for parsing (ordered by specificity/length)
 SCFV_LINKER_PATTERNS = [
-    "GGGGSGGGGSGGGGS",  # (G4S)₃ - most common
+    # Long G4S linkers (most common, check first)
     "GGGGSGGGGSGGGGSGGGGS",  # (G4S)₄
+    "GGGGSGGGGSGGGGS",  # (G4S)₃ - most common
     "GGGGSGGGGS",  # (G4S)₂
-    "GSTSGSGKPGSGEGSTKG",  # Whitlow linker
+    "GGGGS",  # (G4S)₁
+    # Whitlow linker (218 design)
+    "GSTSGSGKPGSGEGSTKG",
+    # G3S linkers
+    "GGGSGGGSGGGSGGGS",  # (G3S)₄
+    "GGGSGGGSGGGSGGS",  # (G3S)₄ variant
+    "GGGSGGGSGGS",  # (G3S)₃
+    "GGGSGGGSGGGSGGGSGGS",  # (G3S)₅
+    # Helical linkers
+    "AEAAAKEAAAKEAAAKA",  # A(EAAAK)₃A
+    "AEAAAKEAAAKA",  # A(EAAAK)₂A
+    # Other common linkers
+    "GSGSGSGSGS",  # (GS)₅
+    "GGGSGGGS",  # (G3S)₂
+    "KESGSVSSEQLAQFRSLD",  # Bird linker
+    "EGKSSGSGSESKST",  # Alternative linker
 ]
+
+
+def _find_linker_by_heuristic(sequence: str) -> tuple[int, int] | None:
+    """Find a potential linker region using heuristics.
+
+    Looks for glycine/serine-rich regions that could be linkers.
+
+    Args:
+        sequence: Full sequence to search.
+
+    Returns:
+        Tuple of (start_index, end_index) if found, None otherwise.
+    """
+    import re
+
+    # Look for stretches of primarily G and S (at least 10 aa, >70% G/S)
+    min_linker_len = 10
+    max_linker_len = 30
+
+    # Find all positions with G or S
+    gs_positions = [i for i, aa in enumerate(sequence) if aa in "GS"]
+
+    if len(gs_positions) < min_linker_len:
+        return None
+
+    # Sliding window to find dense G/S regions
+    best_region = None
+    best_density = 0
+
+    for linker_len in range(min_linker_len, min(max_linker_len + 1, len(sequence) - 200)):
+        for start in range(100, len(sequence) - 100 - linker_len):  # VH ~100-140, VL ~100-130
+            end = start + linker_len
+            region = sequence[start:end]
+            gs_count = sum(1 for aa in region if aa in "GS")
+            density = gs_count / linker_len
+
+            # Must be >70% G/S and result in reasonable VH/VL lengths
+            vh_len = start
+            vl_len = len(sequence) - end
+
+            if density > 0.7 and 100 <= vh_len <= 140 and 100 <= vl_len <= 130:
+                # Prefer longer linkers and higher density
+                score = density * linker_len
+                if score > best_density:
+                    best_density = score
+                    best_region = (start, end)
+
+    return best_region
 
 
 def parse_scfv(sequence: str, linker: str = None) -> tuple[str, str] | None:
@@ -93,7 +157,8 @@ def parse_scfv(sequence: str, linker: str = None) -> tuple[str, str] | None:
 
     Args:
         sequence: Full scFv sequence (VH-linker-VL format).
-        linker: Specific linker to search for. If None, tries common linkers.
+        linker: Specific linker to search for. If None, tries common linkers
+            and falls back to heuristic detection.
 
     Returns:
         Tuple of (vh, vl) if linker found, None otherwise.
@@ -103,6 +168,7 @@ def parse_scfv(sequence: str, linker: str = None) -> tuple[str, str] | None:
     else:
         linkers_to_try = SCFV_LINKER_PATTERNS
 
+    # First try exact pattern matching
     for lnk in linkers_to_try:
         if lnk in sequence:
             idx = sequence.find(lnk)
@@ -112,11 +178,23 @@ def parse_scfv(sequence: str, linker: str = None) -> tuple[str, str] | None:
             if 100 <= len(vh) <= 140 and 100 <= len(vl) <= 130:
                 return vh, vl
 
+    # Fallback to heuristic detection if no explicit linker provided
+    if linker is None:
+        region = _find_linker_by_heuristic(sequence)
+        if region:
+            start, end = region
+            vh = sequence[:start]
+            vl = sequence[end:]
+            if 100 <= len(vh) <= 140 and 100 <= len(vl) <= 130:
+                return vh, vl
+
     return None
 
 
 def is_likely_scfv(sequence: str) -> bool:
     """Check if a sequence is likely an scFv (VH-linker-VL).
+
+    Uses both explicit linker pattern matching and heuristic detection.
 
     Args:
         sequence: Amino acid sequence to check.
@@ -124,13 +202,23 @@ def is_likely_scfv(sequence: str) -> bool:
     Returns:
         True if sequence appears to be scFv format.
     """
-    # scFv typically 240-280 aa (VH ~120 + linker ~15 + VL ~110)
-    if not (230 <= len(sequence) <= 300):
+    # scFv typically 230-300 aa (VH ~120 + linker ~15-25 + VL ~110)
+    if not (230 <= len(sequence) <= 320):
         return False
 
-    # Check for common linker patterns
+    # Check for explicit linker patterns
     for linker in SCFV_LINKER_PATTERNS:
         if linker in sequence:
-            return True
+            # Verify the split produces reasonable lengths
+            idx = sequence.find(linker)
+            vh_len = idx
+            vl_len = len(sequence) - idx - len(linker)
+            if 100 <= vh_len <= 140 and 100 <= vl_len <= 130:
+                return True
+
+    # Fallback: check if heuristic finds a plausible linker region
+    region = _find_linker_by_heuristic(sequence)
+    if region:
+        return True
 
     return False

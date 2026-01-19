@@ -523,16 +523,20 @@ class DesignPipeline:
         """
         print(f"Converting {len(candidates)} candidates to bispecific formats...")
 
-        from src.formatting import format_all
+        from src.formatting import format_all, load_target_sequences
+
+        # Load target sequences from placeholder_targets.yaml based on config
+        tumor_target_name = self.config.formatting.tumor_target
+        try:
+            target_vh, target_vl, target_display = load_target_sequences(tumor_target_name)
+            print(f"  Target arm: {tumor_target_name} ({target_display})")
+        except (FileNotFoundError, ValueError) as e:
+            print(f"  ERROR: Failed to load target sequences: {e}")
+            return {}
 
         formatted = {}
 
         for candidate in candidates:
-            # Need placeholder target sequences
-            # In real use, these would come from config or user input
-            target_vh = "EVQLVESGGGLVQPGGSLRLSCAASGFNIKDTYIHWVRQAPGKGLEWVARIYPTNGYTRYADSVKGRFTISADTSKNTAYLQMNSLRAEDTAVYYCSRWGGDGFYAMDYWGQGTLVTVSS"
-            target_vl = "DIQMTQSPSSLSASVGDRVTITCRASQDVNTAVAWYQQKPGKAPKLLIYSASFLYSGVPSRFSGSRSGTDFTLTISSLQPEDFATYYCQQHYTTPPTFGQGTKVEIK"
-
             try:
                 constructs = format_all(
                     target_vh=target_vh,
@@ -540,6 +544,7 @@ class DesignPipeline:
                     cd3_binder=candidate.sequence,
                     cd3_binder_vl=candidate.sequence_vl,
                     name_prefix=candidate.candidate_id,
+                    target_name=target_display,
                     formats=self.config.formatting.formats,
                 )
 

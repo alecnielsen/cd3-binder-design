@@ -29,7 +29,7 @@ def main():
     print("=" * 60)
 
     from src.pipeline.config import PipelineConfig
-    from src.formatting import format_all, FORMATTERS
+    from src.formatting import format_all, load_target_sequences, FORMATTERS
 
     # Load config
     if Path(args.config).exists():
@@ -57,18 +57,15 @@ def main():
     candidates = data.get("candidates", data if isinstance(data, list) else [data])
     print(f"Loaded {len(candidates)} candidates")
 
-    # Placeholder target arm sequences (trastuzumab for HER2)
-    # In real use, these would come from config or user input
-    target_vh = (
-        "EVQLVESGGGLVQPGGSLRLSCAASGFNIKDTYIHWVRQAPGKGLEWVARIYPTNGYTRYADSVKGRFTISADTSKNTAYLQ"
-        "MNSLRAEDTAVYYCSRWGGDGFYAMDYWGQGTLVTVSS"
-    )
-    target_vl = (
-        "DIQMTQSPSSLSASVGDRVTITCRASQDVNTAVAWYQQKPGKAPKLLIYSASFLYSGVPSRFSGSRSGTDFTLTISSLQPED"
-        "FATYYCQQHYTTPPTFGQGTKVEIK"
-    )
-
-    print(f"\nTarget arm: {config.formatting.tumor_target}")
+    # Load target arm sequences from placeholder_targets.yaml based on config
+    tumor_target_name = config.formatting.tumor_target
+    try:
+        target_vh, target_vl, target_display = load_target_sequences(tumor_target_name)
+        print(f"\nTarget arm: {tumor_target_name} ({target_display})")
+        print(f"  VH: {len(target_vh)} aa, VL: {len(target_vl)} aa")
+    except (FileNotFoundError, ValueError) as e:
+        print(f"ERROR: Failed to load target sequences: {e}")
+        return 1
     print(f"Formats: {config.formatting.formats}")
 
     # Format each candidate
