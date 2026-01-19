@@ -983,6 +983,201 @@ Edit `config.yaml` to customize:
 
 ---
 
+## Critical Assumptions for Scientific Review
+
+This section documents the key assumptions underlying this pipeline. **Reviewers should challenge these assumptions** and identify gaps in the reasoning.
+
+### Assumption 1: BoltzGen Can Design Functional CD3 Binders
+
+**Claim**: BoltzGen can generate VHH/scFv sequences that bind CD3ε with reasonable affinity.
+
+**Evidence supporting this**:
+- BoltzGen has been validated on other protein targets in published benchmarks
+- The model was trained on protein-protein interface data that includes antibody-antigen complexes
+
+**Evidence against / Unknowns**:
+- BoltzGen has not been specifically validated on CD3 or T-cell surface proteins
+- CD3ε forms a complex (with δ or γ); the binding site may require both subunits
+- No published data on BoltzGen success rates for immune receptor targets
+- De novo designs may have very low hit rates (<1% functional binders)
+
+**What would falsify this assumption**:
+- Zero designs pass calibration thresholds after filtering
+- All designs fail to bind in SPR/ELISA
+- Designs bind but don't activate T-cells
+
+**Fallback if assumption fails**: Rely entirely on optimization track (teplizumab, SP34, UCHT1 variants).
+
+### Assumption 2: Boltz-2 Complex Predictions Are Meaningful
+
+**Claim**: Boltz-2 can predict binder-CD3ε complex structures accurately enough for filtering.
+
+**Evidence supporting this**:
+- Boltz-2 achieves high accuracy on protein complex benchmarks
+- pDockQ correlates with DockQ (actual structural accuracy)
+
+**Evidence against / Unknowns**:
+- Antibody-antigen complexes may be harder than general protein complexes
+- Boltz-2 was not specifically benchmarked on VHH/scFv-antigen complexes
+- The model may hallucinate interfaces that look plausible but don't exist
+
+**What would falsify this assumption**:
+- Known binders (teplizumab, SP34) score poorly or fail calibration
+- Interface residues predicted by Boltz-2 don't match known OKT3 epitope
+- No correlation between pDockQ and experimental binding
+
+**How to detect early**: Calibration phase should catch this. If known binders fail, the model is unreliable.
+
+### Assumption 3: ~50 nM Kd Balances Efficacy and Safety
+
+**Claim**: CD3 binders with ~50 nM Kd provide sufficient T-cell killing with reduced cytokine release.
+
+**Evidence supporting this**:
+- Staflin et al. (2021) showed affinity-attenuated CD3 arms reduce cytokines while maintaining killing
+- Multiple clinical programs have shifted to lower-affinity CD3 arms
+- The cytokine threshold appears higher than the cytotoxicity threshold
+
+**Evidence against / Unknowns**:
+- Optimal Kd may be context-dependent (tumor type, tumor antigen density)
+- 50 nM may be too weak for some indications
+- The therapeutic window varies by patient (genetics, tumor burden, prior treatment)
+
+**What would falsify this assumption**:
+- All ~50 nM binders fail to kill tumor cells in co-culture assays
+- Cytokine release is not reduced compared to high-affinity binders
+
+**Key question**: This pipeline cannot enforce 50 nM Kd computationally. Is the affinity panel approach sufficient?
+
+### Assumption 4: Humanization Preserves Function
+
+**Claim**: BioPhi/Sapiens humanization produces sequences that retain binding activity.
+
+**Evidence supporting this**:
+- BioPhi was validated on therapeutic antibodies
+- Framework humanization is generally safer than CDR modifications
+- Back-mutation variants provide a safety net
+
+**Evidence against / Unknowns**:
+- Humanization success rate is typically 30-70%, not 100%
+- Some CDRs are sensitive to even conservative mutations
+- VHH humanization is less validated than conventional antibody humanization
+
+**What would falsify this assumption**:
+- All humanized variants lose binding
+- Back-mutation variants have poor humanness scores
+
+### Assumption 5: Developability Filters Are Predictive
+
+**Claim**: Sequences passing developability filters (liabilities, charge, hydrophobicity) are more likely to succeed experimentally.
+
+**Evidence supporting this**:
+- Literature supports correlation between sequence features and developability
+- Deamidation, glycosylation, and aggregation motifs are well-characterized risks
+
+**Evidence against / Unknowns**:
+- Filters are probabilistic, not deterministic
+- Some "problematic" sequences express well; some "clean" sequences fail
+- CDR context matters (buried vs. exposed positions)
+
+**What would falsify this assumption**:
+- No correlation between filter scores and experimental success
+- High-scoring candidates fail at similar rates to low-scoring candidates
+
+---
+
+## Open Questions for Reviewers
+
+The following questions represent gaps in the pipeline design that reviewers should consider:
+
+### Biological Questions
+
+1. **Is CD3ε sufficient as a binding target?**
+   - CD3 exists as CD3εδ and CD3εγ heterodimers. Should the pipeline target specific heterodimers?
+   - Does binding to isolated CD3ε predict binding to CD3 in the context of the full TCR complex?
+
+2. **Is the OKT3 epitope optimal?**
+   - OKT3/teplizumab binds a specific epitope on CD3ε. Is this the best epitope for T-cell engagers?
+   - Could alternative epitopes have better safety profiles or efficacy?
+
+3. **What about CD3ε conformational states?**
+   - CD3ε may adopt different conformations when associated with TCR vs. free
+   - The static structures (1XIW, 1SY6) may not capture relevant conformational diversity
+
+4. **Cynomolgus cross-reactivity**
+   - Only SP34 cross-reacts with cynomolgus CD3
+   - Should cyno cross-reactivity be a hard requirement for preclinical candidates?
+
+### Computational Questions
+
+5. **Are 200 BoltzGen designs sufficient?**
+   - If hit rate is 1%, 200 designs yields ~2 hits
+   - Should the design count be higher (500-1000)?
+
+6. **Is pDockQ the right filtering metric?**
+   - pDockQ measures structural confidence, not binding affinity
+   - Should alternative metrics (interface energy, shape complementarity) be included?
+
+7. **How should VHH vs scFv designs be prioritized?**
+   - VHHs are smaller and may have better tissue penetration
+   - scFvs have two binding loops and may have higher affinity potential
+   - The pipeline generates both but doesn't provide guidance on prioritization
+
+8. **What if calibration fails?**
+   - If known binders score poorly in Boltz-2, what are the options?
+   - Should the pipeline fall back to sequence similarity instead of structural prediction?
+
+### Practical Questions
+
+9. **What is the expected computational cost?**
+   - BoltzGen: ~$0.01 per design × 400 designs = ~$4
+   - Boltz-2: ~$0.05 per complex × 400 candidates = ~$20
+   - Total: ~$50-100 for a full pipeline run
+
+10. **What is the expected timeline?**
+    - GPU compute: 2-4 hours for design + structure prediction
+    - Analysis and filtering: <1 hour
+    - Total: 4-8 hours for computational phase
+
+11. **How many candidates should go to experimental validation?**
+    - Pipeline outputs ~10 candidates
+    - Is this sufficient diversity? Should it be 20-30?
+
+---
+
+## Success Criteria and Decision Points
+
+### Computational Success Criteria
+
+| Checkpoint | Success Criterion | Action if Fail |
+|------------|-------------------|----------------|
+| Calibration | All 3 known binders (teplizumab, SP34, UCHT1) pass with pDockQ > threshold - margin | Investigate Boltz-2 predictions; consider alternative structure prediction |
+| De novo design | ≥20 designs pass initial pDockQ filter | Increase design count or relax threshold |
+| Filtering | ≥10 candidates survive full filter cascade | Apply fallback (relax soft filters, then thresholds) |
+| Diversity | Final candidates include ≥2 VHH, ≥2 scFv, ≥1 OKT3-like epitope | Manually adjust selection to ensure diversity |
+| Epitope coverage | ≥3 candidates have OKT3-like epitope (>50% overlap) | Prioritize optimization track; de novo designs may have novel epitopes |
+
+### Experimental Go/No-Go Criteria
+
+| Milestone | Go Criterion | No-Go Criterion |
+|-----------|--------------|-----------------|
+| Binding confirmation | ≥3/10 candidates bind CD3ε by SPR with Kd < 500 nM | 0/10 candidates bind |
+| Functional activity | ≥2 candidates activate T-cells (CD69+ >20% vs. control) | No candidates show T-cell activation |
+| Affinity range | Measured Kd values span at least 10-fold range | All candidates have similar affinity (no panel diversity) |
+| Developability | ≥5 candidates express at >10 mg/L transient | <3 candidates express adequately |
+
+### Failure Mode Detection
+
+| Failure Mode | How to Detect | Mitigation |
+|--------------|---------------|------------|
+| BoltzGen doesn't generate CD3 binders | All designs fail binding assays | Use optimization track only |
+| Boltz-2 gives false positives | High pDockQ designs don't bind | Add orthogonal filtering (e.g., sequence-based scores) |
+| All designs bind same (wrong) epitope | Epitope binning shows single cluster | Redesign against different CD3ε face or use 1SY6 constraints |
+| Humanization destroys all binders | All humanized variants lose binding | Use back-mutation variants; accept lower humanness |
+| Affinity too high (CRS risk) | All designs have Kd < 10 nM | Generate affinity-attenuated variants with known mutations |
+| Affinity too low (no killing) | All designs have Kd > 500 nM | Optimize by affinity maturation (in silico or experimental) |
+
+---
+
 ## Known Limitations
 
 This section explicitly states what this computational pipeline **cannot do**. These limitations are fundamental to the current state of computational antibody design and should inform experimental planning.
@@ -1164,12 +1359,29 @@ python scripts/run_full_pipeline.py --config config.yaml
 
 ## Technical Considerations
 
-### Assumptions
+### Core Assumptions
 
-1. CD3ε is the binding target (most common for bispecifics)
-2. ~50 nM Kd is acceptable for efficacy with reduced CRS
-3. All starting sequences are off-patent and freely usable
-4. Placeholder target arm (HER2) will be replaced for actual use
+1. **CD3ε is the binding target** - Most bispecifics target CD3ε. Alternative approaches targeting CD3γ or CD3δ are less validated.
+
+2. **~50 nM Kd balances efficacy and safety** - Based on Staflin et al. (2021) and clinical trends. May not hold for all tumor types.
+
+3. **Static structures are sufficient** - Using crystal structures (1XIW, 1SY6) assumes CD3ε conformation in crystals represents the relevant state in vivo.
+
+4. **Sequence → structure → function** - The pipeline assumes that sequence properties predict structure, which predicts function. This chain has uncertainty at each step.
+
+5. **Starting sequences are freely usable** - Teplizumab, SP34, and UCHT1 are from expired patents/public domain. Legal review recommended for commercial use.
+
+### Questions This Pipeline Cannot Answer
+
+| Question | Why Not | Alternative Approach |
+|----------|---------|---------------------|
+| What is the exact Kd of this binder? | No computational method predicts absolute affinity | SPR/BLI measurement required |
+| Will this binder activate T-cells? | Binding ≠ function; signaling depends on geometry, avidity, context | T-cell activation assays required |
+| Will this binder cause CRS? | CRS depends on patient, tumor burden, dosing, not just binder properties | Cynomolgus studies, clinical observation |
+| Is this sequence immunogenic? | T-cell epitope tools excluded; humanness is a proxy | Licensed tools (NetMHCIIpan) or clinical data |
+| Will this express well in CHO? | Sequence features weakly predict expression | Transient expression testing |
+| What is the optimal format? | All 5 formats have tradeoffs; optimal depends on indication | Test multiple formats in parallel |
+| Will this work in patients? | Preclinical models have limited predictive value | Clinical trials |
 
 ### Risks and Mitigations
 
@@ -1182,6 +1394,44 @@ python scripts/run_full_pipeline.py --config config.yaml
 | Insufficient candidates survive | Medium | Medium | Fallback protocol: relax soft filters, then hard filters with documentation |
 | Poor Kd range for CRS balance | High | High | Generate affinity panel; validate hypothesis experimentally |
 | Cross-reactivity issues for preclinical | Medium | Medium | Include SP34-derived sequences; test cynomolgus binding early |
+
+### What Could Go Wrong (Detailed Failure Scenarios)
+
+**Scenario 1: Boltz-2 predictions are unreliable for this system**
+- *Symptoms*: Known binders score poorly; predicted interfaces don't match known epitopes
+- *Detection*: Calibration phase (step 0)
+- *Response*: Fall back to sequence-based filtering (humanness, liabilities) without structural metrics; increase reliance on optimization track
+
+**Scenario 2: All de novo designs bind wrong epitope**
+- *Symptoms*: Epitope overlap with OKT3 is <20% for all designs
+- *Detection*: Epitope annotation in filtering step
+- *Response*: Constrain BoltzGen to OKT3 epitope region (if supported); rely on optimization track; test novel epitopes with explicit risk acknowledgment
+
+**Scenario 3: Affinity panel shows all binders are too tight (CRS risk)**
+- *Symptoms*: All measured Kd values are <10 nM
+- *Detection*: SPR measurements in experimental validation
+- *Response*: Apply known affinity-attenuating mutations from literature; generate additional variants
+
+**Scenario 4: Humanized sequences all fail binding**
+- *Symptoms*: 0% retention of binding after BioPhi humanization
+- *Detection*: Binding assays on humanized vs. original sequences
+- *Response*: Use back-mutation variants; apply conservative humanization (fewer mutations); accept lower humanness score
+
+**Scenario 5: Expression failures across all formats**
+- *Symptoms*: <1 mg/L transient expression for all candidates
+- *Detection*: Transient expression testing
+- *Response*: Screen additional candidates; investigate sequence features correlated with expression; consider different expression system
+
+### Computational Resources
+
+| Step | GPU Type | Time (est.) | Cost (est.) |
+|------|----------|-------------|-------------|
+| BoltzGen (400 designs) | A100 | 1-2 hours | $5-15 |
+| Boltz-2 (400 complexes) | A100 | 2-4 hours | $10-30 |
+| ABodyBuilder2 | A100 (optional) | 30 min | $2-5 |
+| **Total** | | **4-8 hours** | **$20-50** |
+
+Local execution requires NVIDIA GPU with CUDA support. Apple MPS is not compatible with BoltzGen.
 
 See [Known Limitations](#known-limitations) for detailed discussion of fundamental constraints.
 
