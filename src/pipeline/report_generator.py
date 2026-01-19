@@ -10,7 +10,7 @@ from typing import Optional
 import json
 import datetime
 
-from src.pipeline.filter_cascade import CandidateScore
+from src.pipeline.filter_cascade import CandidateScore, FilterResult
 
 
 @dataclass
@@ -255,10 +255,26 @@ class ReportGenerator:
             pdockq_val = f"{c.pdockq:.3f}" if c.pdockq is not None else "N/A"
             humanness_val = f"{c.oasis_score_mean:.3f}" if c.oasis_score_mean is not None else "N/A"
             overlap_val = f"{c.okt3_overlap:.1%}" if c.okt3_overlap is not None else "N/A"
-            binding_class = "pass" if c.filter_results.get("binding") else ""
-            binding_status = c.filter_results.get("binding", "N/A") if hasattr(c, "filter_results") and c.filter_results else "N/A"
-            humanness_status = c.filter_results.get("humanness", "N/A") if hasattr(c, "filter_results") and c.filter_results else "N/A"
-            liabilities_status = c.filter_results.get("liabilities", "N/A") if hasattr(c, "filter_results") and c.filter_results else "N/A"
+
+            # Helper to get CSS class and display value for filter results
+            def get_filter_display(result):
+                if result is None:
+                    return "", "N/A"
+                if result == FilterResult.PASS:
+                    return "pass", "PASS"
+                elif result == FilterResult.FAIL:
+                    return "fail", "FAIL"
+                elif result == FilterResult.SOFT_FAIL:
+                    return "fail", "SOFT_FAIL"
+                return "", str(result.value) if hasattr(result, "value") else str(result)
+
+            binding_result = c.filter_results.get("binding") if hasattr(c, "filter_results") and c.filter_results else None
+            humanness_result = c.filter_results.get("humanness") if hasattr(c, "filter_results") and c.filter_results else None
+            liabilities_result = c.filter_results.get("liabilities") if hasattr(c, "filter_results") and c.filter_results else None
+
+            binding_class, binding_status = get_filter_display(binding_result)
+            humanness_class, humanness_status = get_filter_display(humanness_result)
+            liabilities_class, liabilities_status = get_filter_display(liabilities_result)
             seq_preview = c.sequence[:50] if c.sequence and len(c.sequence) > 50 else (c.sequence or "N/A")
 
             # Count liabilities safely
@@ -281,7 +297,7 @@ class ReportGenerator:
         <tr>
             <td>Humanness (OASis)</td>
             <td>{humanness_val}</td>
-            <td>{humanness_status}</td>
+            <td class="{humanness_class}">{humanness_status}</td>
         </tr>
         <tr>
             <td>Epitope Class</td>
@@ -291,7 +307,7 @@ class ReportGenerator:
         <tr>
             <td>Liabilities</td>
             <td>Deam: {deam_count}, Glyc: {glyc_count}, Ox: {ox_count}</td>
-            <td>{liabilities_status}</td>
+            <td class="{liabilities_class}">{liabilities_status}</td>
         </tr>
     </table>
 """

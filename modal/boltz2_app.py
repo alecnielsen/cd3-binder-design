@@ -88,15 +88,15 @@ def calculate_interface_metrics(
         elif chain == target_chain:
             target_atoms.append((res_num, x, y, z))
 
-    # Find contacts
-    contacts = 0
+    # Find contacts - count unique residue pairs
+    contact_pairs = set()
     cutoff_sq = distance_cutoff ** 2
 
     for res_b, xb, yb, zb in binder_atoms:
         for res_t, xt, yt, zt in target_atoms:
             dist_sq = (xb - xt) ** 2 + (yb - yt) ** 2 + (zb - zt) ** 2
             if dist_sq <= cutoff_sq:
-                contacts += 1
+                contact_pairs.add((res_b, res_t))
                 binder_residues.add(res_b)
                 target_residues.add(res_t)
 
@@ -104,7 +104,7 @@ def calculate_interface_metrics(
     interface_area = (len(binder_residues) + len(target_residues)) * 50.0
 
     return {
-        "num_contacts": contacts,
+        "num_contacts": len(contact_pairs),
         "interface_residues_binder": sorted(binder_residues),
         "interface_residues_target": sorted(target_residues),
         "interface_area": interface_area,

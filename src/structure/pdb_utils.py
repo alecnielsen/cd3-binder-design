@@ -189,7 +189,11 @@ def count_contacts(
     chain_b: str,
     distance_cutoff: float = 5.0,
 ) -> int:
-    """Count atomic contacts between two chains.
+    """Count residue-residue contacts between two chains.
+
+    A contact is counted when any atom of residue A is within the
+    distance cutoff of any atom of residue B. Each residue pair
+    is counted only once.
 
     Args:
         pdb_string: PDB file content as string.
@@ -198,10 +202,10 @@ def count_contacts(
         distance_cutoff: Distance cutoff for contacts (Å).
 
     Returns:
-        Number of atomic contacts.
+        Number of residue-residue contacts.
     """
-    # Parse atom coordinates
-    atoms_a = []
+    # Parse atom coordinates with residue info
+    atoms_a = []  # (res_num, x, y, z)
     atoms_b = []
 
     for line in pdb_string.split("\n"):
@@ -209,26 +213,27 @@ def count_contacts(
             continue
 
         chain = line[21]
+        res_num = int(line[22:26])
         x = float(line[30:38])
         y = float(line[38:46])
         z = float(line[46:54])
 
         if chain == chain_a:
-            atoms_a.append((x, y, z))
+            atoms_a.append((res_num, x, y, z))
         elif chain == chain_b:
-            atoms_b.append((x, y, z))
+            atoms_b.append((res_num, x, y, z))
 
-    # Count contacts
-    contacts = 0
+    # Count unique residue pairs in contact
+    contact_pairs = set()
     cutoff_sq = distance_cutoff ** 2
 
-    for xa, ya, za in atoms_a:
-        for xb, yb, zb in atoms_b:
+    for res_a, xa, ya, za in atoms_a:
+        for res_b, xb, yb, zb in atoms_b:
             dist_sq = (xa - xb) ** 2 + (ya - yb) ** 2 + (za - zb) ** 2
             if dist_sq <= cutoff_sq:
-                contacts += 1
+                contact_pairs.add((res_a, res_b))
 
-    return contacts
+    return len(contact_pairs)
 
 
 def estimate_interface_area(

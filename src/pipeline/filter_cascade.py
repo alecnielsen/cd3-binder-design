@@ -262,9 +262,41 @@ class FilterCascade:
         return FilterResult.PASS
 
     def filter_aggregation(self, candidate: CandidateScore) -> FilterResult:
-        """Filter by aggregation propensity indicators."""
-        # This is a simplified check - full implementation would
-        # analyze CDR aromatic content and consecutive aromatics
+        """Filter by aggregation propensity indicators.
+
+        Checks for:
+        1. High aromatic content in sequence (>15% suggests aggregation risk)
+        2. Consecutive aromatic residues (3+ in a row is problematic)
+        """
+        from src.utils.constants import AROMATIC
+
+        sequence = candidate.sequence or ""
+        if candidate.sequence_vl:
+            sequence += candidate.sequence_vl
+
+        if not sequence:
+            return FilterResult.SOFT_FAIL
+
+        # Check overall aromatic content
+        aromatic_count = sum(1 for aa in sequence if aa in AROMATIC)
+        aromatic_fraction = aromatic_count / len(sequence) if sequence else 0
+
+        if aromatic_fraction > 0.15:  # >15% aromatic
+            return FilterResult.SOFT_FAIL
+
+        # Check for consecutive aromatics (3+ in a row)
+        consecutive = 0
+        max_consecutive = 0
+        for aa in sequence:
+            if aa in AROMATIC:
+                consecutive += 1
+                max_consecutive = max(max_consecutive, consecutive)
+            else:
+                consecutive = 0
+
+        if max_consecutive >= 3:
+            return FilterResult.SOFT_FAIL
+
         return FilterResult.PASS
 
     def run_all_filters(self, candidate: CandidateScore) -> CandidateScore:
@@ -402,6 +434,17 @@ def run_filter_cascade(
     """
     cascade = FilterCascade(config)
 
+    # Get fallback config options
+    relax_soft_first = True
+    max_relaxation = 0.1
+    if config is not None:
+        if hasattr(config, "filtering"):
+            relax_soft_first = getattr(config.filtering, "relax_soft_filters_first", True)
+            max_relaxation = getattr(config.filtering, "max_threshold_relaxation", 0.1)
+        else:
+            relax_soft_first = getattr(config, "relax_soft_filters_first", True)
+            max_relaxation = getattr(config, "max_threshold_relaxation", 0.1)
+
     # First pass
     passing, failing = cascade.filter_candidates(candidates)
 
@@ -416,16 +459,48 @@ def run_filter_cascade(
     if len(passing) < min_candidates:
         print(f"Warning: Only {len(passing)} candidates passed. Applying fallback...")
 
-        # Relax soft filters first
-        for candidate in failing:
-            soft_fails = [k for k, v in candidate.filter_results.items() if v == FilterResult.SOFT_FAIL]
-            hard_fails = [k for k, v in candidate.filter_results.items() if v == FilterResult.FAIL]
+        if relax_soft_first:
+            # Phase 1: Accept candidates that only have soft failures
+            for candidate in failing:
+                if len(passing) >= min_candidates:
+                    break
+                hard_fails = [k for k, v in candidate.filter_results.items() if v == FilterResult.FAIL]
 
-            # Accept soft fails
-            if not hard_fails:
-                candidate.risk_flags.append("ACCEPTED_VIA_FALLBACK")
-                passing.append(candidate)
-                stats["relaxations_applied"].append(f"{candidate.candidate_id}: soft filter relaxation")
+                if not hard_fails:
+                    candidate.risk_flags.append("ACCEPTED_VIA_FALLBACK_SOFT")
+                    passing.append(candidate)
+                    stats["relaxations_applied"].append(f"{candidate.candidate_id}: soft filter relaxation")
+
+        # Phase 2: If still insufficient, relax thresholds (up to max_relaxation)
+        if len(passing) < min_candidates and max_relaxation > 0:
+            # Re-run with relaxed thresholds
+            relaxed_thresholds = cascade._thresholds.copy()
+            relaxed_thresholds["min_pdockq"] *= (1 - max_relaxation)
+            relaxed_thresholds["min_interface_area"] *= (1 - max_relaxation)
+            relaxed_thresholds["min_oasis_score"] *= (1 - max_relaxation)
+
+            for candidate in failing:
+                if len(passing) >= min_candidates:
+                    break
+                if candidate in passing:
+                    continue
+
+                # Check if candidate passes with relaxed thresholds
+                passes_relaxed = True
+
+                if candidate.pdockq is not None and candidate.pdockq < relaxed_thresholds["min_pdockq"]:
+                    passes_relaxed = False
+                if candidate.interface_area is not None and candidate.interface_area < relaxed_thresholds["min_interface_area"]:
+                    passes_relaxed = False
+
+                humanness = candidate.oasis_score_mean or candidate.oasis_score_vh
+                if humanness is not None and humanness < relaxed_thresholds["min_oasis_score"]:
+                    passes_relaxed = False
+
+                if passes_relaxed:
+                    candidate.risk_flags.append(f"ACCEPTED_VIA_FALLBACK_THRESHOLD_{int(max_relaxation*100)}PCT")
+                    passing.append(candidate)
+                    stats["relaxations_applied"].append(f"{candidate.candidate_id}: threshold relaxation ({int(max_relaxation*100)}%)")
 
         # Re-sort and re-rank
         passing.sort(key=lambda c: c.composite_score, reverse=True)

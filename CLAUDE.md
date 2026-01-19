@@ -187,6 +187,10 @@ pytest tests/test_liabilities.py -v  # Specific module
 10. **scFv parsing available** - `parse_scfv()` and `is_likely_scfv()` in `src/utils/constants.py` extract VH/VL from concatenated scFv sequences
 11. **CDR-specific liability filtering** - `CandidateScore` has `cdr_*_count` fields; `allow_deamidation_cdr=False` only rejects CDR liabilities
 12. **Calibration uses full scFv** - For VH/VL pairs, calibration constructs scFv (not VH-only) for accurate threshold setting
+13. **Contact counts are residue-level** - `num_contacts` counts unique residue pairs, not atomic contacts
+14. **Epitope residues configurable** - `config.epitope.okt3_epitope_residues` overrides hardcoded defaults
+15. **Aggregation filter active** - Checks aromatic content (>15%) and consecutive aromatics (3+)
+16. **Fallback config wired** - `relax_soft_filters_first` and `max_threshold_relaxation` are now used
 
 ## Dependencies
 

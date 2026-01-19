@@ -54,6 +54,26 @@ Last updated: 2026-01-19
 - [x] **BioPhi position indexing** - `_apply_mutations()` now tries both 0-based and 1-based indexing
   - File: `src/design/optimization.py:262-295`
 
+### Bug Fixes (2026-01-19 second code review)
+
+- [x] **Critical: scFv treated as VHH** - Added scFv parsing in analysis/filtering to detect concatenated scFv
+  - Files: `design_pipeline.py:324-340`, `scripts/05_filter_candidates.py:79-95`
+
+- [x] **High: Contact counts were atomic** - Changed to residue-level contact counting
+  - Files: `pdb_utils.py:186-236`, `modal/boltz2_app.py:91-107`
+
+- [x] **Medium: Epitope config not wired** - InterfaceAnalyzer now accepts custom OKT3 residues from config
+  - Files: `interface_analysis.py:92-104`, `design_pipeline.py:315-317`, `scripts/05_filter_candidates.py:71-73`
+
+- [x] **Medium: HTML report showed raw enums** - Fixed filter result display with proper CSS classes
+  - File: `report_generator.py:259-277, 295-310`
+
+- [x] **Low: Aggregation filter was no-op** - Implemented aromatic content and consecutive aromatics check
+  - File: `filter_cascade.py:264-300`
+
+- [x] **Low: Fallback config unused** - Wired `relax_soft_filters_first` and `max_threshold_relaxation`
+  - File: `filter_cascade.py:437-503`
+
 ## Optional / Future Work
 
 - [ ] Unit tests for core modules (tests/ directory exists but is empty)

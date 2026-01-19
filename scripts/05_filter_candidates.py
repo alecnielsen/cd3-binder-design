@@ -68,7 +68,9 @@ def main():
     # Convert to CandidateScore objects
     scanner = LiabilityScanner()
     dev_assessor = DevelopabilityAssessor()
-    interface_analyzer = InterfaceAnalyzer()
+    interface_analyzer = InterfaceAnalyzer(
+        okt3_epitope_residues=config.epitope.okt3_epitope_residues
+    )
 
     scored_candidates = []
     for c in candidates_data:
@@ -76,10 +78,23 @@ def main():
         vh_seq = c.get("sequence") or c.get("vh", "")
         vl_seq = c.get("sequence_vl") or c.get("vl")
 
-        # Determine binder type
+        # Determine binder type - check if single sequence is actually an scFv
         binder_type = c.get("binder_type")
         if binder_type is None:
-            binder_type = "vhh" if vl_seq is None else "scfv"
+            if vl_seq is not None:
+                binder_type = "scfv"
+            else:
+                # Check if the single sequence is a concatenated scFv
+                from src.utils.constants import parse_scfv, is_likely_scfv
+                if is_likely_scfv(vh_seq):
+                    parsed = parse_scfv(vh_seq)
+                    if parsed:
+                        vh_seq, vl_seq = parsed
+                        binder_type = "scfv"
+                    else:
+                        binder_type = "vhh"
+                else:
+                    binder_type = "vhh"
 
         score = CandidateScore(
             candidate_id=c.get("design_id", c.get("name", "unknown")),

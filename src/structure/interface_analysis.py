@@ -85,17 +85,23 @@ class EpitopeComparison:
 class InterfaceAnalyzer:
     """Analyzer for protein-protein binding interfaces."""
 
-    # OKT3 epitope residues on CD3ε (from 1SY6 structure)
-    # These are approximate positions - actual values from structure analysis
-    OKT3_EPITOPE_RESIDUES = [23, 25, 26, 27, 28, 29, 30, 31, 32, 35, 38, 39, 40, 41, 42, 45, 47]
+    # Default OKT3 epitope residues on CD3ε (from 1SY6 structure)
+    # Used as fallback when no custom residues are provided
+    DEFAULT_OKT3_EPITOPE_RESIDUES = [23, 25, 26, 27, 28, 29, 30, 31, 32, 35, 38, 39, 40, 41, 42, 45, 47]
 
-    def __init__(self, contact_distance: float = 5.0):
+    def __init__(
+        self,
+        contact_distance: float = 5.0,
+        okt3_epitope_residues: list[int] = None,
+    ):
         """Initialize analyzer.
 
         Args:
             contact_distance: Distance cutoff for contacts (Å).
+            okt3_epitope_residues: Custom OKT3 epitope residues. If None, uses defaults.
         """
         self.contact_distance = contact_distance
+        self.okt3_epitope_residues = okt3_epitope_residues or self.DEFAULT_OKT3_EPITOPE_RESIDUES
 
     def analyze_interface(
         self,
@@ -204,7 +210,7 @@ class InterfaceAnalyzer:
         """
         return self.compare_epitopes(
             epitope_1=epitope,
-            epitope_2=self.OKT3_EPITOPE_RESIDUES,
+            epitope_2=self.okt3_epitope_residues,
             name_1=binder_name,
             name_2="OKT3",
         )
