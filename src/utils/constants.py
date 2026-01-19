@@ -152,8 +152,34 @@ def _find_linker_by_heuristic(sequence: str) -> tuple[int, int] | None:
     return best_region
 
 
+def _score_scfv_split(vh_len: int, vl_len: int, linker_len: int) -> float:
+    """Score a potential scFv split based on how typical the lengths are.
+
+    Args:
+        vh_len: Length of VH region.
+        vl_len: Length of VL region.
+        linker_len: Length of linker used.
+
+    Returns:
+        Score where higher is better. Returns -inf for invalid splits.
+    """
+    # Reject invalid lengths
+    if not (100 <= vh_len <= 140 and 100 <= vl_len <= 130):
+        return float("-inf")
+
+    # Ideal lengths: VH ~120, VL ~110, linker ~15
+    vh_score = -abs(vh_len - 120)  # Penalize deviation from 120
+    vl_score = -abs(vl_len - 110)  # Penalize deviation from 110
+    linker_score = linker_len * 0.5  # Prefer longer linkers (more specific)
+
+    return vh_score + vl_score + linker_score
+
+
 def parse_scfv(sequence: str, linker: str = None) -> tuple[str, str] | None:
     """Parse an scFv sequence into VH and VL components.
+
+    Finds all occurrences of linker patterns and returns the split that
+    produces the most plausible VH/VL lengths.
 
     Args:
         sequence: Full scFv sequence (VH-linker-VL format).
@@ -168,15 +194,30 @@ def parse_scfv(sequence: str, linker: str = None) -> tuple[str, str] | None:
     else:
         linkers_to_try = SCFV_LINKER_PATTERNS
 
-    # First try exact pattern matching
+    # Collect all valid splits with their scores
+    candidates = []
+
     for lnk in linkers_to_try:
-        if lnk in sequence:
-            idx = sequence.find(lnk)
+        # Find ALL occurrences of this linker pattern
+        start = 0
+        while True:
+            idx = sequence.find(lnk, start)
+            if idx == -1:
+                break
+
             vh = sequence[:idx]
             vl = sequence[idx + len(lnk):]
-            # Sanity check: VH and VL should be reasonable lengths
-            if 100 <= len(vh) <= 140 and 100 <= len(vl) <= 130:
-                return vh, vl
+            score = _score_scfv_split(len(vh), len(vl), len(lnk))
+
+            if score > float("-inf"):
+                candidates.append((vh, vl, score, lnk))
+
+            start = idx + 1  # Continue searching for more occurrences
+
+    # Return the best split if any valid candidates found
+    if candidates:
+        candidates.sort(key=lambda x: x[2], reverse=True)
+        return candidates[0][0], candidates[0][1]
 
     # Fallback to heuristic detection if no explicit linker provided
     if linker is None:

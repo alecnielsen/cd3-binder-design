@@ -88,7 +88,7 @@ def main():
                 cd3_binder=cd3_binder,
                 cd3_binder_vl=cd3_binder_vl,
                 name_prefix=candidate_id,
-                target_name=config.formatting.tumor_target.upper(),
+                target_name=target_display,
                 formats=config.formatting.formats,
             )
 

@@ -230,7 +230,8 @@ def filter_by_humanness(
 
     for seq in sequences:
         report = score_humanness(seq, chain_type)
-        if report.oasis_score >= min_score:
+        # Guard against None score (BioPhi unavailable) - skip sequence (soft-fail)
+        if report.oasis_score is not None and report.oasis_score >= min_score:
             results.append((seq, report))
 
     return results
