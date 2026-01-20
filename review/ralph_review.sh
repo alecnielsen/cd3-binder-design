@@ -7,9 +7,10 @@
 # issues that might be overlooked when context accumulates.
 #
 # Usage:
-#   ./run_review.sh <module>          # Review a single module
-#   ./run_review.sh all               # Review all modules
-#   ./run_review.sh --status          # Show current tracking status
+#   ./ralph_review.sh <module>          # Review a single module
+#   ./ralph_review.sh all               # Review all modules (sequential)
+#   ./ralph_review.sh all --parallel    # Review all modules in parallel
+#   ./ralph_review.sh --status          # Show current tracking status
 #
 # Environment variables:
 #   MAX_ITERATIONS  - Maximum iterations per module (default: 5)
@@ -22,14 +23,17 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 TRACKING_FILE="$SCRIPT_DIR/tracking.yaml"
-SLICES_FILE="$SCRIPT_DIR/context_slices.yaml"
 PROMPTS_DIR="$SCRIPT_DIR/prompts"
-README_UPDATES="$SCRIPT_DIR/readme_updates.md"
-README_PATH="$REPO_ROOT/README.md"
+SRC_DIR="$REPO_ROOT/src"
 
 MAX_ITERATIONS="${MAX_ITERATIONS:-5}"
 CLAUDE_MODEL="${CLAUDE_MODEL:-claude-sonnet-4-20250514}"
 VERBOSE="${VERBOSE:-0}"
+
+# Available modules
+# - src/ modules: analysis, formatting, design, structure, pipeline
+# - root modules: scripts, modal
+MODULES=(analysis formatting design structure pipeline scripts modal)
 
 # Colors for output
 RED='\033[0;31m'
@@ -75,22 +79,29 @@ check_dependencies() {
 
 # Get list of available modules
 get_modules() {
-    python3 "$SCRIPT_DIR/extract_context.py" --list 2>/dev/null | \
-        grep -E "^  [a-z]+:" | \
-        sed 's/://g' | \
-        awk '{print $1}'
+    printf '%s\n' "${MODULES[@]}"
 }
 
-# Extract README context for a module
-extract_context() {
+# Check if module is valid
+is_valid_module() {
     local module="$1"
-    python3 "$SCRIPT_DIR/extract_context.py" "$module"
+    for m in "${MODULES[@]}"; do
+        if [[ "$m" == "$module" ]]; then
+            return 0
+        fi
+    done
+    return 1
 }
 
-# Get source paths for a module
-get_source_paths() {
+# Get module README path
+get_module_readme() {
     local module="$1"
-    python3 "$SCRIPT_DIR/extract_context.py" "$module" --sources-only
+    # scripts and modal are root-level directories
+    if [[ "$module" == "scripts" || "$module" == "modal" ]]; then
+        echo "$REPO_ROOT/$module/README.md"
+    else
+        echo "$SRC_DIR/$module/README.md"
+    fi
 }
 
 # Read tracking YAML value
@@ -157,15 +168,39 @@ with open('$TRACKING_FILE', 'w') as f:
 EOF
 }
 
+# Get source directory for a module
+get_module_source_dir() {
+    local module="$1"
+    # scripts and modal are root-level directories
+    if [[ "$module" == "scripts" || "$module" == "modal" ]]; then
+        echo "$REPO_ROOT/$module"
+    else
+        echo "$SRC_DIR/$module"
+    fi
+}
+
 # Collect source code for a module
 collect_source_code() {
     local module="$1"
     local output=""
+    local module_dir
+    module_dir=$(get_module_source_dir "$module")
 
-    while IFS= read -r src_path; do
-        local full_path="$REPO_ROOT/$src_path"
-        if [[ -d "$full_path" ]]; then
-            # It's a directory, collect all .py files
+    if [[ -d "$module_dir" ]]; then
+        while IFS= read -r -d '' pyfile; do
+            local rel_path="${pyfile#$REPO_ROOT/}"
+            output+="
+=== FILE: $rel_path ===
+$(cat "$pyfile")
+
+"
+        done < <(find "$module_dir" -name "*.py" -type f -print0 | sort -z)
+    fi
+
+    # For structure module, also include modal/ files (for context)
+    if [[ "$module" == "structure" ]]; then
+        local modal_dir="$REPO_ROOT/modal"
+        if [[ -d "$modal_dir" ]]; then
             while IFS= read -r -d '' pyfile; do
                 local rel_path="${pyfile#$REPO_ROOT/}"
                 output+="
@@ -173,17 +208,9 @@ collect_source_code() {
 $(cat "$pyfile")
 
 "
-            done < <(find "$full_path" -name "*.py" -type f -print0 | sort -z)
-        elif [[ -f "$full_path" ]]; then
-            # It's a file
-            local rel_path="${full_path#$REPO_ROOT/}"
-            output+="
-=== FILE: $rel_path ===
-$(cat "$full_path")
-
-"
+            done < <(find "$modal_dir" -name "*.py" -type f -print0 | sort -z)
         fi
-    done < <(get_source_paths "$module")
+    fi
 
     echo "$output"
 }
@@ -202,9 +229,15 @@ run_review_iteration() {
         return 1
     fi
 
-    # Extract README context
-    local readme_context
-    readme_context=$(extract_context "$module")
+    # Get module README context
+    local readme_path
+    readme_path=$(get_module_readme "$module")
+    local readme_context=""
+    if [[ -f "$readme_path" ]]; then
+        readme_context=$(cat "$readme_path")
+    else
+        log_warning "Module README not found: $readme_path"
+    fi
 
     # Collect source code
     local source_code
@@ -220,7 +253,10 @@ $prompt
 
 ---
 
-# README CONTEXT (relevant sections)
+# MODULE README CONTEXT
+
+The following is the scientific context from the module's README.md file.
+If you find this context is wrong or incomplete, you should update it directly in the README.
 
 $readme_context
 
@@ -233,7 +269,8 @@ $source_code
 ---
 
 Please review the source code above against the README context and the scientific criteria in the prompt.
-Remember: If no issues are found, respond with exactly NO_ISSUES (and nothing else).
+Remember: If no code issues are found, respond with exactly NO_ISSUES (and nothing else).
+Note: Updating the module README.md to fix documentation issues does NOT count as a code issue.
 "
 
     # Create a temporary file for the request
@@ -247,8 +284,8 @@ Remember: If no issues are found, respond with exactly NO_ISSUES (and nothing el
         log_info "Sending request to Claude..."
     fi
 
-    # Use claude --print with the input piped
-    result=$(claude --print < "$temp_file" 2>&1) || {
+    # Use claude --print with full permissions for automated review loop
+    result=$(claude --print --dangerously-skip-permissions < "$temp_file" 2>&1) || {
         log_error "Claude review failed"
         rm -f "$temp_file"
         return 1
@@ -256,41 +293,40 @@ Remember: If no issues are found, respond with exactly NO_ISSUES (and nothing el
 
     rm -f "$temp_file"
 
-    # Check for NO_ISSUES
-    if echo "$result" | grep -q "^NO_ISSUES$"; then
+    # Check for NO_ISSUES - robust parsing that handles whitespace and extra output
+    # Look for NO_ISSUES on its own line (with possible whitespace)
+    if echo "$result" | grep -qE '^\s*NO_ISSUES\s*$'; then
         log_success "Module $module: NO_ISSUES found"
         update_tracking "$module" "status" "clean"
         update_tracking "$module" "last_result" "NO_ISSUES"
+        echo ""  # Return empty hash to signal success
         return 0
     else
         log_warning "Module $module: Issues found"
         update_tracking "$module" "status" "issues"
         update_tracking "$module" "last_result" "issues_found"
 
-        # Append to readme_updates.md
-        {
-            echo ""
-            echo "## Review: $module (iteration $iteration)"
-            echo "**Date**: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-            echo ""
-            echo "$result"
-            echo ""
-            echo "---"
-        } >> "$README_UPDATES"
+        # Print the issues to stdout
+        echo ""
+        echo "=== Issues found in $module (iteration $iteration) ==="
+        echo "$result"
+        echo "========================================================"
+        echo ""
 
-        log_info "Issues logged to $README_UPDATES"
+        # Return hash of issues for stuck detection
+        echo "$result" | shasum -a 256 | cut -d' ' -f1
         return 1
     fi
 }
 
-# Review a single module
+# Review a single module (loops until clean or max iterations)
 review_module() {
     local module="$1"
 
-    log_info "Starting review for module: $module"
+    log_info "Starting review loop for module: $module"
 
     # Check if module exists
-    if ! get_modules | grep -q "^${module}$"; then
+    if ! is_valid_module "$module"; then
         log_error "Unknown module: $module"
         log_info "Available modules: $(get_modules | tr '\n' ' ')"
         return 1
@@ -301,43 +337,74 @@ review_module() {
     current_iterations=$(read_tracking "modules.${module}.iterations")
     current_iterations=${current_iterations:-0}
 
-    # Check if we've hit max iterations
+    # Check if already at max
     if [[ "$current_iterations" -ge "$MAX_ITERATIONS" ]]; then
-        log_warning "Module $module has reached max iterations ($MAX_ITERATIONS)"
+        log_warning "Module $module has already reached max iterations ($MAX_ITERATIONS)"
         return 0
     fi
 
     # Update status to in_progress
     update_tracking "$module" "status" "in_progress"
 
-    # Run the review
-    local iteration=$((current_iterations + 1))
-    update_tracking "$module" "iterations" "$iteration"
+    # Stuck detection - track previous issue hash
+    local prev_issue_hash=""
+    local stuck_count=0
+    local max_stuck=2  # Exit if same issues seen this many times
 
-    if run_review_iteration "$module" "$iteration"; then
-        # Clean - no need for more iterations
-        log_success "Module $module passed review (iteration $iteration)"
-        return 0
-    else
-        # Issues found - could run more iterations if under limit
-        if [[ "$iteration" -lt "$MAX_ITERATIONS" ]]; then
-            log_info "Module $module has issues. Re-run to continue reviewing (iteration $iteration/$MAX_ITERATIONS)"
-        else
-            log_warning "Module $module reached max iterations with issues remaining"
+    # Loop until clean or max iterations
+    while [[ "$current_iterations" -lt "$MAX_ITERATIONS" ]]; do
+        local iteration=$((current_iterations + 1))
+        update_tracking "$module" "iterations" "$iteration"
+
+        log_info "Module $module: iteration $iteration/$MAX_ITERATIONS"
+
+        # Run review and capture output (including issue hash on failure)
+        local output
+        local exit_code
+        output=$(run_review_iteration "$module" "$iteration")
+        exit_code=$?
+
+        if [[ "$exit_code" -eq 0 ]]; then
+            # Clean - we're done
+            log_success "Module $module passed review (iteration $iteration)"
+            return 0
         fi
-        return 1
-    fi
+
+        # Issues found - check for stuck condition
+        local issue_hash
+        issue_hash=$(echo "$output" | tail -1)  # Hash is on last line
+
+        if [[ "$issue_hash" == "$prev_issue_hash" ]]; then
+            ((stuck_count++))
+            log_warning "Module $module: same issues detected ($stuck_count/$max_stuck)"
+
+            if [[ "$stuck_count" -ge "$max_stuck" ]]; then
+                log_error "Module $module appears stuck - same issues $max_stuck times in a row"
+                log_error "Human intervention may be needed"
+                update_tracking "$module" "status" "stuck"
+                return 1
+            fi
+        else
+            stuck_count=0
+        fi
+
+        prev_issue_hash="$issue_hash"
+        current_iterations=$iteration
+
+        # Brief pause between iterations to avoid hammering API
+        sleep 2
+    done
+
+    log_warning "Module $module reached max iterations ($MAX_ITERATIONS) with issues remaining"
+    return 1
 }
 
-# Review all modules
-review_all() {
-    log_info "Reviewing all modules..."
-
-    local modules
-    modules=$(get_modules)
+# Review all modules sequentially
+review_all_sequential() {
+    log_info "Reviewing all modules sequentially..."
 
     local failed=0
-    for module in $modules; do
+    for module in "${MODULES[@]}"; do
         if ! review_module "$module"; then
             ((failed++)) || true
         fi
@@ -347,6 +414,65 @@ review_all() {
     log_info "Review complete. Modules with issues: $failed"
 
     return $failed
+}
+
+# Review all modules in parallel
+review_all_parallel() {
+    log_info "Reviewing all modules in parallel..."
+
+    local pids=()
+    local modules_list=("${MODULES[@]}")
+    local temp_dir
+    temp_dir=$(mktemp -d)
+
+    # Launch all reviews in background
+    for module in "${modules_list[@]}"; do
+        log_info "Starting parallel review: $module"
+        (
+            review_module "$module" > "$temp_dir/${module}.log" 2>&1
+            echo $? > "$temp_dir/${module}.exit"
+        ) &
+        pids+=($!)
+    done
+
+    # Wait for all to complete
+    log_info "Waiting for ${#pids[@]} parallel reviews to complete..."
+    wait "${pids[@]}"
+
+    # Collect results
+    local failed=0
+    for module in "${modules_list[@]}"; do
+        local exit_code
+        exit_code=$(cat "$temp_dir/${module}.exit" 2>/dev/null || echo "1")
+
+        echo ""
+        echo "=== Results for $module ==="
+        cat "$temp_dir/${module}.log" 2>/dev/null || echo "(no output)"
+        echo "==========================="
+
+        if [[ "$exit_code" != "0" ]]; then
+            ((failed++)) || true
+        fi
+    done
+
+    # Cleanup
+    rm -rf "$temp_dir"
+
+    echo ""
+    log_info "Parallel review complete. Modules with issues: $failed"
+
+    return $failed
+}
+
+# Review all modules (entry point)
+review_all() {
+    local parallel="${1:-false}"
+
+    if [[ "$parallel" == "true" ]]; then
+        review_all_parallel
+    else
+        review_all_sequential
+    fi
 }
 
 # Show current status
@@ -398,14 +524,15 @@ main() {
     check_dependencies
 
     if [[ $# -eq 0 ]]; then
-        echo "Usage: $0 <module|all|--status>"
+        echo "Usage: $0 <module|all|--status> [--parallel]"
         echo ""
         echo "Modules: $(get_modules | tr '\n' ' ')"
         echo ""
         echo "Options:"
-        echo "  <module>   Review a specific module"
-        echo "  all        Review all modules"
-        echo "  --status   Show current tracking status"
+        echo "  <module>     Review a specific module"
+        echo "  all          Review all modules (sequential)"
+        echo "  all --parallel  Review all modules in parallel"
+        echo "  --status     Show current tracking status"
         echo ""
         echo "Environment variables:"
         echo "  MAX_ITERATIONS  Max iterations per module (default: 5)"
@@ -418,7 +545,12 @@ main() {
             show_status
             ;;
         all)
-            review_all
+            # Check for --parallel flag
+            if [[ "${2:-}" == "--parallel" ]]; then
+                review_all "true"
+            else
+                review_all "false"
+            fi
             ;;
         *)
             review_module "$1"

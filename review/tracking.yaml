@@ -45,6 +45,20 @@ modules:
     last_result: null
     issues_found: []
 
+  scripts:
+    status: pending
+    iterations: 0
+    last_reviewed: null
+    last_result: null
+    issues_found: []
+
+  modal:
+    status: pending
+    iterations: 0
+    last_reviewed: null
+    last_result: null
+    issues_found: []
+
 # Global settings
 settings:
   max_iterations: 5

@@ -5,6 +5,15 @@ You are reviewing the `src/design/` module of a CD3 binder design pipeline. This
 - Optimization of existing binders (teplizumab, SP34, UCHT1)
 - Generation of affinity-attenuated variants
 
+## Important: Module README Updates
+
+The scientific context for this module lives in `src/design/README.md`. If you find that the README documentation is:
+- **Incorrect** (doesn't match the implementation)
+- **Incomplete** (missing important scientific details)
+- **Outdated** (references old behavior)
+
+You should **update the README.md directly** to fix these issues. README updates do NOT count as code issues - they are documentation improvements.
+
 ## Review Focus Areas
 
 ### 1. BoltzGen Integration Correctness
@@ -101,13 +110,16 @@ Two PDB structures are used:
 
 ## Output Format
 
-If you find issues, list them with:
+If you find **code issues**, list them with:
 1. File path and line number
 2. Description of the issue
 3. Scientific rationale for why it matters
 4. Suggested fix (if applicable)
 
-If no issues are found, respond with exactly:
+If no **code issues** are found, respond with exactly:
 NO_ISSUES
 
-Do not invent issues if the code is correct. Only report genuine scientific or implementation problems.
+**Important notes:**
+- Do not invent issues if the code is correct. Only report genuine scientific or implementation problems.
+- README updates do NOT count as issues. If you update the module README.md to fix documentation, still output "NO_ISSUES" if no code problems were found.
+- "NO_ISSUES" means the code is scientifically correct, even if you made documentation improvements.
