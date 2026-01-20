@@ -476,7 +476,7 @@ def get_okt3_epitope_from_1sy6(
 
     This function dynamically extracts the epitope residues from the
     1SY6 crystal structure. By default, it maps the residue numbers to
-    canonical CD3ε numbering (matching 1XIW chain D) via sequence alignment.
+    canonical CD3ε numbering (matching 1XIW chain A) via sequence alignment.
 
     IMPORTANT: 1SY6 chain A is a CD3γ/ε FUSION construct, not pure CD3ε.
     The residue numbers in 1SY6 include a linker and differ from canonical
@@ -488,17 +488,23 @@ def get_okt3_epitope_from_1sy6(
     - Chain H: OKT3 VH (heavy chain variable region)
     - Chain L: OKT3 VL (light chain variable region)
 
+    Chain assignments in 1XIW (from RCSB):
+    - Chains A, E: CD3ε (epsilon)
+    - Chains B, F: CD3δ (delta)
+    - Chains C, G: UCHT1 VL
+    - Chains D, H: UCHT1 VH (NOT CD3!)
+
     Args:
         pdb_path: Path to 1SY6 PDB file. If None, will try to load from
             cache_dir or download from RCSB.
         distance_cutoff: Distance cutoff for contacts (Å).
         cache_dir: Directory to cache downloaded PDB files.
         map_to_canonical: If True, map residue numbers to canonical CD3ε
-            numbering (1XIW chain D). If False, return raw 1SY6 numbering.
+            numbering (1XIW chain A). If False, return raw 1SY6 numbering.
 
     Returns:
         Sorted list of CD3ε residue numbers that form the OKT3 epitope.
-        If map_to_canonical=True, numbers match 1XIW chain D numbering.
+        If map_to_canonical=True, numbers match 1XIW chain A numbering.
     """
     import os
     import warnings
@@ -539,7 +545,8 @@ def get_okt3_epitope_from_1sy6(
         # Get 1SY6 chain A sequence and numbering
         seq_1sy6, nums_1sy6 = extract_sequence_with_numbering(pdb_content_1sy6, "A")
 
-        # Get 1XIW chain D (canonical CD3ε) sequence
+        # Get 1XIW chain A (canonical CD3ε) sequence
+        # Note: 1XIW has CD3ε on chains A and E (not D, which is UCHT1 VH)
         cached_1xiw = os.path.join(cache_dir, "1XIW.pdb")
         if os.path.exists(cached_1xiw):
             with open(cached_1xiw, "r") as f:
@@ -548,7 +555,7 @@ def get_okt3_epitope_from_1sy6(
             os.makedirs(cache_dir, exist_ok=True)
             pdb_content_1xiw = download_pdb("1XIW", cached_1xiw)
 
-        seq_1xiw, nums_1xiw = extract_sequence_with_numbering(pdb_content_1xiw, "D")
+        seq_1xiw, nums_1xiw = extract_sequence_with_numbering(pdb_content_1xiw, "A")
 
         # Build mapping from 1SY6 residue numbers to sequence positions
         num_to_seqpos_1sy6 = {num: i for i, num in enumerate(nums_1sy6)}

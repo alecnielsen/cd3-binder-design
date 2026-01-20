@@ -93,7 +93,7 @@ class InterfaceAnalyzer:
 
     # Cached OKT3 epitope residues (in canonical CD3ε numbering)
     _cached_okt3_epitope: list[int] = None
-    # Cached canonical CD3ε sequence (from 1XIW chain D)
+    # Cached canonical CD3ε sequence (from 1XIW chain A)
     _cached_cd3e_sequence: str = None
 
     @classmethod
@@ -101,7 +101,7 @@ class InterfaceAnalyzer:
         """Get OKT3 epitope residues in canonical CD3ε numbering.
 
         This method extracts the OKT3 epitope from the 1SY6 crystal structure
-        and maps it to canonical CD3ε numbering (1XIW chain D) via sequence
+        and maps it to canonical CD3ε numbering (1XIW chain A) via sequence
         alignment. The result is cached for efficiency.
 
         Args:
@@ -132,7 +132,7 @@ class InterfaceAnalyzer:
 
     @classmethod
     def get_canonical_cd3e_sequence(cls, force_refresh: bool = False) -> str:
-        """Get canonical CD3ε sequence from 1XIW chain D.
+        """Get canonical CD3ε sequence from 1XIW chain A.
 
         Args:
             force_refresh: If True, re-extract even if cached.
@@ -158,7 +158,8 @@ class InterfaceAnalyzer:
                     os.makedirs(cache_dir, exist_ok=True)
                     pdb_content = download_pdb("1XIW", cached_path)
 
-                seq, _ = extract_sequence_with_numbering(pdb_content, "D")
+                # Chain A (or E) is CD3ε in 1XIW; chain D is UCHT1 VH
+                seq, _ = extract_sequence_with_numbering(pdb_content, "A")
                 cls._cached_cd3e_sequence = seq
             except Exception as e:
                 import warnings
@@ -180,7 +181,7 @@ class InterfaceAnalyzer:
             okt3_epitope_residues: Custom OKT3 epitope residues. If None,
                 dynamically extracts from 1SY6 (in canonical numbering).
             canonical_cd3e_sequence: Canonical CD3ε sequence for alignment.
-                If None, uses 1XIW chain D sequence.
+                If None, uses 1XIW chain A sequence.
         """
         self.contact_distance = contact_distance
         # Use provided residues or dynamically extract from 1SY6
@@ -361,7 +362,7 @@ class InterfaceAnalyzer:
     ) -> EpitopeComparison:
         """Compare an epitope to the OKT3 epitope.
 
-        IMPORTANT: The OKT3 epitope uses canonical CD3ε numbering (1XIW chain D).
+        IMPORTANT: The OKT3 epitope uses canonical CD3ε numbering (1XIW chain A).
         If the input epitope uses different numbering (e.g., from a predicted
         structure with 1-indexed residue numbers), provide target_sequence
         to enable alignment-based comparison.
@@ -403,7 +404,7 @@ class InterfaceAnalyzer:
     ) -> tuple[str, float]:
         """Annotate whether an epitope is OKT3-like or novel.
 
-        IMPORTANT: The OKT3 epitope uses canonical CD3ε numbering (1XIW chain D).
+        IMPORTANT: The OKT3 epitope uses canonical CD3ε numbering (1XIW chain A).
         If the input epitope uses different numbering (e.g., from a predicted
         structure), provide target_sequence to enable alignment-based comparison.
 

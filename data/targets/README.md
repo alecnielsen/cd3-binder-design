@@ -35,8 +35,13 @@ curl -o cd3_epsilon_gamma_1SY6.pdb "https://files.rcsb.org/download/1SY6.pdb"
 ## Chain Information
 
 ### 1XIW
-- Chain D: CD3ε (epsilon) - 104 residues
-- Chain E: CD3δ (delta) - 79 residues
+1XIW contains two copies of the CD3εδ heterodimer plus UCHT1 scFv:
+- **Chains A, E**: CD3ε (epsilon) - 104 residues each
+- **Chains B, F**: CD3δ (delta) - 79 residues each
+- **Chains C, G**: UCHT1 VL (light chain variable region)
+- **Chains D, H**: UCHT1 VH (heavy chain variable region)
+
+Use chain A or E for canonical CD3ε sequence (they are identical).
 
 ### 1SY6
 **Note:** Chain IDs in the actual PDB file differ from some documentation.
@@ -45,7 +50,7 @@ curl -o cd3_epsilon_gamma_1SY6.pdb "https://files.rcsb.org/download/1SY6.pdb"
 - Chain H: OKT3 VH (heavy chain variable region)
 - Chain L: OKT3 VL (light chain variable region)
 
-**Important:** Residue numbering in 1SY6 chain A differs from 1XIW chain D due to
+**Important:** Residue numbering in 1SY6 chain A differs from 1XIW chains A/E due to
 the fusion construct. When comparing epitopes across structures, use sequence
 alignment (see `compare_epitopes_aligned()` in InterfaceAnalyzer).
 

@@ -96,7 +96,10 @@ def main():
         {
             "pdb_id": "1XIW",
             "description": "CD3εδ heterodimer",
-            "cd3e_chain": "E",
+            # NOTE: 1XIW has CD3ε on chains A and E (duplicates in asymmetric unit)
+            # Chain A has 91 residues, chain E has 87 (A has better C-terminal coverage)
+            # Chains D, H are UCHT1 VH - NOT CD3!
+            "cd3e_chain": "A",
         },
         {
             "pdb_id": "1SY6",
