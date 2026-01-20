@@ -16,8 +16,8 @@ The analysis module implements Filters 2-5 of the cascade:
 - If humanization significantly changes CDRs, FLAG for back-mutation testing
 
 **Filter 3: SEQUENCE LIABILITIES**
-- Deamidation: No NG, NS motifs in CDRs
-- Isomerization: No DG, DS, DT motifs in CDRs
+- Deamidation: No NG, NS, NT, ND, NH motifs in CDRs
+- Isomerization: No DG, DS, DT, DD, DH, DN motifs in CDRs
 - N-glycosylation: No N-X-S/T motifs in CDRs (where X != P)
 - Oxidation: Flag exposed Met/Trp in CDRs (soft filter)
 - Unpaired cysteines: 0 (must be even count)
@@ -37,8 +37,8 @@ The analysis module implements Filters 2-5 of the cascade:
 
 ```python
 # Liability motif definitions
-DEAMIDATION_MOTIFS = ['NG', 'NS', 'NT', 'ND']  # N followed by small residue
-ISOMERIZATION_MOTIFS = ['DG', 'DS', 'DT', 'DD']  # D followed by small residue
+DEAMIDATION_MOTIFS = ['NG', 'NS', 'NT', 'ND', 'NH']  # N followed by small/flexible residue
+ISOMERIZATION_MOTIFS = ['DG', 'DS', 'DT', 'DD', 'DH', 'DN']  # D followed by small/flexible residue
 OXIDATION_RESIDUES = ['M', 'W']  # Methionine, Tryptophan
 
 # N-glycosylation: N-X-S/T where X != P
@@ -87,4 +87,4 @@ Computational filters reduce risk but don't guarantee success:
 
 - CDR-specific liability filtering: `CandidateScore` has `cdr_*_count` fields; `allow_deamidation_cdr=False` only rejects CDR liabilities
 - Hard vs soft filters: Deamidation/isomerization/glycosylation in CDRs are hard filters; oxidation is a soft filter
-- Hydrophobic residues for patch detection: A, V, I, L, M, F, Y, W
+- Hydrophobic residues for patch detection: A, I, L, M, F, V, W (excludes Y which has Kyte-Doolittle -1.3)

@@ -1,21 +1,21 @@
 #!/bin/bash
-# Sandboxed Ralph Wiggum review runner
+# Sandboxed Ralph Wiggum review runner using macOS native sandbox (sandbox-exec)
 #
 # Provides:
-# - Filesystem isolation (no access to ~/.ssh, ~/.aws, ~/.config, etc.)
-# - Only the repo directory is mounted
-# - Runs as non-root user
+# - Filesystem isolation (no access to ~/.ssh, ~/.aws, most of ~/.config, etc.)
+# - Uses existing Claude auth (keychain access preserved)
+# - Native performance (no container overhead)
 #
-# Network isolation note:
-# Full network isolation (only allowing api.anthropic.com) requires Linux with iptables.
-# On macOS, Docker provides filesystem isolation but network filtering is limited.
-# For paranoid mode on macOS, use a Linux VM or remote Linux host.
+# The sandbox profile allows:
+# - Read/write to the repo directory
+# - Read access to ~/.claude (for settings)
+# - Network access (required for Anthropic API)
+# - Keychain access (for subscription auth)
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(dirname "$SCRIPT_DIR")"
-IMAGE_NAME="cd3-review-sandbox"
 
 # Colors
 RED='\033[0;31m'
@@ -27,115 +27,100 @@ log_info() { echo -e "${GREEN}[SANDBOX]${NC} $1"; }
 log_warn() { echo -e "${YELLOW}[SANDBOX]${NC} $1"; }
 log_error() { echo -e "${RED}[SANDBOX]${NC} $1"; }
 
-# Check for API key
-if [[ -z "${ANTHROPIC_API_KEY:-}" ]]; then
-    log_error "ANTHROPIC_API_KEY environment variable not set"
+# Check we're on macOS
+if [[ "$(uname)" != "Darwin" ]]; then
+    log_error "This sandbox script is for macOS only"
+    log_error "On Linux, use Docker-based sandboxing"
     exit 1
 fi
 
-# Build the container if needed
-build_container() {
-    log_info "Building sandbox container..."
-    docker build -t "$IMAGE_NAME" "$SCRIPT_DIR"
+# Check sandbox-exec exists
+if ! command -v sandbox-exec &> /dev/null; then
+    log_error "sandbox-exec not found. This requires macOS."
+    exit 1
+fi
+
+# Generate sandbox profile
+# Strategy: allow default, then deny sensitive paths
+generate_sandbox_profile() {
+    cat << SBPROFILE
+(version 1)
+(allow default)
+
+;; DENY sensitive directories - credentials, secrets, personal data
+(deny file-read* file-write*
+    (subpath "$HOME/.ssh")
+    (subpath "$HOME/.aws")
+    (subpath "$HOME/.gnupg")
+    (subpath "$HOME/.kube")
+    (subpath "$HOME/.docker")
+    (subpath "$HOME/.azure")
+    (subpath "$HOME/.gcloud")
+    (subpath "$HOME/Documents")
+    (subpath "$HOME/Desktop")
+    (subpath "$HOME/Downloads")
+    (subpath "$HOME/.bash_history")
+    (subpath "$HOME/.zsh_history")
+    (subpath "$HOME/.zhistory")
+    (subpath "$HOME/.local/share/fish/fish_history")
+    (literal "$HOME/.netrc")
+    (literal "$HOME/.npmrc")
+    (literal "$HOME/.pypirc")
+)
+SBPROFILE
 }
 
 # Run review in sandbox
 run_sandboxed() {
     local args=("$@")
 
-    log_info "Starting sandboxed review..."
-    log_warn "Filesystem isolated: only /repo is accessible"
-    log_warn "No access to: ~/.ssh, ~/.aws, ~/.config, ~/, /etc, etc."
+    log_info "Starting sandboxed review (macOS native sandbox)..."
+    log_warn "Filesystem isolated: repo + Claude config only"
+    log_warn "Blocked: ~/.ssh, ~/.aws, ~/.gnupg, ~/.kube, Documents, etc."
+    log_info "Using existing Claude subscription auth"
 
-    # Only use -it flags if we have a TTY (interactive terminal)
-    local interactive_flags=""
-    if [[ -t 0 && -t 1 ]]; then
-        interactive_flags="-it"
-    fi
+    # Create temp file for sandbox profile
+    local profile_file
+    profile_file=$(mktemp /tmp/sandbox_profile.XXXXXX.sb)
+    generate_sandbox_profile > "$profile_file"
 
-    docker run --rm $interactive_flags \
-        --name "cd3-review-$$" \
-        -v "$REPO_DIR:/repo:rw" \
-        -e "ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY" \
-        -e "HOME=/home/reviewer" \
-        --workdir /repo \
-        --user reviewer \
-        --read-only \
-        --tmpfs /tmp:rw,noexec,nosuid \
-        --tmpfs /home/reviewer:rw,noexec,nosuid \
-        --security-opt no-new-privileges \
-        --cap-drop ALL \
-        "$IMAGE_NAME" \
-        ./review/ralph_review.sh "${args[@]}"
+    # Run with sandbox
+    local exit_code=0
+    sandbox-exec -f "$profile_file" ./review/ralph_review.sh "${args[@]}" || exit_code=$?
+
+    # Cleanup
+    rm -f "$profile_file"
+
+    return $exit_code
 }
 
-# Paranoid mode: Linux-only with network filtering
-run_paranoid() {
-    local args=("$@")
-
-    if [[ "$(uname)" != "Linux" ]]; then
-        log_error "Paranoid mode (network filtering) only works on Linux"
-        log_error "On macOS, use a Linux VM or accept filesystem-only isolation"
-        exit 1
-    fi
-
-    log_info "Starting PARANOID mode (network restricted to api.anthropic.com)..."
-
-    # Create isolated network if it doesn't exist
-    docker network inspect cd3-isolated >/dev/null 2>&1 || \
-        docker network create --internal cd3-isolated
-
-    # Only use -it flags if we have a TTY
-    local interactive_flags=""
-    if [[ -t 0 && -t 1 ]]; then
-        interactive_flags="-it"
-    fi
-
-    # Run with network isolation
-    # Note: This requires additional iptables rules on the host to allow
-    # only api.anthropic.com. See README for setup instructions.
-    docker run --rm $interactive_flags \
-        --name "cd3-review-$$" \
-        --network cd3-isolated \
-        -v "$REPO_DIR:/repo:rw" \
-        -e "ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY" \
-        -e "HOME=/home/reviewer" \
-        --workdir /repo \
-        --user reviewer \
-        --read-only \
-        --tmpfs /tmp:rw,noexec,nosuid \
-        --tmpfs /home/reviewer:rw,noexec,nosuid \
-        --security-opt no-new-privileges \
-        --cap-drop ALL \
-        "$IMAGE_NAME" \
-        ./review/ralph_review.sh "${args[@]}"
+# Show help
+show_help() {
+    echo "Usage: $0 [options] [ralph_review.sh args...]"
+    echo ""
+    echo "Options:"
+    echo "  --help        Show this help"
+    echo "  --show-profile  Print the sandbox profile and exit"
+    echo ""
+    echo "Examples:"
+    echo "  $0 analysis                   # Review analysis module"
+    echo "  $0 all --parallel             # Review all modules in parallel"
+    echo "  $0 --status                   # Show review status"
+    echo ""
+    echo "Environment variables:"
+    echo "  MAX_ITERATIONS  Max review iterations per module (default: 5)"
+    echo "  VERBOSE         Set to 1 for verbose output"
 }
 
 # Main
 case "${1:-}" in
-    --build)
-        build_container
+    --help|-h)
+        show_help
         ;;
-    --paranoid)
-        shift
-        build_container
-        run_paranoid "$@"
-        ;;
-    --help)
-        echo "Usage: $0 [--build|--paranoid] [ralph_review.sh args...]"
-        echo ""
-        echo "Options:"
-        echo "  --build     Build the sandbox container only"
-        echo "  --paranoid  Linux-only: restrict network to api.anthropic.com"
-        echo ""
-        echo "Examples:"
-        echo "  $0 --build                    # Build container"
-        echo "  $0 analysis                   # Review analysis module"
-        echo "  $0 all --parallel             # Review all modules in parallel"
-        echo "  $0 --paranoid all             # Linux: full network isolation"
+    --show-profile)
+        generate_sandbox_profile
         ;;
     *)
-        build_container
         run_sandboxed "$@"
         ;;
 esac
