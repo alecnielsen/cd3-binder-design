@@ -90,31 +90,23 @@ linkers:
   fc_fusion: "GGGGSGGGGS"       # (G4S)x2, 10 aa
 ```
 
-## CrossMab Assembly Code
+## CrossMab Assembly Logic
+
+The actual implementation uses a `CrossMabFormatter` class that:
+1. Retrieves constant region sequences (CH1, CL, hinge, CH2, CH3) from a `SequenceLibrary`
+2. Applies knob (T366W) and hole (T366S/L368A/Y407V) mutations to CH3 domains
+3. Assembles chains with the CrossMab domain swap on the CD3 arm
 
 ```python
-def assemble_crossmab(
-    target_vh: str, target_vl: str,
-    cd3_vh: str, cd3_vl: str,
-    fc_knob: str, fc_hole: str,
-    ch1: str, cl: str, hinge: str
-) -> dict:
-    """Assemble CrossMab bispecific sequences."""
+# Simplified assembly logic (see crossmab.py for full implementation):
 
-    # Target arm: standard Fab
-    heavy_chain_1 = target_vh + ch1 + hinge + fc_knob
-    light_chain_1 = target_vl + cl
+# Target arm: standard Fab with Knob
+heavy_chain_1 = target_vh + ch1 + hinge + ch2 + ch3_knob
+light_chain_1 = target_vl + cl
 
-    # CD3 arm: CrossMab swap (CH1-CL exchanged)
-    heavy_chain_2 = cd3_vh + cl + hinge + fc_hole  # VH fused to CL
-    light_chain_2 = cd3_vl + ch1                    # VL fused to CH1
-
-    return {
-        'heavy_chain_1': heavy_chain_1,  # Target arm (knob)
-        'heavy_chain_2': heavy_chain_2,  # CD3 arm (hole, CrossMab)
-        'light_chain_1': light_chain_1,  # Target light chain
-        'light_chain_2': light_chain_2,  # CD3 light chain (CrossMab)
-    }
+# CD3 arm: CrossMab swap (CH1-CL exchanged) with Hole
+heavy_chain_2 = cd3_vh + cl + hinge + ch2 + ch3_hole  # VH fused to CL (swap)
+light_chain_2 = cd3_vl + ch1                           # VL fused to CH1 (swap)
 ```
 
 ## Implementation Notes

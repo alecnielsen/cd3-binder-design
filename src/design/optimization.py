@@ -130,8 +130,8 @@ class SequenceOptimizer:
 
         sequences = AntibodySequences(
             name=name,
-            vh=seq_data.get("vh", seq_data.get("VH", "")),
-            vl=seq_data.get("vl", seq_data.get("VL")),
+            vh=seq_data.get("vh", seq_data.get("VH", seq_data.get("vh_sequence", ""))),
+            vl=seq_data.get("vl", seq_data.get("VL", seq_data.get("vl_sequence"))),
             source=data.get("source", "unknown"),
             notes=data.get("notes", ""),
         )
@@ -294,6 +294,27 @@ class SequenceOptimizer:
 
         return "".join(seq_list)
 
+    def _is_already_humanized(self, name: str) -> bool:
+        """Check if antibody is already humanized and should not be re-humanized.
+
+        Teplizumab is a humanized version of OKT3 (hOKT3γ1 Ala-Ala), FDA approved
+        in 2022. Re-humanizing it would be scientifically inappropriate as:
+        1. It was carefully humanized in the 1990s with specific vernier zone
+           residues maintained for binding.
+        2. BioPhi/Sapiens may suggest framework changes that disrupt these
+           carefully selected positions.
+        3. The humanization is clinically validated.
+
+        Args:
+            name: Name of the antibody sequence.
+
+        Returns:
+            True if the antibody is already humanized.
+        """
+        # Known humanized antibodies that should not be re-humanized
+        known_humanized = {"teplizumab"}
+        return name.lower() in known_humanized
+
     def generate_back_mutations(
         self,
         humanized: OptimizedVariant,
@@ -387,7 +408,11 @@ class SequenceOptimizer:
                 all_variants.append(original_variant)
 
                 # Humanized variant
-                if include_humanization:
+                # Skip humanization for already-humanized antibodies (e.g., teplizumab)
+                # Teplizumab is already a humanized antibody (hOKT3γ1); re-humanizing
+                # would be scientifically inappropriate and could disrupt validated
+                # framework-CDR interactions.
+                if include_humanization and not self._is_already_humanized(name):
                     humanized = self.humanize(sequences)
                     all_variants.append(humanized)
 

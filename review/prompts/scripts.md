@@ -114,13 +114,14 @@ reproducibility:
 
 ## Output Format
 
-If you find **code issues**, list them with:
-1. File path and line number
-2. Description of the issue
-3. Scientific rationale for why it matters
-4. Suggested fix (if applicable)
+If you find **code issues**:
+1. **FIX THEM** by editing the code files directly
+2. Then report what you fixed:
+   - File path and line number
+   - Description of what was wrong
+   - What you changed and why
 
-If no **code issues** are found, respond with exactly:
+If no **code issues** are found (or after fixing all issues), respond with exactly:
 NO_ISSUES
 
 **Important notes:**

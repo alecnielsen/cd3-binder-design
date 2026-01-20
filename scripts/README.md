@@ -57,6 +57,7 @@ python scripts/02_run_denovo_design.py --config config.yaml
 **Critical**: Calibration must run before filtering to set appropriate thresholds.
 
 - Uses known binders (teplizumab, SP34, UCHT1) as positive controls
+- For paired antibodies (VH+VL), constructs scFv (VH-linker-VL) for accurate structure prediction
 - Runs Boltz-2 on known binders to establish baseline metrics
 - Sets filter thresholds to accept all known binders with margin:
   - `min_pdockq = min(known_binder_pdockq) - 0.05`
@@ -96,6 +97,8 @@ python scripts/02_run_denovo_design.py --config config.yaml
 **Assumption**: Boltz-2 can predict binder-CD3 complex structures accurately enough for filtering.
 
 - Runs on Modal with A100 GPU
+- Aggregates candidates from both denovo and optimized directories
+- For paired antibodies (VH+VL), constructs scFv (VH-linker-VL) for structure prediction
 - Predicts complex for each candidate + CD3 epsilon
 - Extracts pDockQ, interface area, contact residues
 - Annotates epitope overlap with OKT3

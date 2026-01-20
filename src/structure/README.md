@@ -127,11 +127,13 @@ def run_boltzgen(
 ## Interface Analysis
 
 **Metrics:**
-- **Contact residues**: Pairs of residues within a distance cutoff (typically 4-5 A for heavy atoms)
-- **Buried surface area (BSA)**: Solvent-accessible surface area buried upon complex formation
-- **Contact count**: Number of residue-residue contacts across the interface
+- **Contact residues**: Pairs of residues within a distance cutoff (5 Å default, appropriate for heavy atom contacts)
+- **Interface area (estimated)**: Approximated as ~80 Å² per interface residue. This is NOT true BSA (buried surface area) calculated from SASA. For accurate BSA, use FreeSASA or similar tools.
+- **Contact count**: Number of unique residue-residue contacts across the interface (residue-level, not atomic)
 
 **Important:** Contact counts are residue-level - `num_contacts` counts unique residue pairs, not atomic contacts.
+
+**Note on interface area:** The simplified estimate of 80 Å² per residue is within literature range (60-100 Å²) and sufficient for relative comparisons between candidates. Absolute values should not be compared to crystallographic BSA measurements.
 
 ## Implementation Notes
 
