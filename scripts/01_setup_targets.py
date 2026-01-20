@@ -101,7 +101,11 @@ def main():
         {
             "pdb_id": "1SY6",
             "description": "CD3εγ + OKT3 Fab complex",
-            "cd3e_chain": "E",
+            # NOTE: 1SY6 uses chain A for CD3ε (not E). Chain assignments:
+            # - Chain A: CD3ε (epsilon) - the target antigen
+            # - Chain H: OKT3 VH (heavy chain variable region)
+            # - Chain L: OKT3 VL (light chain variable region)
+            "cd3e_chain": "A",
         },
     ]
 

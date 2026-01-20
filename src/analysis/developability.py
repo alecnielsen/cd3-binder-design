@@ -129,10 +129,9 @@ class DevelopabilityAssessor:
         # Molecular weight
         mw = sum(self.MW.get(aa, 110) for aa in sequence) - (length - 1) * 18.015
 
-        # Net charge at pH 7
-        pos_charge = sum(1 for aa in sequence if aa in CHARGED_POS)
-        neg_charge = sum(1 for aa in sequence if aa in CHARGED_NEG)
-        net_charge = pos_charge - neg_charge
+        # Net charge at pH 7 using Henderson-Hasselbalch
+        # Note: This accounts for partial protonation of His (pKa ~6)
+        net_charge = self._calculate_charge_at_ph(sequence, ph=7.0)
 
         # Isoelectric point (simplified Henderson-Hasselbalch)
         pi = self._calculate_pi(sequence)
@@ -156,32 +155,53 @@ class DevelopabilityAssessor:
             aliphatic_index=aliphatic,
         )
 
-    def _calculate_pi(self, sequence: str) -> float:
-        """Calculate isoelectric point using bisection method."""
-        # Count titratable residues
+    def _calculate_charge_at_ph(self, sequence: str, ph: float = 7.0) -> float:
+        """Calculate net charge at a given pH using Henderson-Hasselbalch.
+
+        Uses pKa values to compute fractional protonation states for:
+        - N-terminus (pKa ~9.7)
+        - C-terminus (pKa ~2.3)
+        - Acidic residues: D (pKa ~3.9), E (pKa ~4.3)
+        - Basic residues: H (pKa ~6.0), K (pKa ~10.5), R (pKa ~12.5)
+        - Titratable residues: C (pKa ~8.3), Y (pKa ~10.1)
+
+        At pH 7:
+        - R, K are fully charged (+1 each)
+        - H is ~10% protonated (~+0.1 each)
+        - D, E are fully deprotonated (-1 each)
+
+        Args:
+            sequence: Amino acid sequence.
+            ph: pH value (default 7.0).
+
+        Returns:
+            Net charge at the specified pH.
+        """
         counts = {aa: sequence.count(aa) for aa in "DECHKRY"}
 
-        def charge_at_ph(ph: float) -> float:
-            # N-terminus
-            charge = 1 / (1 + 10 ** (ph - self.PKA["N_term"]))
-            # C-terminus
-            charge -= 1 / (1 + 10 ** (self.PKA["C_term"] - ph))
-            # Acidic residues (D, E)
-            for aa in "DE":
-                charge -= counts.get(aa, 0) / (1 + 10 ** (self.PKA[aa] - ph))
-            # Basic residues (H, K, R)
-            for aa in "HKR":
-                charge += counts.get(aa, 0) / (1 + 10 ** (ph - self.PKA[aa]))
-            # Cysteine and Tyrosine
-            for aa in "CY":
-                charge -= counts.get(aa, 0) / (1 + 10 ** (self.PKA[aa] - ph))
-            return charge
+        # N-terminus contribution
+        charge = 1 / (1 + 10 ** (ph - self.PKA["N_term"]))
+        # C-terminus contribution
+        charge -= 1 / (1 + 10 ** (self.PKA["C_term"] - ph))
+        # Acidic residues (D, E)
+        for aa in "DE":
+            charge -= counts.get(aa, 0) / (1 + 10 ** (self.PKA[aa] - ph))
+        # Basic residues (H, K, R)
+        for aa in "HKR":
+            charge += counts.get(aa, 0) / (1 + 10 ** (ph - self.PKA[aa]))
+        # Cysteine and Tyrosine
+        for aa in "CY":
+            charge -= counts.get(aa, 0) / (1 + 10 ** (self.PKA[aa] - ph))
 
-        # Bisection to find pI
+        return charge
+
+    def _calculate_pi(self, sequence: str) -> float:
+        """Calculate isoelectric point using bisection method."""
+        # Bisection to find pI (pH where charge is 0)
         low, high = 0.0, 14.0
         while high - low > 0.01:
             mid = (low + high) / 2
-            if charge_at_ph(mid) > 0:
+            if self._calculate_charge_at_ph(sequence, mid) > 0:
                 low = mid
             else:
                 high = mid

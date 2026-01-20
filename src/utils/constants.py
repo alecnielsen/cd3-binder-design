@@ -22,20 +22,31 @@ KYTE_DOOLITTLE = {
 }
 
 # Sequence liability motifs
-DEAMIDATION_MOTIFS = ["NG", "NS", "NT", "ND"]  # N followed by small residue
-ISOMERIZATION_MOTIFS = ["DG", "DS", "DT", "DD"]  # D followed by small residue
+# Deamidation: N followed by small/flexible residue enables backbone rotation
+# NG is fastest, NS medium-high, NT lower, ND/NH moderate risk
+# Reference: Robinson & Robinson (2001) PNAS 98:944-949
+DEAMIDATION_MOTIFS = ["NG", "NS", "NT", "ND", "NH"]
+
+# Isomerization: D followed by small/flexible residue enables succinimide formation
+# Reference: Cacia et al. (1996) Biochemistry 35:1897-1903
+ISOMERIZATION_MOTIFS = ["DG", "DS", "DT", "DD", "DH", "DN"]
+
+# Oxidation: Methionine and Tryptophan are most susceptible
+# Note: Histidine can also oxidize but at lower rate
 OXIDATION_RESIDUES = ["M", "W"]  # Methionine, Tryptophan susceptible
 
 # Glycosylation pattern: N-X-S/T where X != P
 GLYCOSYLATION_PATTERN = r"N[^P][ST]"
 
-# CDR approximate positions (Chothia numbering)
+# CDR approximate positions (Extended Chothia/AbM numbering)
+# NOTE: Original Chothia uses H2: 52-56, L2: 50-52. We use extended definitions
+# (H2: 52-58, L2: 50-56) which are more common in antibody engineering tools.
 CDR_RANGES_CHOTHIA = {
     "H1": (26, 32),
-    "H2": (52, 56),
+    "H2": (52, 58),
     "H3": (95, 102),
     "L1": (24, 34),
-    "L2": (50, 52),  # Chothia CDR-L2 is only 3 residues
+    "L2": (50, 56),
     "L3": (89, 97),
 }
 

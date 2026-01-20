@@ -363,7 +363,11 @@ class FilterCascade:
         """
         if weights is None:
             weights = {
-                "binding": 0.30,
+                # NOTE: "structural_confidence" uses pDockQ, which measures confidence
+                # in the PREDICTED STRUCTURE, NOT binding affinity. High pDockQ means
+                # the model is confident the complex folds correctly, not that binding
+                # is strong. This is appropriate for filtering unreliable predictions.
+                "structural_confidence": 0.30,
                 "humanness": 0.25,
                 "liabilities": 0.25,
                 "developability": 0.20,
@@ -371,9 +375,11 @@ class FilterCascade:
 
         score = 0.0
 
-        # Binding score (normalized pDockQ, assuming 0-1 range)
+        # Structural confidence score (normalized pDockQ, 0-1 range)
+        # NOTE: pDockQ is structural confidence, NOT affinity prediction.
+        # We use it to filter low-confidence predictions, not to rank by binding.
         if candidate.pdockq is not None:
-            score += weights["binding"] * min(candidate.pdockq, 1.0)
+            score += weights["structural_confidence"] * min(candidate.pdockq, 1.0)
 
         # Humanness score
         humanness = candidate.oasis_score_mean or candidate.oasis_score_vh or 0.5

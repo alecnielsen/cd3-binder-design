@@ -243,14 +243,16 @@ class AffinityVariantGenerator:
         try:
             from src.analysis.numbering import get_imgt_to_sequence_mapping
             mapping = get_imgt_to_sequence_mapping(sequence, chain_type)
-        except ImportError:
-            warnings.warn(
-                "ANARCI not available. Falling back to direct position mapping. "
-                "This may apply mutations to incorrect residues if the sequence "
-                "doesn't match the expected IMGT numbering."
-            )
-            # Fallback: treat position as 1-indexed sequence position (legacy behavior)
-            mapping = {i: i - 1 for i in range(1, len(sequence) + 1)}
+        except ImportError as e:
+            # ANARCI is REQUIRED for mutation application since mutations are
+            # specified in IMGT numbering. Fallback to raw indexing would apply
+            # mutations to incorrect residues.
+            raise ImportError(
+                "ANARCI is required for affinity mutation application. "
+                "Mutation positions use IMGT numbering which requires ANARCI to map "
+                "to sequence positions. Install with: pip install anarci\n"
+                f"Original error: {e}"
+            ) from e
 
         self._imgt_mapping_cache[cache_key] = mapping
         return mapping
@@ -439,11 +441,19 @@ class AffinityVariantGenerator:
 
                 if all_success:
                     # Estimate combined fold change (multiplicative assumption)
+                    # WARNING: This assumes mutations are independent, which often fails
+                    # due to epistasis. CDR mutations can be synergistic or antagonistic.
+                    # Actual fold changes may differ significantly from predictions.
                     combined_fc = 1.0
                     for m in combo:
                         combined_fc *= m.fold_change
 
                     mutation_strs = [m.mutation_str for m in combo]
+                    epistasis_warning = (
+                        "EPISTASIS WARNING: Fold change is estimated assuming "
+                        "mutation independence. Actual affinity may differ significantly "
+                        "due to synergistic or antagonistic interactions between mutations."
+                    )
                     variant = AffinityVariant(
                         name=f"{parent_name}_{'_'.join([m.mutant + str(m.position) for m in combo])}",
                         parent_name=parent_name,
@@ -452,7 +462,7 @@ class AffinityVariantGenerator:
                         mutations=list(combo),
                         predicted_fold_change=combined_fc,
                         affinity_class=self._classify_affinity(combined_fc),
-                        notes=f"Combination: {', '.join(mutation_strs)}",
+                        notes=f"Combination: {', '.join(mutation_strs)}. {epistasis_warning}",
                     )
                     variants.append(variant)
 

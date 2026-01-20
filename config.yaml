@@ -86,5 +86,7 @@ reproducibility:
   clustering_seed: 0
 
 epitope_annotation:
-  okt3_epitope_residues: [23, 25, 26, 27, 28, 29, 30, 31, 32, 35, 38, 39, 40, 41, 42, 45, 47]
+  # OKT3 epitope residues - default: dynamically extracted from 1SY6 crystal structure.
+  # Uncomment to override with explicit residue list:
+  # okt3_epitope_residues: [23, 25, 26, 27, 28, 29, 30, 31, 32, 35, 38, 39, 40, 41, 42, 45, 47]
   overlap_threshold: 0.5          # Flag as "novel epitope" if < 50% overlap

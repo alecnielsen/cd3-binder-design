@@ -101,7 +101,8 @@ def calculate_interface_metrics(
                 target_residues.add(res_t)
 
     # Estimate interface area (rough approximation)
-    interface_area = (len(binder_residues) + len(target_residues)) * 50.0
+    # ~80 Å² per interface residue is more realistic than 50 Å²
+    interface_area = (len(binder_residues) + len(target_residues)) * 80.0
 
     return {
         "num_contacts": len(contact_pairs),

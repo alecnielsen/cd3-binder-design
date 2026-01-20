@@ -104,9 +104,9 @@ class EpitopeConfig:
     """Configuration for epitope annotation."""
 
     # OKT3 epitope residues on CD3ε
-    okt3_epitope_residues: list[int] = field(default_factory=lambda: [
-        23, 25, 26, 27, 28, 29, 30, 31, 32, 35, 38, 39, 40, 41, 42, 45, 47
-    ])
+    # Default is None, which triggers dynamic extraction from 1SY6 crystal structure.
+    # Users can override with explicit residue list if needed.
+    okt3_epitope_residues: Optional[list[int]] = None
     overlap_threshold: float = 0.5
 
 
