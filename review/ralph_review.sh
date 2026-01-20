@@ -247,10 +247,34 @@ run_review_iteration() {
     local prompt
     prompt=$(cat "$prompt_file")
 
+    # Check for iteration history log
+    local history_file="$SCRIPT_DIR/logs/${module}_history.md"
+    local history_context=""
+    if [[ -f "$history_file" ]]; then
+        history_context=$(cat "$history_file")
+    fi
+
+    # Build history section if we have previous iterations
+    local history_section=""
+    if [[ -n "$history_context" ]]; then
+        history_section="
+---
+
+# PREVIOUS ITERATION HISTORY
+
+The following shows what previous review iterations found and fixed.
+Use this to understand what has already been addressed and avoid repeating the same findings.
+
+$history_context
+
+---
+"
+    fi
+
     # Construct the full review request
     local full_request="
 $prompt
-
+$history_section
 ---
 
 # MODULE README CONTEXT
@@ -292,6 +316,18 @@ Note: Updating the module README.md to fix documentation issues does NOT count a
     }
 
     rm -f "$temp_file"
+
+    # Log this iteration's result to history file
+    local timestamp
+    timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+    {
+        echo "## Iteration $iteration ($timestamp)"
+        echo ""
+        echo "$result"
+        echo ""
+        echo "---"
+        echo ""
+    } >> "$history_file"
 
     # Check for NO_ISSUES - robust parsing that handles whitespace and extra output
     # Look for NO_ISSUES on its own line (with possible whitespace)

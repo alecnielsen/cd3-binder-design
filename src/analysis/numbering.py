@@ -116,11 +116,9 @@ def number_sequence(
             "L": {"CDR1": (27, 38), "CDR2": (56, 65), "CDR3": (105, 117)},
         }
     elif scheme == "chothia":
-        # Chothia definitions from original papers (Chothia & Lesk 1987, Al-Lazikani 1997).
-        # NOTE: "Extended" Chothia/AbM uses H2: 50-58, L2: 50-56, but we use the
-        # original structural definitions here.
-        # H2 is 52-58 in some references (including extended IMGT-Chothia comparison)
-        # but 52-56 in the original structural loop definition.
+        # Extended Chothia/AbM definitions, commonly used in antibody engineering.
+        # Note: Original structural Chothia uses H2: 52-56, but we use extended (52-58)
+        # which is more common in modern tools and captures loop diversity better.
         cdr_bounds = {
             "H": {"CDR1": (26, 32), "CDR2": (52, 58), "CDR3": (95, 102)},
             "L": {"CDR1": (24, 34), "CDR2": (50, 56), "CDR3": (89, 97)},

@@ -83,8 +83,26 @@ Computational filters reduce risk but don't guarantee success:
 
 **Implication**: Plan for 50-70% attrition in experimental validation, even for computationally "clean" candidates.
 
+## CDR Numbering Schemes
+
+The module supports IMGT, Chothia, and Kabat numbering via ANARCI. Key boundaries:
+
+**IMGT** (default):
+- CDR1: 27-38, CDR2: 56-65, CDR3: 105-117 (same for H and L chains)
+
+**Chothia** (extended/AbM definitions):
+- H1: 26-32, H2: 52-58, H3: 95-102
+- L1: 24-34, L2: 50-56, L3: 89-97
+
+Note: The original structural Chothia definition uses H2: 52-56, but we use the "extended Chothia" (AbM) definition H2: 52-58 which is more common in antibody engineering tools.
+
+**Kabat**:
+- H1: 31-35, H2: 50-65, H3: 95-102
+- L1: 24-34, L2: 50-56, L3: 89-97
+
 ## Implementation Notes
 
 - CDR-specific liability filtering: `CandidateScore` has `cdr_*_count` fields; `allow_deamidation_cdr=False` only rejects CDR liabilities
 - Hard vs soft filters: Deamidation/isomerization/glycosylation in CDRs are hard filters; oxidation is a soft filter
 - Hydrophobic residues for patch detection: A, I, L, M, F, V, W (excludes Y which has Kyte-Doolittle -1.3)
+- BioPhi soft-fail: If BioPhi is not installed, humanness scoring returns `None` scores and the pipeline continues (soft-fail behavior)

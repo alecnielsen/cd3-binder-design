@@ -85,7 +85,7 @@ modal run modal/boltz2_app.py --binder-seq "EVQL..." --target-pdb data/targets/c
 
 **GPU Configuration:**
 - GPU: A100 (40GB)
-- Timeout: 30 min (single), 2 hours (batch/calibration)
+- Timeout: 30 min (single), 2 hours (batch), 1 hour (calibration)
 - Retries: 2
 
 ### abodybuilder_app.py

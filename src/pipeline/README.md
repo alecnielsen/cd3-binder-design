@@ -43,9 +43,9 @@ Composite score calculation with documented weights:
 - Developability metrics: 20%
 
 **Diversity requirement:**
-- Cluster by CDR-H3 similarity (70% identity threshold)
-- Select top candidate from each cluster
-- Ensure mix of: de novo + optimized, VHH + scFv, OKT3 + novel epitope
+- Currently simplified: takes top-ranked candidates by composite score
+- Tracks diversity statistics (VHH/scFv, de novo/optimized, OKT3-like/novel)
+- Future: cluster by CDR-H3 similarity (70% identity threshold) and select top from each cluster
 
 ## Fallback Logic
 
@@ -88,7 +88,7 @@ filtering:
     max_threshold_relaxation: 0.1 # 10% toward calibration baseline
 
 epitope_annotation:
-  okt3_epitope_residues: [23, 25, 26, 27, 28, 29, 30, 31, 32, 35, 38, 39, 40, 41, 42, 45, 47]
+  okt3_epitope_residues: null     # null = dynamic extraction from 1SY6; or provide explicit list
   overlap_threshold: 0.5          # Flag as "novel epitope" if < 50% overlap
 ```
 
@@ -118,23 +118,19 @@ epitope_annotation:
 Output files include provenance metadata:
 - Pipeline version and git commit
 - Run timestamp
-- Config hash
-- Tool versions
 
 ```yaml
 _provenance:
   pipeline_version: "1.0.0"
   git_commit: "abc1234"
   run_timestamp: "2026-01-15T10:30:00Z"
-  config_hash: "sha256:..."
-  tool_versions:
-    boltzgen: "0.2.1"
-    boltz2: "0.3.0"
 ```
+
+**Note:** Config hash is available via `PipelineConfig.config_hash()` but not automatically included in provenance. Tool versions are not currently tracked.
 
 ## Implementation Notes
 
 - Config supports nested schema: `filtering.binding.min_pdockq` or flat `filtering.min_pdockq`
 - Fallback config is wired: `relax_soft_filters_first` and `max_threshold_relaxation` are used
-- Epitope residues are configurable: `config.epitope.okt3_epitope_residues` overrides hardcoded defaults
+- Epitope residues default to dynamic extraction from 1SY6; `config.epitope.okt3_epitope_residues` overrides with explicit list
 - Aggregation filter is active: Checks aromatic content (>15%) and consecutive aromatics (3+)
