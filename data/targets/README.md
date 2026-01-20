@@ -39,10 +39,13 @@ curl -o cd3_epsilon_gamma_1SY6.pdb "https://files.rcsb.org/download/1SY6.pdb"
 - Chain E: CD3δ (delta) - 79 residues
 
 ### 1SY6
-- Chain E: CD3ε (epsilon)
-- Chain G: CD3γ (gamma)
-- Chain H: OKT3 VH
-- Chain L: OKT3 VL
+**Note:** Chain IDs in the actual PDB file differ from some documentation.
+- Chain A: CD3ε (epsilon) - the target antigen (168 residues, numbered 0-203)
+- Chain H: OKT3 VH (heavy chain variable region)
+- Chain L: OKT3 VL (light chain variable region)
+
+The OKT3 epitope on CD3ε (chain A) spans residues ~139-192 in PDB numbering,
+primarily contacting the FG loop region.
 
 ## Notes
 

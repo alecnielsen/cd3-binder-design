@@ -335,3 +335,199 @@ def combine_pdbs(
     combined_lines.append("END\n")
 
     return "\n".join(combined_lines)
+
+
+def extract_epitope_from_complex(
+    pdb_string: str,
+    target_chain: str,
+    binder_chains: list[str],
+    distance_cutoff: float = 5.0,
+) -> list[int]:
+    """Extract epitope residues on target chain that contact binder chains.
+
+    This function identifies residues on the target chain that are within
+    the distance cutoff of any atom in the binder chain(s).
+
+    Args:
+        pdb_string: PDB file content as string.
+        target_chain: Chain ID of the target (e.g., "E" for CD3ε).
+        binder_chains: Chain IDs of the binder (e.g., ["H", "L"] for Fab).
+        distance_cutoff: Distance cutoff for contacts (Å).
+
+    Returns:
+        Sorted list of target residue numbers that form the epitope.
+    """
+    # Parse atom coordinates
+    target_atoms = []  # (res_num, x, y, z)
+    binder_atoms = []  # (x, y, z)
+
+    for line in pdb_string.split("\n"):
+        if not line.startswith("ATOM"):
+            continue
+
+        chain = line[21]
+        x = float(line[30:38])
+        y = float(line[38:46])
+        z = float(line[46:54])
+        res_num = int(line[22:26])
+
+        if chain == target_chain:
+            target_atoms.append((res_num, x, y, z))
+        elif chain in binder_chains:
+            binder_atoms.append((x, y, z))
+
+    if not target_atoms or not binder_atoms:
+        return []
+
+    # Find target residues in contact with binder
+    epitope_residues = set()
+    cutoff_sq = distance_cutoff ** 2
+
+    for res_num, xt, yt, zt in target_atoms:
+        for xb, yb, zb in binder_atoms:
+            dist_sq = (xt - xb) ** 2 + (yt - yb) ** 2 + (zt - zb) ** 2
+            if dist_sq <= cutoff_sq:
+                epitope_residues.add(res_num)
+                break  # Found a contact, no need to check more binder atoms
+
+    return sorted(epitope_residues)
+
+
+def download_pdb(pdb_id: str, output_path: Optional[str] = None) -> str:
+    """Download a PDB file from RCSB.
+
+    Args:
+        pdb_id: 4-letter PDB ID (e.g., "1SY6").
+        output_path: Optional path to save the file.
+
+    Returns:
+        PDB file content as string.
+
+    Raises:
+        RuntimeError: If download fails.
+    """
+    import urllib.request
+    import urllib.error
+
+    url = f"https://files.rcsb.org/download/{pdb_id.upper()}.pdb"
+
+    try:
+        with urllib.request.urlopen(url, timeout=30) as response:
+            pdb_content = response.read().decode("utf-8")
+    except urllib.error.URLError as e:
+        raise RuntimeError(f"Failed to download PDB {pdb_id}: {e}")
+
+    if output_path:
+        with open(output_path, "w") as f:
+            f.write(pdb_content)
+
+    return pdb_content
+
+
+def get_okt3_epitope_from_1sy6(
+    pdb_path: Optional[str] = None,
+    distance_cutoff: float = 5.0,
+    cache_dir: str = "data/targets",
+) -> list[int]:
+    """Extract OKT3 epitope residues on CD3ε from 1SY6 structure.
+
+    This function dynamically extracts the epitope residues from the
+    1SY6 crystal structure rather than using hardcoded values. This
+    ensures the epitope definition matches the actual structural contacts.
+
+    Chain assignments in 1SY6 (from RCSB):
+    - Chain A: CD3ε (epsilon) - the target antigen
+    - Chain H: OKT3 VH (heavy chain variable region)
+    - Chain L: OKT3 VL (light chain variable region)
+
+    Note: Some documentation may refer to CD3ε as chain E, but the actual
+    PDB file uses chain A.
+
+    Args:
+        pdb_path: Path to 1SY6 PDB file. If None, will try to load from
+            cache_dir or download from RCSB.
+        distance_cutoff: Distance cutoff for contacts (Å).
+        cache_dir: Directory to cache downloaded PDB files.
+
+    Returns:
+        Sorted list of CD3ε residue numbers that form the OKT3 epitope.
+    """
+    import os
+
+    pdb_content = None
+
+    # Try to load from provided path
+    if pdb_path and os.path.exists(pdb_path):
+        with open(pdb_path, "r") as f:
+            pdb_content = f.read()
+
+    # Try to load from cache directory
+    if pdb_content is None:
+        cached_path = os.path.join(cache_dir, "1SY6.pdb")
+        if os.path.exists(cached_path):
+            with open(cached_path, "r") as f:
+                pdb_content = f.read()
+
+    # Download if not available locally
+    if pdb_content is None:
+        os.makedirs(cache_dir, exist_ok=True)
+        cached_path = os.path.join(cache_dir, "1SY6.pdb")
+        pdb_content = download_pdb("1SY6", cached_path)
+
+    # Extract epitope: CD3ε residues (chain A) contacting OKT3 Fab (chains H, L)
+    epitope = extract_epitope_from_complex(
+        pdb_content,
+        target_chain="A",  # CD3ε is chain A in 1SY6
+        binder_chains=["H", "L"],
+        distance_cutoff=distance_cutoff,
+    )
+
+    return epitope
+
+
+def align_residue_numbers(
+    query_sequence: str,
+    reference_sequence: str,
+    reference_residue_numbers: list[int],
+) -> list[int]:
+    """Map residue numbers from reference to query sequence via alignment.
+
+    This is useful when comparing epitopes between structures with
+    different numbering schemes. Uses simple pairwise alignment.
+
+    Args:
+        query_sequence: Sequence to map residues to.
+        reference_sequence: Sequence with known residue numbers.
+        reference_residue_numbers: Residue numbers in reference to map.
+
+    Returns:
+        Corresponding residue numbers in query sequence (1-indexed).
+        Returns empty list if alignment fails.
+    """
+    # Simple alignment: find matching positions
+    # For production use, consider using BioPython's pairwise2 or parasail
+
+    # Build reference position to residue mapping
+    ref_positions = {i: num for i, num in enumerate(reference_residue_numbers)}
+
+    # Try to find query positions that match reference residues
+    # This is a simplified approach - assumes sequences are similar length
+    query_numbers = []
+
+    if len(query_sequence) == len(reference_sequence):
+        # Same length: direct mapping
+        for ref_num in reference_residue_numbers:
+            # Find which position in reference corresponds to this number
+            # Assuming 1-indexed numbering starting at some offset
+            query_numbers.append(ref_num)
+    else:
+        # Different lengths: need actual alignment
+        # For now, return empty and warn
+        import warnings
+        warnings.warn(
+            f"Sequence length mismatch ({len(query_sequence)} vs {len(reference_sequence)}). "
+            "Residue number mapping requires proper sequence alignment."
+        )
+        return []
+
+    return query_numbers

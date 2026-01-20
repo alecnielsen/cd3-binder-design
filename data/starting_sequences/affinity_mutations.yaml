@@ -20,6 +20,8 @@ affinity_strategy:
     due to avidity effects when tumor antigen is also bound.
 
 # OKT3/Teplizumab-specific mutations
+# IMPORTANT: Positions use IMGT numbering, verified against teplizumab VH via ANARCI
+# The code uses ANARCI to map these IMGT positions to sequence indices at runtime
 teplizumab_variants:
   wild_type:
     name: WT
@@ -28,35 +30,37 @@ teplizumab_variants:
     notes: Original high-affinity binder (~5 nM)
 
   # CDR-H2 mutations (major binding contribution)
-  cdr_h2_y50a:
-    name: Y50A
+  # CDR-H2 in IMGT is positions 56-65
+  cdr_h2_y55a:
+    name: Y55A
     kd_fold_change: 10
     mutations:
       - chain: VH
-        position: 50  # IMGT numbering
+        position: 55  # IMGT position (seq idx 49, the Y at start of YINPSRGY)
         from: Y
         to: A
         cdr: H2
-    notes: Tyrosine at position 50 makes key contact with CD3ε
+    notes: Tyrosine at IMGT 55 (just before CDR-H2) makes key contact with CD3ε
 
-  cdr_h2_r52a:
-    name: R52A
+  cdr_h2_r62a:
+    name: R62A
     kd_fold_change: 5
     mutations:
       - chain: VH
-        position: 52
+        position: 62  # IMGT position (seq idx 54, the R in YINPS-R-GY)
         from: R
         to: A
         cdr: H2
-    notes: Arginine contributes to electrostatic interactions
+    notes: Arginine at IMGT 62 contributes to electrostatic interactions
 
   # CDR-H3 mutations
-  cdr_h3_y97a:
-    name: Y97A
+  # CDR-H3 in IMGT is positions 105-117
+  cdr_h3_y107a:
+    name: Y107A
     kd_fold_change: 20
     mutations:
       - chain: VH
-        position: 97
+        position: 107  # IMGT position (seq idx 98, first Y in ARYYDDHYCLDY)
         from: Y
         to: A
         cdr: H3
@@ -68,7 +72,7 @@ teplizumab_variants:
     kd_fold_change: 10
     mutations:
       - chain: VH
-        position: 50
+        position: 55  # IMGT position
         from: Y
         to: A
         cdr: H2
@@ -79,12 +83,12 @@ teplizumab_variants:
     kd_fold_change: 50
     mutations:
       - chain: VH
-        position: 50
+        position: 55  # IMGT position
         from: Y
         to: A
         cdr: H2
       - chain: VH
-        position: 52
+        position: 62  # IMGT position
         from: R
         to: A
         cdr: H2
@@ -95,12 +99,12 @@ teplizumab_variants:
     kd_fold_change: 100
     mutations:
       - chain: VH
-        position: 50
+        position: 55  # IMGT position
         from: Y
         to: A
         cdr: H2
       - chain: VH
-        position: 97
+        position: 107  # IMGT position
         from: Y
         to: A
         cdr: H3

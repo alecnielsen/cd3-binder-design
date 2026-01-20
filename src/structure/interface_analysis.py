@@ -85,9 +85,38 @@ class EpitopeComparison:
 class InterfaceAnalyzer:
     """Analyzer for protein-protein binding interfaces."""
 
-    # Default OKT3 epitope residues on CD3ε (from 1SY6 structure)
-    # Used as fallback when no custom residues are provided
-    DEFAULT_OKT3_EPITOPE_RESIDUES = [23, 25, 26, 27, 28, 29, 30, 31, 32, 35, 38, 39, 40, 41, 42, 45, 47]
+    # Cached OKT3 epitope residues (extracted from 1SY6)
+    _cached_okt3_epitope: list[int] = None
+
+    @classmethod
+    def get_okt3_epitope(cls, force_refresh: bool = False) -> list[int]:
+        """Get OKT3 epitope residues, extracting from 1SY6 if needed.
+
+        This method dynamically extracts the OKT3 epitope from the 1SY6
+        crystal structure rather than using hardcoded values. The result
+        is cached for efficiency.
+
+        Args:
+            force_refresh: If True, re-extract from 1SY6 even if cached.
+
+        Returns:
+            Sorted list of CD3ε residue numbers that form the OKT3 epitope.
+        """
+        if cls._cached_okt3_epitope is None or force_refresh:
+            try:
+                from src.structure.pdb_utils import get_okt3_epitope_from_1sy6
+                cls._cached_okt3_epitope = get_okt3_epitope_from_1sy6()
+            except Exception as e:
+                import warnings
+                warnings.warn(
+                    f"Failed to extract OKT3 epitope from 1SY6: {e}. "
+                    "Using fallback hardcoded values."
+                )
+                # Fallback to hardcoded values only if extraction fails
+                cls._cached_okt3_epitope = [
+                    23, 25, 26, 27, 28, 29, 30, 31, 32, 35, 38, 39, 40, 41, 42, 45, 47
+                ]
+        return cls._cached_okt3_epitope
 
     def __init__(
         self,
@@ -98,10 +127,15 @@ class InterfaceAnalyzer:
 
         Args:
             contact_distance: Distance cutoff for contacts (Å).
-            okt3_epitope_residues: Custom OKT3 epitope residues. If None, uses defaults.
+            okt3_epitope_residues: Custom OKT3 epitope residues. If None,
+                dynamically extracts from 1SY6 structure.
         """
         self.contact_distance = contact_distance
-        self.okt3_epitope_residues = okt3_epitope_residues or self.DEFAULT_OKT3_EPITOPE_RESIDUES
+        # Use provided residues or dynamically extract from 1SY6
+        if okt3_epitope_residues is not None:
+            self.okt3_epitope_residues = okt3_epitope_residues
+        else:
+            self.okt3_epitope_residues = self.get_okt3_epitope()
 
     def analyze_interface(
         self,

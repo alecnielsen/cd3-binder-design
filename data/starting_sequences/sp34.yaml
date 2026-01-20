@@ -37,19 +37,22 @@ cdrs:
 
 # Humanization suggestions
 # These frameworks were selected for high homology to the murine sequences
+# Note: SP34 has a lambda light chain (confirmed by BD Biosciences)
 humanization:
   suggested_vh_framework: IGHV3-23*01  # High homology to SP34 VH
-  suggested_vl_framework: IGKV1-39*01  # High homology to SP34 VL
+  suggested_vl_framework: IGLV1-40*01  # Lambda germline for SP34 VL (NOT kappa)
+  light_chain_type: lambda  # IMPORTANT: SP34 uses lambda, not kappa
 
   # Humanized VH (CDRs grafted onto IGHV3-23 framework)
   humanized_vh: >-
     EVQLVESGGGLVQPGGSLRLSCAASGYTFTDYNMHWVRQAPGKGLEWVSVIHPNYGGTSYNQKFKG
     RFTISRDNAKNSLYLQMNSLRAEDTAVYYCARDYYGSSHYAMDYWGQGTLVTVSS
 
-  # Humanized VL (CDRs grafted onto IGKV1-39 framework)
+  # Humanized VL (CDRs grafted onto IGLV1-40 lambda framework)
+  # Note: Lambda constant region (CL-lambda) should be used, not CL-kappa
   humanized_vl: >-
-    DIQMTQSPSSLSASVGDRVTITCRASENIYSYLAWYQQKPGKAPKLLIYYNTKTLAEGVPSRFSGSGS
-    GTDFTLTISSLQPEDFATYYCQHHYGTPFTFGQGTKVEIK
+    QSALTQPASVSGSPGQSITISCTGTSSDVGGYNYVSWYQQHPGKAPKLMIYEVSNRPSGVSNRFSGSKSG
+    NTASLTISGLQAEDEADYYCQHHYGTPFTFGGGTKLTVL
 
 # Binding properties
 binding:

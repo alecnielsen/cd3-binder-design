@@ -78,15 +78,36 @@ def number_sequence(
     if not results or not results[0] or not results[0][0]:
         return None
 
-    numbering, chain_info = results[0][0][0], results[0][1]
+    # ANARCI returns a tuple of 3 lists:
+    # results[0] = list of numbering results (one per input sequence)
+    # results[1] = list of chain info (one per input sequence)
+    # results[2] = list of alignment details
+    #
+    # For each sequence, numbering result is: (numbering_list, start_idx, end_idx)
+    # Chain info is a list of dicts with chain_type, species, etc.
 
-    # Extract chain type
-    detected_chain = chain_info[0]["chain_type"] if chain_info else "H"
+    numbering_data = results[0][0][0]  # First sequence, first domain, numbering tuple
+    chain_info = results[1][0] if len(results) > 1 and results[1] else None  # Chain info list
+
+    # Handle both old and new ANARCI output formats
+    if isinstance(numbering_data, tuple) and len(numbering_data) >= 1:
+        # Format: (numbering_list, start, end)
+        numbering = numbering_data[0]
+    else:
+        # Direct numbering list
+        numbering = numbering_data
+
+    # Extract chain type from chain_info
+    # chain_info is a list of dicts, one per domain found
+    detected_chain = "H"
+    species = None
+    v_gene = None
+    if chain_info and len(chain_info) > 0 and isinstance(chain_info[0], dict):
+        detected_chain = chain_info[0].get("chain_type", "H")
+        species = chain_info[0].get("species")
+        v_gene = chain_info[0].get("v_gene")
+
     chain = chain_type or detected_chain
-
-    # Extract species and V gene if available
-    species = chain_info[0].get("species") if chain_info else None
-    v_gene = chain_info[0].get("v_gene") if chain_info else None
 
     # Define CDR boundaries by scheme
     if scheme == "imgt":
@@ -97,7 +118,7 @@ def number_sequence(
     elif scheme == "chothia":
         cdr_bounds = {
             "H": {"CDR1": (26, 32), "CDR2": (52, 56), "CDR3": (95, 102)},
-            "L": {"CDR1": (24, 34), "CDR2": (50, 56), "CDR3": (89, 97)},
+            "L": {"CDR1": (24, 34), "CDR2": (50, 52), "CDR3": (89, 97)},  # CDR-L2 is only 3 residues in Chothia
         }
     elif scheme == "kabat":
         cdr_bounds = {
@@ -311,3 +332,69 @@ def is_valid_antibody_sequence(
         return False
 
     return True
+
+
+def get_imgt_to_sequence_mapping(
+    sequence: str,
+    chain_type: str = "H",
+) -> dict[int, int]:
+    """Create a mapping from IMGT position numbers to sequence indices.
+
+    This is critical for applying mutations specified in IMGT numbering
+    to raw sequences. IMGT numbering has gaps and insertions that don't
+    correspond directly to sequence indices.
+
+    Args:
+        sequence: Amino acid sequence (VH or VL).
+        chain_type: 'H' for heavy, 'L' for light.
+
+    Returns:
+        Dict mapping IMGT position (int) to 0-indexed sequence position.
+        For positions with insertion codes (e.g., 111A), only the base
+        position is included in the mapping.
+
+    Example:
+        >>> mapping = get_imgt_to_sequence_mapping(vh_sequence, "H")
+        >>> seq_idx = mapping.get(50)  # Get sequence index for IMGT position 50
+        >>> if seq_idx is not None:
+        ...     residue = vh_sequence[seq_idx]
+    """
+    numbered = number_sequence(sequence, scheme="imgt", chain_type=chain_type)
+
+    if numbered is None:
+        return {}
+
+    mapping = {}
+    for idx, residue in enumerate(numbered.residues):
+        # Parse position string (may have insertion code like "111A")
+        pos_str = residue.position
+        # Extract base position number (ignore insertion codes for mapping)
+        base_pos = int("".join(c for c in pos_str if c.isdigit()))
+
+        # Only store first occurrence (base position without insertion)
+        if base_pos not in mapping:
+            mapping[base_pos] = idx
+
+    return mapping
+
+
+def get_sequence_to_imgt_mapping(
+    sequence: str,
+    chain_type: str = "H",
+) -> dict[int, str]:
+    """Create a mapping from sequence indices to IMGT position strings.
+
+    Args:
+        sequence: Amino acid sequence (VH or VL).
+        chain_type: 'H' for heavy, 'L' for light.
+
+    Returns:
+        Dict mapping 0-indexed sequence position to IMGT position string.
+        Position strings may include insertion codes (e.g., "111", "111A").
+    """
+    numbered = number_sequence(sequence, scheme="imgt", chain_type=chain_type)
+
+    if numbered is None:
+        return {}
+
+    return {idx: residue.position for idx, residue in enumerate(numbered.residues)}

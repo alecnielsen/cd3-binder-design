@@ -4,7 +4,9 @@
 AMINO_ACIDS = "ACDEFGHIKLMNPQRSTVWY"
 
 # Amino acid properties
-HYDROPHOBIC = set("AILMFVPWG")
+# Note: HYDROPHOBIC excludes G (minimal hydrophobicity, Kyte-Doolittle -0.4)
+# and P (polar, Kyte-Doolittle -1.6) which caused false-positive patch detection
+HYDROPHOBIC = set("AILMFVW")  # Aliphatic + aromatic (excluding polar G, P)
 POLAR = set("STNQ")
 CHARGED_POS = set("RKH")
 CHARGED_NEG = set("DE")
@@ -33,7 +35,7 @@ CDR_RANGES_CHOTHIA = {
     "H2": (52, 56),
     "H3": (95, 102),
     "L1": (24, 34),
-    "L2": (50, 56),
+    "L2": (50, 52),  # Chothia CDR-L2 is only 3 residues
     "L3": (89, 97),
 }
 

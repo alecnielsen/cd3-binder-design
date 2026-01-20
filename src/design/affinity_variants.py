@@ -6,11 +6,17 @@ using literature-known mutations that reduce binding affinity.
 The goal is to generate a panel spanning different affinities
 (WT, ~10x weaker, ~100x weaker) to test the hypothesis that
 ~50 nM Kd balances efficacy with reduced CRS.
+
+IMPORTANT: Mutation positions in the YAML file use IMGT numbering.
+This module uses ANARCI to map IMGT positions to sequence indices
+before applying mutations. This ensures mutations are applied to
+the correct residue regardless of sequence length variations.
 """
 
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
+import warnings
 import yaml
 import itertools
 
@@ -19,9 +25,9 @@ import itertools
 class AffinityMutation:
     """A mutation known to affect CD3 binding affinity."""
 
-    position: int  # Position in sequence (1-indexed)
+    position: int  # IMGT position number (NOT raw sequence index)
     chain: str  # "VH" or "VL"
-    wild_type: str  # Original residue
+    wild_type: str  # Original residue at this IMGT position
     mutant: str  # Mutated residue
     effect: str  # "weaker" or "stronger"
     fold_change: float  # Approximate fold change in Kd (>1 = weaker)
@@ -201,6 +207,10 @@ class AffinityVariantGenerator:
     - Wild-type (no mutations)
     - ~10x weaker
     - ~100x weaker
+
+    Uses ANARCI to map IMGT positions to sequence indices, ensuring
+    mutations are applied to the correct residue regardless of
+    sequence length variations between different antibodies.
     """
 
     def __init__(
@@ -213,13 +223,91 @@ class AffinityVariantGenerator:
             mutation_library: Library of known mutations.
         """
         self.library = mutation_library or AffinityMutationLibrary()
+        # Cache for IMGT→sequence index mappings
+        self._imgt_mapping_cache: dict[str, dict[int, int]] = {}
+
+    def _get_imgt_mapping(self, sequence: str, chain_type: str) -> dict[int, int]:
+        """Get or create IMGT position to sequence index mapping.
+
+        Args:
+            sequence: Amino acid sequence.
+            chain_type: "H" for VH, "L" for VL.
+
+        Returns:
+            Dict mapping IMGT position (int) to 0-indexed sequence position.
+        """
+        cache_key = f"{chain_type}:{sequence}"
+        if cache_key in self._imgt_mapping_cache:
+            return self._imgt_mapping_cache[cache_key]
+
+        try:
+            from src.analysis.numbering import get_imgt_to_sequence_mapping
+            mapping = get_imgt_to_sequence_mapping(sequence, chain_type)
+        except ImportError:
+            warnings.warn(
+                "ANARCI not available. Falling back to direct position mapping. "
+                "This may apply mutations to incorrect residues if the sequence "
+                "doesn't match the expected IMGT numbering."
+            )
+            # Fallback: treat position as 1-indexed sequence position (legacy behavior)
+            mapping = {i: i - 1 for i in range(1, len(sequence) + 1)}
+
+        self._imgt_mapping_cache[cache_key] = mapping
+        return mapping
 
     def apply_mutation(
         self,
         sequence: str,
         mutation: AffinityMutation,
+        imgt_mapping: Optional[dict[int, int]] = None,
+    ) -> tuple[str, bool, str]:
+        """Apply a mutation to a sequence using IMGT position mapping.
+
+        Args:
+            sequence: Amino acid sequence.
+            mutation: Mutation to apply (position is IMGT numbered).
+            imgt_mapping: Pre-computed IMGT→sequence index mapping.
+                If None, will be computed (slower).
+
+        Returns:
+            Tuple of (mutated_sequence, success, error_message).
+            error_message is empty string on success.
+        """
+        # Get or compute IMGT mapping
+        if imgt_mapping is None:
+            chain_type = "H" if mutation.chain == "VH" else "L"
+            imgt_mapping = self._get_imgt_mapping(sequence, chain_type)
+
+        # Map IMGT position to sequence index
+        imgt_pos = mutation.position
+        seq_idx = imgt_mapping.get(imgt_pos)
+
+        if seq_idx is None:
+            return sequence, False, f"IMGT position {imgt_pos} not found in sequence"
+
+        if seq_idx < 0 or seq_idx >= len(sequence):
+            return sequence, False, f"Mapped index {seq_idx} out of bounds"
+
+        actual_residue = sequence[seq_idx]
+        if actual_residue != mutation.wild_type:
+            return sequence, False, (
+                f"Residue mismatch at IMGT {imgt_pos} (seq idx {seq_idx}): "
+                f"expected {mutation.wild_type}, found {actual_residue}"
+            )
+
+        mutated = sequence[:seq_idx] + mutation.mutant + sequence[seq_idx + 1:]
+        return mutated, True, ""
+
+    def apply_mutation_legacy(
+        self,
+        sequence: str,
+        mutation: AffinityMutation,
     ) -> tuple[str, bool]:
-        """Apply a mutation to a sequence.
+        """Apply a mutation using direct position indexing (legacy behavior).
+
+        WARNING: This treats the mutation position as a raw 1-indexed sequence
+        position, NOT IMGT numbering. Only use for sequences where positions
+        were specified as sequence indices.
 
         Args:
             sequence: Amino acid sequence.
@@ -234,7 +322,6 @@ class AffinityVariantGenerator:
             return sequence, False
 
         if sequence[pos] != mutation.wild_type:
-            # Wild-type doesn't match - mutation may not apply to this sequence
             return sequence, False
 
         mutated = sequence[:pos] + mutation.mutant + sequence[pos + 1:]
@@ -259,9 +346,13 @@ class AffinityVariantGenerator:
         variants = []
         mutations = self.library.load()
 
+        # Pre-compute IMGT mappings for efficiency
+        vh_mapping = self._get_imgt_mapping(vh, "H")
+        vl_mapping = self._get_imgt_mapping(vl, "L") if vl else {}
+
         for mutation in mutations:
             if mutation.chain == "VH":
-                mutated_vh, success = self.apply_mutation(vh, mutation)
+                mutated_vh, success, error = self.apply_mutation(vh, mutation, vh_mapping)
                 if success:
                     variant = AffinityVariant(
                         name=f"{parent_name}_{mutation.mutation_str}",
@@ -274,9 +365,11 @@ class AffinityVariantGenerator:
                         notes=f"Single mutation: {mutation.mutation_str}",
                     )
                     variants.append(variant)
+                elif error:
+                    warnings.warn(f"Skipping mutation {mutation.mutation_str}: {error}")
 
             elif mutation.chain == "VL" and vl:
-                mutated_vl, success = self.apply_mutation(vl, mutation)
+                mutated_vl, success, error = self.apply_mutation(vl, mutation, vl_mapping)
                 if success:
                     variant = AffinityVariant(
                         name=f"{parent_name}_{mutation.mutation_str}",
@@ -289,6 +382,8 @@ class AffinityVariantGenerator:
                         notes=f"Single mutation: {mutation.mutation_str}",
                     )
                     variants.append(variant)
+                elif error:
+                    warnings.warn(f"Skipping mutation {mutation.mutation_str}: {error}")
 
         return variants
 
@@ -313,6 +408,9 @@ class AffinityVariantGenerator:
         variants = []
         mutations = self.library.load()
 
+        # Pre-compute IMGT mapping for VH
+        vh_mapping = self._get_imgt_mapping(vh, "H")
+
         # Group mutations by chain
         vh_mutations = [m for m in mutations if m.chain == "VH"]
         vl_mutations = [m for m in mutations if m.chain == "VL"]
@@ -325,14 +423,19 @@ class AffinityVariantGenerator:
                 if len(positions) != len(set(positions)):
                     continue
 
-                # Apply all mutations
+                # Apply all mutations sequentially
+                # Note: We re-compute mapping after each mutation since indices shift
                 mutated_vh = vh
+                current_mapping = vh_mapping.copy()
                 all_success = True
                 for mutation in combo:
-                    mutated_vh, success = self.apply_mutation(mutated_vh, mutation)
+                    mutated_vh, success, error = self.apply_mutation(
+                        mutated_vh, mutation, current_mapping
+                    )
                     if not success:
                         all_success = False
                         break
+                    # Note: For same-length substitutions, mapping doesn't change
 
                 if all_success:
                     # Estimate combined fold change (multiplicative assumption)
