@@ -135,6 +135,47 @@ def run_boltzgen(
 
 **Note on interface area:** The simplified estimate of 80 Å² per residue is within literature range (60-100 Å²) and sufficient for relative comparisons between candidates. Absolute values should not be compared to crystallographic BSA measurements.
 
+## OKT3 Epitope Comparison
+
+The pipeline compares designed binder epitopes to the known OKT3 epitope to classify them as "OKT3-like" or "novel epitope".
+
+### Critical: PDB Residue Numbering
+
+**1XIW chain A (canonical CD3ε) residue numbering starts at 12, NOT 1.**
+
+This is important because:
+- The OKT3 epitope residues are stored in actual PDB numbering (e.g., residues 33, 34, 35...)
+- Predicted structures from Boltz-2 typically use 1-indexed sequential numbering
+- Direct comparison would cause an ~11 residue offset, misclassifying epitopes
+
+The `InterfaceAnalyzer.compare_to_okt3()` method handles this by:
+1. Storing the actual 1XIW residue numbers alongside the sequence
+2. Converting OKT3 epitope positions to sequence positions (0-indexed)
+3. Aligning the canonical sequence to the predicted structure's sequence
+4. Mapping positions through the alignment
+
+```python
+# Example: OKT3 epitope in 1XIW numbering
+okt3_epitope = [33, 34, 35, 37, 46, 47, 49, 56, 80, 81, 82, 83, 84, 86]
+
+# 1XIW chain A numbering
+residue_numbers = [12, 13, 14, 15, ...]  # Starts at 12!
+
+# For a predicted structure with 1-indexed numbering:
+# Residue 33 in 1XIW → sequence position 21 (33-12=21)
+# After alignment, maps to corresponding position in predicted structure
+```
+
+### Structure Sources
+
+| PDB | Chain | Description | Notes |
+|-----|-------|-------------|-------|
+| 1XIW | A, E | CD3ε (canonical) | Numbering starts at 12 |
+| 1XIW | B, F | CD3δ | |
+| 1XIW | C, D, G, H | UCHT1 Fab | Must be excluded from design targets |
+| 1SY6 | A | CD3γ/ε fusion | NOT pure CD3ε - includes linker |
+| 1SY6 | H, L | OKT3 Fab | Source of OKT3 epitope |
+
 ## Implementation Notes
 
 - For VH/VL pairs, calibration constructs scFv (not VH-only) for accurate threshold setting

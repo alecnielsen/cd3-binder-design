@@ -29,18 +29,37 @@ De novo binder design using BoltzGen.
 modal deploy modal/boltzgen_app.py
 
 # Test locally
-modal run modal/boltzgen_app.py --target-pdb data/targets/cd3.pdb --num-designs 10
+modal run modal/boltzgen_app.py --target-pdb data/targets/cd3.pdb --target-chain A --num-designs 10
 ```
 
+#### Critical: Target Chain Extraction
+
+**BoltzGen automatically extracts only the specified target chain before design.**
+
+This is critical because crystal structures often contain bound antibodies:
+- **1XIW**: Contains CD3εδ + UCHT1 Fab (8 chains total)
+- **1SY6**: Contains CD3γ/ε fusion + OKT3 Fab (3 chains total)
+
+If the full multi-chain PDB were passed to BoltzGen, designs could:
+1. Target the wrong protein (e.g., UCHT1 instead of CD3)
+2. Target an epitope only accessible when no antibody is bound
+3. Generate antibody-like sequences by "learning" from the bound Fab
+
+The `extract_chain_from_pdb_content()` function ensures only the target chain
+(e.g., chain A = CD3ε) is passed to the model. A warning is printed if the
+input PDB contains multiple chains.
+
 **Functions:**
-- `run_boltzgen()`: Generate designs for a single target
+- `run_boltzgen()`: Generate designs for a single target (extracts chain first)
 - `run_boltzgen_batch()`: Generate designs for multiple targets
+- `extract_chain_from_pdb_content()`: Extract single chain from multi-chain PDB
+- `validate_pdb_for_design()`: Check for multi-chain PDBs and warn
 
 **Parameters:**
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `target_pdb_content` | str | required | PDB file content as string |
-| `target_chain` | str | "A" | Target chain ID |
+| `target_pdb_content` | str | required | PDB file content (can be multi-chain) |
+| `target_chain` | str | "A" | Chain ID to extract for design |
 | `binder_type` | str | "vhh" | "vhh" or "scfv" |
 | `num_designs` | int | 100 | Number of designs to generate |
 | `hotspot_residues` | list[int] | None | Optional residues to target |

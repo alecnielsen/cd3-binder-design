@@ -191,6 +191,9 @@ pytest tests/test_liabilities.py -v  # Specific module
 14. **Epitope residues configurable** - `config.epitope.okt3_epitope_residues` overrides hardcoded defaults
 15. **Aggregation filter active** - Checks aromatic content (>15%) and consecutive aromatics (3+)
 16. **Fallback config wired** - `relax_soft_filters_first` and `max_threshold_relaxation` are now used
+17. **CRITICAL: BoltzGen extracts target chain** - Multi-chain PDBs (1XIW has UCHT1 Fab, 1SY6 has OKT3 Fab) would bias designs. `boltzgen_app.py` extracts only the specified target chain before design.
+18. **CRITICAL: 1XIW numbering starts at 12** - CD3ε chain A in 1XIW uses PDB residue numbers starting at 12, not 1. OKT3 epitope comparison handles this via sequence alignment. Never assume 1-indexed numbering for PDB data.
+19. **1SY6 chain A is a fusion** - 1SY6 uses a CD3γ/ε fusion construct, NOT pure CD3ε. Use for epitope reference but prefer 1XIW for canonical CD3ε sequence.
 
 ## Dependencies
 
