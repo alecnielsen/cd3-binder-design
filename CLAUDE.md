@@ -209,6 +209,51 @@ Optional:
 - pytest, black, ruff (development)
 - jupyter, matplotlib, py3Dmol (notebooks)
 
+## Ralph Review System
+
+The `review/` directory contains a "Ralph Wiggum Loop" for automated scientific code review.
+
+### How It Works
+```
+1. Spawn   → fresh Claude session (claude --print)
+2. Inject  → prompt + ALL source code + iteration history
+3. Attempt → Claude reviews, fixes issues, commits
+4. Validate→ NO_ISSUES + git status clean required to exit
+5. Log     → record findings to history file
+6. Kill    → terminate session (context wiped)
+7. Loop    → repeat until clean or max iterations
+```
+
+### Key Files
+- `review/ralph_review.sh` - Main loop script
+- `review/prompts/holistic.md` - Review criteria and instructions
+- `review/logs/holistic_history.md` - Iteration history
+- `review/tracking.yaml` - State tracking
+
+### Usage
+```bash
+./review/ralph_review.sh              # Run review loop
+./review/ralph_review.sh --status     # Check status
+./review/ralph_review.sh --reset      # Start fresh
+MAX_ITERATIONS=5 ./review/ralph_review.sh  # Limit iterations
+```
+
+### Known Issues / TODO
+1. **Context budget**: Full source (~94k tokens) + system prompt (~23k) = ~117k tokens.
+   Leaves limited room for response. May need to split repo or compress code.
+2. **Token tracking**: JSON parsing for `--output-format json` has edge cases.
+   The `extract_summary()` function can fail with multiline results.
+3. **Coverage enforcement**: Prompt tells Claude to review all files but doesn't
+   programmatically verify. Claude may skip files.
+4. **Checklist validation**: Added requirement for review checklist before NO_ISSUES,
+   but not yet tested thoroughly.
+
+### Design Decisions
+- **Full code in prompt** (not agent-style): Ensures Claude sees all code, can't skip files
+- **Git-based validation**: Claude must commit fixes; uncommitted changes block NO_ISSUES
+- **Fresh context each iteration**: Prevents confirmation bias from accumulated context
+- **Structured history**: Logs what was reviewed/fixed so next iteration knows what's done
+
 ## References
 
 Key papers for context:

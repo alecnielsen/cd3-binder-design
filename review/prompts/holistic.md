@@ -1,6 +1,6 @@
 # Holistic Scientific Review: CD3 Binder Design Pipeline
 
-You are performing a holistic review of the entire CD3 binder design codebase. This is an **agent-style review** - explore the codebase using Read, Glob, and Grep tools rather than having all code provided upfront.
+You are performing a holistic review of the entire CD3 binder design codebase. **ALL source code is provided below** - you MUST review every file for scientific correctness and implementation issues.
 
 ## Repository Structure
 
@@ -22,10 +22,10 @@ cd3-binder-design/
 ## Review Strategy
 
 1. **Read the history first** - Check what previous iterations found and fixed
-2. **Explore systematically** - Look at areas not yet reviewed
+2. **Review ALL files** - Every file in the source code section must be examined
 3. **Cross-check** - Verify constants/thresholds are consistent across modules
 4. **Fix issues directly** - Edit files to fix problems you find
-5. **Track your work** - Report findings in structured format
+5. **Commit fixes** - Run `git add -A && git commit -m "..."` after any edits
 
 ## Scientific Review Criteria
 
@@ -84,10 +84,6 @@ This ensures each iteration's fixes are tracked and the next iteration starts fr
 ### If you find issues:
 
 ```markdown
-## Files Examined
-- path/to/file1.py (lines X-Y)
-- path/to/file2.py (full file)
-
 ## Issues Found and Fixed
 ### Issue 1: [Brief description]
 - **File**: path/to/file.py:LINE
@@ -96,22 +92,36 @@ This ensures each iteration's fixes are tracked and the next iteration starts fr
 
 ### Issue 2: [Brief description]
 ...
-
-## Areas Still To Review
-- [ ] src/module/ - not yet examined
-- [ ] specific concern not yet checked
 ```
 
 ### If no issues found:
 
-After thoroughly reviewing the codebase and verifying previous fixes:
+You MUST provide evidence of thorough review before saying NO_ISSUES:
 
-```
+```markdown
+## Review Checklist
+
+### Analysis Module
+- [x] liabilities.py - Verified motifs: NG, NS, NT, ND, NH for deamidation ✓
+- [x] numbering.py - IMGT boundaries correct ✓
+- [x] humanness.py - VHH handling verified ✓
+- [x] developability.py - Charge calculation checked ✓
+
+### Design Module
+- [x] affinity_variants.py - IMGT numbering verified ✓
+- [x] boltzgen_runner.py - VHH vs scFv handling ✓
+... (continue for ALL files)
+
+### Constants Cross-Check
+- [x] DEAMIDATION_MOTIFS matches across constants.py, liabilities.py ✓
+- [x] LINKER sequences match across constants.py, formatting/*.py ✓
+...
+
 NO_ISSUES
 ```
 
 **Rules:**
-- Only output `NO_ISSUES` if you made zero code edits this iteration
-- README updates do NOT count as code issues
+- You MUST list EVERY file with a checkbox showing it was reviewed
+- You MUST verify at least one specific thing per file
+- Only output `NO_ISSUES` after the complete checklist
 - Do not invent issues - only report genuine scientific or implementation problems
-- Verify fixes from previous iterations still work

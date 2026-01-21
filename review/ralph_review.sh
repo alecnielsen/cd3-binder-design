@@ -95,20 +95,20 @@ ensure_logs_dir() {
 
 # Initialize iteration stats file
 init_iteration_stats() {
-    echo -e "iteration\tprompt_tokens\tresponse_tokens\ttotal_tokens\tcontext_pct\tsummary" > "$ITERATION_STATS_FILE"
+    echo -e "iteration\tinput_tokens\toutput_tokens\tcontext_pct\tcost_usd\tsummary" > "$ITERATION_STATS_FILE"
 }
 
 # Record stats for an iteration
 record_iteration_stats() {
     local iteration="$1"
-    local prompt_tokens="$2"
-    local response_tokens="$3"
-    local summary="$4"
+    local input_tokens="$2"
+    local output_tokens="$3"
+    local cost_usd="$4"
+    local summary="$5"
 
-    local total_tokens=$((prompt_tokens + response_tokens))
-    local context_pct=$(python3 -c "print(f'{100 * $total_tokens / $MAX_CONTEXT_TOKENS:.1f}')")
+    local context_pct=$(python3 -c "print(f'{100 * $input_tokens / $MAX_CONTEXT_TOKENS:.1f}')")
 
-    echo -e "${iteration}\t${prompt_tokens}\t${response_tokens}\t${total_tokens}\t${context_pct}%\t${summary}" >> "$ITERATION_STATS_FILE"
+    echo -e "${iteration}\t${input_tokens}\t${output_tokens}\t${context_pct}%\t\$${cost_usd}\t${summary}" >> "$ITERATION_STATS_FILE"
 }
 
 # Extract brief summary from Claude's response
@@ -138,27 +138,27 @@ extract_summary() {
 # Print summary table at end of loop
 print_summary_table() {
     echo ""
-    echo "╔══════════════════════════════════════════════════════════════════════════════╗"
-    echo "║                           RALPH LOOP SUMMARY                                  ║"
-    echo "╠══════════════════════════════════════════════════════════════════════════════╣"
+    echo "╔════════════════════════════════════════════════════════════════════════════════════╗"
+    echo "║                              RALPH LOOP SUMMARY                                    ║"
+    echo "╠════════════════════════════════════════════════════════════════════════════════════╣"
 
     if [[ ! -f "$ITERATION_STATS_FILE" ]]; then
-        echo "║  No iteration data available                                                  ║"
-        echo "╚══════════════════════════════════════════════════════════════════════════════╝"
+        echo "║  No iteration data available                                                      ║"
+        echo "╚════════════════════════════════════════════════════════════════════════════════════╝"
         return
     fi
 
-    printf "║ %-4s │ %-10s │ %-10s │ %-8s │ %-38s ║\n" "Iter" "Prompt" "Response" "Context" "Summary"
-    echo "╟──────┼────────────┼────────────┼──────────┼────────────────────────────────────────╢"
+    printf "║ %-4s │ %-10s │ %-10s │ %-8s │ %-8s │ %-30s ║\n" "Iter" "Input" "Output" "Context" "Cost" "Summary"
+    echo "╟──────┼────────────┼────────────┼──────────┼──────────┼────────────────────────────────╢"
 
     # Skip header line, read data
-    tail -n +2 "$ITERATION_STATS_FILE" | while IFS=$'\t' read -r iter prompt resp total pct summary; do
+    tail -n +2 "$ITERATION_STATS_FILE" | while IFS=$'\t' read -r iter input output pct cost summary; do
         # Truncate summary to fit
-        summary="${summary:0:38}"
-        printf "║ %-4s │ %10s │ %10s │ %8s │ %-38s ║\n" "$iter" "$prompt" "$resp" "$pct" "$summary"
+        summary="${summary:0:30}"
+        printf "║ %-4s │ %10s │ %10s │ %8s │ %8s │ %-30s ║\n" "$iter" "$input" "$output" "$pct" "$cost" "$summary"
     done
 
-    echo "╚══════════════════════════════════════════════════════════════════════════════╝"
+    echo "╚════════════════════════════════════════════════════════════════════════════════════╝"
     echo ""
 }
 
@@ -170,61 +170,52 @@ estimate_tokens() {
     echo $((chars / 4))
 }
 
-# Generate file manifest with sizes
-generate_file_manifest() {
-    log_debug "Generating file manifest..."
+# Collect ALL source code for review
+collect_all_source_code() {
+    log_debug "Collecting all source code..."
 
-    local manifest=""
-    manifest+="# Repository File Manifest\n\n"
-    manifest+="Generated: $(date -u +"%Y-%m-%dT%H:%M:%SZ")\n\n"
+    local output=""
+    local file_count=0
+    local total_lines=0
 
-    # Source files
-    manifest+="## Source Code (src/)\n\n"
-    manifest+="| File | Lines | Description |\n"
-    manifest+="|------|-------|-------------|\n"
+    # Collect all Python files from src/, scripts/, modal/
+    for dir in "$REPO_ROOT/src" "$REPO_ROOT/scripts" "$REPO_ROOT/modal"; do
+        if [[ -d "$dir" ]]; then
+            while IFS= read -r -d '' pyfile; do
+                local rel_path="${pyfile#$REPO_ROOT/}"
+                local lines
+                lines=$(wc -l < "$pyfile" | tr -d ' ')
+                ((total_lines += lines))
+                ((file_count++))
 
-    while IFS= read -r -d '' pyfile; do
-        local rel_path="${pyfile#$REPO_ROOT/}"
+                output+="
+================================================================================
+FILE: $rel_path ($lines lines)
+================================================================================
+$(cat "$pyfile")
+
+"
+            done < <(find "$dir" -name "*.py" -type f -print0 2>/dev/null | sort -z)
+        fi
+    done
+
+    # Also include config.yaml
+    if [[ -f "$REPO_ROOT/config.yaml" ]]; then
         local lines
-        lines=$(wc -l < "$pyfile" | tr -d ' ')
-        local desc=""
-        # Extract first docstring line if present
-        desc=$(head -20 "$pyfile" | grep -m1 '"""' -A1 | tail -1 | sed 's/^[[:space:]]*//' | head -c 50)
-        manifest+="| $rel_path | $lines | $desc |\n"
-    done < <(find "$REPO_ROOT/src" -name "*.py" -type f -print0 2>/dev/null | sort -z)
+        lines=$(wc -l < "$REPO_ROOT/config.yaml" | tr -d ' ')
+        ((total_lines += lines))
+        ((file_count++))
+        output+="
+================================================================================
+FILE: config.yaml ($lines lines)
+================================================================================
+$(cat "$REPO_ROOT/config.yaml")
 
-    # Scripts
-    manifest+="\n## Scripts (scripts/)\n\n"
-    manifest+="| File | Lines |\n"
-    manifest+="|------|-------|\n"
+"
+    fi
 
-    while IFS= read -r -d '' pyfile; do
-        local rel_path="${pyfile#$REPO_ROOT/}"
-        local lines
-        lines=$(wc -l < "$pyfile" | tr -d ' ')
-        manifest+="| $rel_path | $lines |\n"
-    done < <(find "$REPO_ROOT/scripts" -name "*.py" -type f -print0 2>/dev/null | sort -z)
-
-    # Modal
-    manifest+="\n## Modal Deployments (modal/)\n\n"
-    manifest+="| File | Lines |\n"
-    manifest+="|------|-------|\n"
-
-    while IFS= read -r -d '' pyfile; do
-        local rel_path="${pyfile#$REPO_ROOT/}"
-        local lines
-        lines=$(wc -l < "$pyfile" | tr -d ' ')
-        manifest+="| $rel_path | $lines |\n"
-    done < <(find "$REPO_ROOT/modal" -name "*.py" -type f -print0 2>/dev/null | sort -z)
-
-    # READMEs
-    manifest+="\n## Documentation\n\n"
-    while IFS= read -r -d '' mdfile; do
-        local rel_path="${mdfile#$REPO_ROOT/}"
-        manifest+="- $rel_path\n"
-    done < <(find "$REPO_ROOT/src" "$REPO_ROOT/scripts" "$REPO_ROOT/modal" -name "README.md" -type f -print0 2>/dev/null | sort -z)
-
-    echo -e "$manifest"
+    log_info "Collected $file_count files, $total_lines total lines"
+    echo "$output"
 }
 
 # Read tracking value
@@ -366,8 +357,8 @@ run_review_iteration() {
     local prompt
     prompt=$(cat "$PROMPT_FILE")
 
-    local manifest
-    manifest=$(generate_file_manifest)
+    local source_code
+    source_code=$(collect_all_source_code)
 
     local history
     history=$(get_history_summary)
@@ -378,11 +369,11 @@ $prompt
 
 ---
 
-# FILE MANIFEST
+# COMPLETE SOURCE CODE
 
-Use this to understand the codebase structure. Use the Read tool to examine specific files.
+ALL source code is included below. You MUST review every file.
 
-$manifest
+$source_code
 
 ---
 
@@ -420,11 +411,11 @@ Remember: Output NO_ISSUES only if you made zero code edits AND verified previou
     temp_file=$(mktemp)
     echo "$full_request" > "$temp_file"
 
-    # Run claude
+    # Run claude with JSON output to get actual token usage
     log_info "Sending request to Claude..."
 
-    local result
-    if ! result=$(claude --print --dangerously-skip-permissions < "$temp_file" 2>&1); then
+    local json_output
+    if ! json_output=$(claude --print --dangerously-skip-permissions --output-format json < "$temp_file" 2>&1); then
         log_error "Claude review failed"
         rm -f "$temp_file"
         return 1
@@ -432,27 +423,35 @@ Remember: Output NO_ISSUES only if you made zero code edits AND verified previou
 
     rm -f "$temp_file"
 
-    # Estimate response tokens and record stats
-    local response_tokens
-    response_tokens=$(estimate_tokens "$result")
+    # Extract result text and usage stats from JSON using Python
+    local result
+    result=$(echo "$json_output" | python3 -c "import sys, json; print(json.load(sys.stdin).get('result', ''))")
+
+    local input_tokens output_tokens cost_usd
+    input_tokens=$(echo "$json_output" | python3 -c "import sys, json; u=json.load(sys.stdin).get('usage',{}); print(u.get('input_tokens',0) + u.get('cache_read_input_tokens',0))")
+    output_tokens=$(echo "$json_output" | python3 -c "import sys, json; print(json.load(sys.stdin).get('usage',{}).get('output_tokens',0))")
+    cost_usd=$(echo "$json_output" | python3 -c "import sys, json; print(json.load(sys.stdin).get('total_cost_usd',0))")
+
     local summary
     summary=$(extract_summary "$result")
-    record_iteration_stats "$iteration" "$prompt_tokens" "$response_tokens" "$summary"
+    record_iteration_stats "$iteration" "$input_tokens" "$output_tokens" "$cost_usd" "$summary"
 
     # Append to history
     append_to_history "$iteration" "$result"
 
     # Check for NO_ISSUES
     if echo "$result" | grep -qE '^\s*NO_ISSUES\s*$'; then
-        # Verify no uncommitted changes (Claude should have committed any fixes)
-        if [[ -n $(git -C "$REPO_ROOT" status --porcelain) ]]; then
-            log_warning "Claude said NO_ISSUES but has uncommitted changes"
+        # Verify no uncommitted changes in CODE (exclude review tracking files)
+        local code_changes
+        code_changes=$(git -C "$REPO_ROOT" status --porcelain -- src/ scripts/ modal/ config.yaml CLAUDE.md README.md)
+        if [[ -n "$code_changes" ]]; then
+            log_warning "Claude said NO_ISSUES but has uncommitted code changes"
             log_warning "Claude should commit fixes before reporting NO_ISSUES"
-            git -C "$REPO_ROOT" status --short
+            echo "$code_changes"
             echo "$result" | shasum -a 256 | cut -d' ' -f1
             return 1
         fi
-        log_success "Holistic review: NO_ISSUES found (verified: git clean)"
+        log_success "Holistic review: NO_ISSUES found (verified: code unchanged)"
         update_tracking "status" "clean"
         return 0
     else
