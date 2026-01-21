@@ -359,6 +359,10 @@ class DesignPipeline:
                 binder_type=binder_type,
                 source=candidate.get("source", "unknown"),
             )
+            if vl_seq:
+                score.full_sequence = vh_seq + scfv_linker + vl_seq
+            else:
+                score.full_sequence = vh_seq
 
             # Structure prediction metrics
             if candidate.get("structure_prediction"):
@@ -383,6 +387,8 @@ class DesignPipeline:
             # Liability analysis - scan with CDR detection for accurate filtering
             # Also collect CDR positions for developability assessment
             vh_cdr_positions = {}
+            vl_cdr_positions = {}
+            combined_cdr_positions = {}
             try:
                 # Scan VH with CDR detection
                 vh_report = liability_scanner.scan_with_cdr_detection(vh_seq, chain_type="H")
@@ -392,29 +398,36 @@ class DesignPipeline:
                 # Scan VL if present
                 if vl_seq:
                     vl_report = liability_scanner.scan_with_cdr_detection(vl_seq, chain_type="L")
+                    vl_cdr_positions = dict(liability_scanner.cdr_positions)
                     # Combine reports - offset VL positions by VH length
                     vh_len = len(vh_seq)
+                    linker_len = len(scfv_linker) if scfv_linker else 0
+                    vl_offset = vh_len + linker_len
                     all_deamidation = vh_report.deamidation_sites + [
-                        type(s)(s.motif, s.position + vh_len, s.liability_type, s.in_cdr, s.cdr_name, s.severity)
+                        type(s)(s.motif, s.position + vl_offset, s.liability_type, s.in_cdr, s.cdr_name, s.severity)
                         for s in vl_report.deamidation_sites
                     ]
                     all_isomerization = vh_report.isomerization_sites + [
-                        type(s)(s.motif, s.position + vh_len, s.liability_type, s.in_cdr, s.cdr_name, s.severity)
+                        type(s)(s.motif, s.position + vl_offset, s.liability_type, s.in_cdr, s.cdr_name, s.severity)
                         for s in vl_report.isomerization_sites
                     ]
                     all_glycosylation = vh_report.glycosylation_sites + [
-                        type(s)(s.motif, s.position + vh_len, s.liability_type, s.in_cdr, s.cdr_name, s.severity)
+                        type(s)(s.motif, s.position + vl_offset, s.liability_type, s.in_cdr, s.cdr_name, s.severity)
                         for s in vl_report.glycosylation_sites
                     ]
                     all_oxidation = vh_report.oxidation_sites + [
-                        type(s)(s.motif, s.position + vh_len, s.liability_type, s.in_cdr, s.cdr_name, s.severity)
+                        type(s)(s.motif, s.position + vl_offset, s.liability_type, s.in_cdr, s.cdr_name, s.severity)
                         for s in vl_report.oxidation_sites
                     ]
+                    combined_cdr_positions = dict(vh_cdr_positions)
+                    for cdr_name, (start, end) in vl_cdr_positions.items():
+                        combined_cdr_positions[cdr_name] = (start + vl_offset, end + vl_offset)
                 else:
                     all_deamidation = vh_report.deamidation_sites
                     all_isomerization = vh_report.isomerization_sites
                     all_glycosylation = vh_report.glycosylation_sites
                     all_oxidation = vh_report.oxidation_sites
+                    combined_cdr_positions = dict(vh_cdr_positions)
 
                 # Extract positions as integers for JSON serialization
                 score.deamidation_sites = [s.position for s in all_deamidation]
@@ -428,6 +441,7 @@ class DesignPipeline:
                 score.cdr_isomerization_count = sum(1 for s in all_isomerization if s.in_cdr)
                 score.cdr_glycosylation_count = sum(1 for s in all_glycosylation if s.in_cdr)
                 score.cdr_oxidation_count = sum(1 for s in all_oxidation if s.in_cdr)
+                score.cdr_positions = combined_cdr_positions if combined_cdr_positions else None
             except Exception as e:
                 print(f"  Warning: Liability analysis failed: {e}")
 
@@ -446,7 +460,7 @@ class DesignPipeline:
                 dev_report = developability_assessor.assess(
                     vh_seq, vl_seq,
                     include_humanness=False,
-                    cdr_positions=vh_cdr_positions if vh_cdr_positions else None,
+                    cdr_positions=combined_cdr_positions if combined_cdr_positions else None,
                     scfv_linker=scfv_linker if vl_seq else None,
                 )
                 score.cdr_h3_length = dev_report.cdr_h3_length

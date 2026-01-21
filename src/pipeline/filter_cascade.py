@@ -61,6 +61,8 @@ class CandidateScore:
     net_charge: Optional[float] = None
     isoelectric_point: Optional[float] = None
     hydrophobic_patches: int = 0
+    cdr_positions: Optional[dict[str, tuple[int, int]]] = None
+    full_sequence: Optional[str] = None
 
     # Filter results
     filter_results: dict[str, FilterResult] = field(default_factory=dict)
@@ -283,37 +285,62 @@ class FilterCascade:
         """Filter by aggregation propensity indicators.
 
         Checks for:
-        1. High aromatic content in sequence (>15% suggests aggregation risk)
-        2. Consecutive aromatic residues (3+ in a row is problematic)
+        1. High aromatic content in CDRs (>20% suggests aggregation risk)
+        2. Consecutive aromatic residues in CDRs (2+ in a row is problematic)
         """
         from src.utils.constants import AROMATIC
 
-        sequence = candidate.sequence or ""
-        if candidate.sequence_vl:
+        sequence = candidate.full_sequence or (candidate.sequence or "")
+        if not candidate.full_sequence and candidate.sequence_vl:
             sequence += candidate.sequence_vl
 
         if not sequence:
             return FilterResult.SOFT_FAIL
 
-        # Check overall aromatic content
-        aromatic_count = sum(1 for aa in sequence if aa in AROMATIC)
-        aromatic_fraction = aromatic_count / len(sequence) if sequence else 0
+        # Check aromatic content in CDRs when positions are available.
+        cdr_positions = candidate.cdr_positions or {}
+        if cdr_positions:
+            cdr_sequences = [
+                sequence[start:end + 1]
+                for start, end in cdr_positions.values()
+                if start < len(sequence)
+            ]
+            cdr_sequence = "".join(cdr_sequences)
+            if cdr_sequence:
+                aromatic_count = sum(1 for aa in cdr_sequence if aa in AROMATIC)
+                aromatic_fraction = aromatic_count / len(cdr_sequence)
+                if aromatic_fraction > 0.20:  # >20% aromatic in CDRs
+                    return FilterResult.SOFT_FAIL
 
-        if aromatic_fraction > 0.15:  # >15% aromatic
-            return FilterResult.SOFT_FAIL
+                # Check for consecutive aromatics within each CDR
+                for cdr_seq in cdr_sequences:
+                    consecutive = 0
+                    max_consecutive = 0
+                    for aa in cdr_seq:
+                        if aa in AROMATIC:
+                            consecutive += 1
+                            max_consecutive = max(max_consecutive, consecutive)
+                        else:
+                            consecutive = 0
+                    if max_consecutive >= 2:
+                        return FilterResult.SOFT_FAIL
+        else:
+            # Fallback: use full sequence if CDR positions are unavailable.
+            aromatic_count = sum(1 for aa in sequence if aa in AROMATIC)
+            aromatic_fraction = aromatic_count / len(sequence) if sequence else 0
+            if aromatic_fraction > 0.15:
+                return FilterResult.SOFT_FAIL
 
-        # Check for consecutive aromatics (3+ in a row)
-        consecutive = 0
-        max_consecutive = 0
-        for aa in sequence:
-            if aa in AROMATIC:
-                consecutive += 1
-                max_consecutive = max(max_consecutive, consecutive)
-            else:
-                consecutive = 0
-
-        if max_consecutive >= 3:
-            return FilterResult.SOFT_FAIL
+            consecutive = 0
+            max_consecutive = 0
+            for aa in sequence:
+                if aa in AROMATIC:
+                    consecutive += 1
+                    max_consecutive = max(max_consecutive, consecutive)
+                else:
+                    consecutive = 0
+            if max_consecutive >= 3:
+                return FilterResult.SOFT_FAIL
 
         return FilterResult.PASS
 
