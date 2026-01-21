@@ -20,12 +20,12 @@ You should **update the README.md directly** to fix these issues. README updates
 ### 1. Liability Motif Correctness
 Verify the liability detection patterns match established biochemistry:
 
-**Deamidation motifs** - Should detect N followed by small residues:
-- NG, NS, NT, ND (asparagine followed by glycine, serine, threonine, aspartate)
+**Deamidation motifs** - Should detect N followed by small/flexible residues:
+- NG, NS, NT, ND, NH (asparagine followed by glycine, serine, threonine, aspartate, histidine)
 - NG is the most labile; rate depends on sequence context
 
-**Isomerization motifs** - Should detect D followed by small residues:
-- DG, DS, DT, DD (aspartate followed by small residues)
+**Isomerization motifs** - Should detect D followed by small/flexible residues:
+- DG, DS, DT, DD, DH, DN (aspartate followed by small/flexible residues)
 - DG is the most labile
 
 **N-glycosylation motifs** - Should detect N-X-S/T where X is NOT proline:

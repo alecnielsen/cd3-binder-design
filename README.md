@@ -734,8 +734,8 @@ epitope_annotation:
 ```python
 # src/analysis/liabilities.py
 
-DEAMIDATION_MOTIFS = ['NG', 'NS', 'NT', 'ND']  # N followed by small residue
-ISOMERIZATION_MOTIFS = ['DG', 'DS', 'DT', 'DD']  # D followed by small residue
+DEAMIDATION_MOTIFS = ['NG', 'NS', 'NT', 'ND', 'NH']  # N followed by small/flexible residue
+ISOMERIZATION_MOTIFS = ['DG', 'DS', 'DT', 'DD', 'DH', 'DN']  # D followed by small/flexible residue
 OXIDATION_RESIDUES = ['M', 'W']  # Methionine, Tryptophan
 
 def find_glycosylation_sites(sequence: str) -> list[int]:

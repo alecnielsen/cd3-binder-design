@@ -133,4 +133,4 @@ _provenance:
 - Config supports nested schema: `filtering.binding.min_pdockq` or flat `filtering.min_pdockq`
 - Fallback config is wired: `relax_soft_filters_first` and `max_threshold_relaxation` are used
 - Epitope residues default to dynamic extraction from 1SY6; `config.epitope.okt3_epitope_residues` overrides with explicit list
-- Aggregation filter is active: Checks aromatic content (>15%) and consecutive aromatics (3+)
+- Aggregation filter is active: CDR-specific: >20% aromatic or 2+ consecutive aromatics. Fallback (no CDRs): >15% aromatic or 3+ consecutive aromatics.

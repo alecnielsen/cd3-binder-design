@@ -1,20 +1,22 @@
 #!/usr/bin/env bash
 #
-# Ralph Wiggum Loop: Scientific Code Review with Fresh Context
+# Ralph Wiggum Loop: Holistic Scientific Code Review
 #
-# This script implements iterative code review where each iteration starts
-# with fresh context (no memory of previous iterations). This helps catch
-# issues that might be overlooked when context accumulates.
+# This script implements iterative holistic code review where each iteration:
+# - Starts with fresh context (no conversation memory)
+# - Sees the entire codebase structure
+# - Uses structured history to track what's been reviewed/fixed
+# - Can explore any file using agent-style Read tools
 #
 # Usage:
-#   ./ralph_review.sh <module>          # Review a single module
-#   ./ralph_review.sh all               # Review all modules (sequential)
-#   ./ralph_review.sh all --parallel    # Review all modules in parallel
-#   ./ralph_review.sh --status          # Show current tracking status
+#   ./ralph_review.sh              # Run holistic review
+#   ./ralph_review.sh --status     # Show current tracking status
+#   ./ralph_review.sh --reset      # Reset history and start fresh
 #
 # Environment variables:
-#   MAX_ITERATIONS  - Maximum iterations per module (default: 5)
+#   MAX_ITERATIONS  - Maximum iterations (default: 10)
 #   CLAUDE_MODEL    - Model to use (default: claude-sonnet-4-20250514)
+#   CONTEXT_BUDGET  - Max context as fraction (default: 0.5 = 50%)
 #   VERBOSE         - Set to 1 for verbose output
 
 set -euo pipefail
@@ -23,23 +25,27 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 TRACKING_FILE="$SCRIPT_DIR/tracking.yaml"
-PROMPTS_DIR="$SCRIPT_DIR/prompts"
-SRC_DIR="$REPO_ROOT/src"
+PROMPT_FILE="$SCRIPT_DIR/prompts/holistic.md"
+HISTORY_FILE="$SCRIPT_DIR/logs/holistic_history.md"
+LOGS_DIR="$SCRIPT_DIR/logs"
+ITERATION_STATS_FILE="$LOGS_DIR/iteration_stats.tsv"
 
-MAX_ITERATIONS="${MAX_ITERATIONS:-5}"
+MAX_ITERATIONS="${MAX_ITERATIONS:-10}"
 CLAUDE_MODEL="${CLAUDE_MODEL:-claude-sonnet-4-20250514}"
+CONTEXT_BUDGET="${CONTEXT_BUDGET:-0.5}"
 VERBOSE="${VERBOSE:-0}"
 
-# Available modules
-# - src/ modules: analysis, formatting, design, structure, pipeline
-# - root modules: scripts, modal
-MODULES=(analysis formatting design structure pipeline scripts modal)
+# Approximate token limits (conservative estimates)
+# Claude's context is ~200k tokens; we target CONTEXT_BUDGET of that
+MAX_CONTEXT_TOKENS=200000
+TARGET_TOKENS=$(python3 -c "print(int($MAX_CONTEXT_TOKENS * $CONTEXT_BUDGET))")
 
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 log_info() {
@@ -58,6 +64,12 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
+log_debug() {
+    if [[ "$VERBOSE" == "1" ]]; then
+        echo -e "${CYAN}[DEBUG]${NC} $1"
+    fi
+}
+
 # Check dependencies
 check_dependencies() {
     if ! command -v claude &> /dev/null; then
@@ -70,275 +82,243 @@ check_dependencies() {
         exit 1
     fi
 
-    # Check for PyYAML
     if ! python3 -c "import yaml" 2>/dev/null; then
         log_error "PyYAML not installed. Install with: pip install pyyaml"
         exit 1
     fi
 }
 
-# Get list of available modules
-get_modules() {
-    printf '%s\n' "${MODULES[@]}"
+# Ensure logs directory exists
+ensure_logs_dir() {
+    mkdir -p "$LOGS_DIR"
 }
 
-# Check if module is valid
-is_valid_module() {
-    local module="$1"
-    for m in "${MODULES[@]}"; do
-        if [[ "$m" == "$module" ]]; then
-            return 0
-        fi
-    done
-    return 1
+# Initialize iteration stats file
+init_iteration_stats() {
+    echo -e "iteration\tprompt_tokens\tresponse_tokens\ttotal_tokens\tcontext_pct\tsummary" > "$ITERATION_STATS_FILE"
 }
 
-# Get module README path
-get_module_readme() {
-    local module="$1"
-    # scripts and modal are root-level directories
-    if [[ "$module" == "scripts" || "$module" == "modal" ]]; then
-        echo "$REPO_ROOT/$module/README.md"
+# Record stats for an iteration
+record_iteration_stats() {
+    local iteration="$1"
+    local prompt_tokens="$2"
+    local response_tokens="$3"
+    local summary="$4"
+
+    local total_tokens=$((prompt_tokens + response_tokens))
+    local context_pct=$(python3 -c "print(f'{100 * $total_tokens / $MAX_CONTEXT_TOKENS:.1f}')")
+
+    echo -e "${iteration}\t${prompt_tokens}\t${response_tokens}\t${total_tokens}\t${context_pct}%\t${summary}" >> "$ITERATION_STATS_FILE"
+}
+
+# Extract brief summary from Claude's response
+extract_summary() {
+    local result="$1"
+
+    # Check for NO_ISSUES
+    if echo "$result" | grep -qE '^\s*NO_ISSUES\s*$'; then
+        echo "Clean - no issues found"
+        return
+    fi
+
+    # Count issues fixed
+    local issue_count
+    issue_count=$(echo "$result" | grep -c "^### Issue" || echo "0")
+
+    if [[ "$issue_count" -gt 0 ]]; then
+        # Extract first issue title as example
+        local first_issue
+        first_issue=$(echo "$result" | grep "^### Issue" | head -1 | sed 's/^### Issue [0-9]*: //')
+        echo "${issue_count} issue(s): ${first_issue:0:40}..."
     else
-        echo "$SRC_DIR/$module/README.md"
+        echo "Review in progress"
     fi
 }
 
-# Read tracking YAML value
+# Print summary table at end of loop
+print_summary_table() {
+    echo ""
+    echo "╔══════════════════════════════════════════════════════════════════════════════╗"
+    echo "║                           RALPH LOOP SUMMARY                                  ║"
+    echo "╠══════════════════════════════════════════════════════════════════════════════╣"
+
+    if [[ ! -f "$ITERATION_STATS_FILE" ]]; then
+        echo "║  No iteration data available                                                  ║"
+        echo "╚══════════════════════════════════════════════════════════════════════════════╝"
+        return
+    fi
+
+    printf "║ %-4s │ %-10s │ %-10s │ %-8s │ %-38s ║\n" "Iter" "Prompt" "Response" "Context" "Summary"
+    echo "╟──────┼────────────┼────────────┼──────────┼────────────────────────────────────────╢"
+
+    # Skip header line, read data
+    tail -n +2 "$ITERATION_STATS_FILE" | while IFS=$'\t' read -r iter prompt resp total pct summary; do
+        # Truncate summary to fit
+        summary="${summary:0:38}"
+        printf "║ %-4s │ %10s │ %10s │ %8s │ %-38s ║\n" "$iter" "$prompt" "$resp" "$pct" "$summary"
+    done
+
+    echo "╚══════════════════════════════════════════════════════════════════════════════╝"
+    echo ""
+}
+
+# Estimate tokens from text (rough: 1 token ≈ 4 characters)
+estimate_tokens() {
+    local text="$1"
+    local chars
+    chars=$(echo -n "$text" | wc -c)
+    echo $((chars / 4))
+}
+
+# Generate file manifest with sizes
+generate_file_manifest() {
+    log_debug "Generating file manifest..."
+
+    local manifest=""
+    manifest+="# Repository File Manifest\n\n"
+    manifest+="Generated: $(date -u +"%Y-%m-%dT%H:%M:%SZ")\n\n"
+
+    # Source files
+    manifest+="## Source Code (src/)\n\n"
+    manifest+="| File | Lines | Description |\n"
+    manifest+="|------|-------|-------------|\n"
+
+    while IFS= read -r -d '' pyfile; do
+        local rel_path="${pyfile#$REPO_ROOT/}"
+        local lines
+        lines=$(wc -l < "$pyfile" | tr -d ' ')
+        local desc=""
+        # Extract first docstring line if present
+        desc=$(head -20 "$pyfile" | grep -m1 '"""' -A1 | tail -1 | sed 's/^[[:space:]]*//' | head -c 50)
+        manifest+="| $rel_path | $lines | $desc |\n"
+    done < <(find "$REPO_ROOT/src" -name "*.py" -type f -print0 2>/dev/null | sort -z)
+
+    # Scripts
+    manifest+="\n## Scripts (scripts/)\n\n"
+    manifest+="| File | Lines |\n"
+    manifest+="|------|-------|\n"
+
+    while IFS= read -r -d '' pyfile; do
+        local rel_path="${pyfile#$REPO_ROOT/}"
+        local lines
+        lines=$(wc -l < "$pyfile" | tr -d ' ')
+        manifest+="| $rel_path | $lines |\n"
+    done < <(find "$REPO_ROOT/scripts" -name "*.py" -type f -print0 2>/dev/null | sort -z)
+
+    # Modal
+    manifest+="\n## Modal Deployments (modal/)\n\n"
+    manifest+="| File | Lines |\n"
+    manifest+="|------|-------|\n"
+
+    while IFS= read -r -d '' pyfile; do
+        local rel_path="${pyfile#$REPO_ROOT/}"
+        local lines
+        lines=$(wc -l < "$pyfile" | tr -d ' ')
+        manifest+="| $rel_path | $lines |\n"
+    done < <(find "$REPO_ROOT/modal" -name "*.py" -type f -print0 2>/dev/null | sort -z)
+
+    # READMEs
+    manifest+="\n## Documentation\n\n"
+    while IFS= read -r -d '' mdfile; do
+        local rel_path="${mdfile#$REPO_ROOT/}"
+        manifest+="- $rel_path\n"
+    done < <(find "$REPO_ROOT/src" "$REPO_ROOT/scripts" "$REPO_ROOT/modal" -name "README.md" -type f -print0 2>/dev/null | sort -z)
+
+    echo -e "$manifest"
+}
+
+# Read tracking value
 read_tracking() {
     local key="$1"
     python3 -c "
 import yaml
-with open('$TRACKING_FILE') as f:
-    data = yaml.safe_load(f)
-keys = '$key'.split('.')
-val = data
-for k in keys:
-    val = val.get(k, '')
-print(val if val else '')
+try:
+    with open('$TRACKING_FILE') as f:
+        data = yaml.safe_load(f) or {}
+    keys = '$key'.split('.')
+    val = data
+    for k in keys:
+        val = val.get(k, '')
+    print(val if val else '')
+except:
+    print('')
 "
 }
 
-# Update tracking YAML (with file locking for parallel safety)
+# Update tracking file
 update_tracking() {
-    local module="$1"
-    local field="$2"
-    local value="$3"
-    local lock_dir="$TRACKING_FILE.lock"
-
-    # Use mkdir for atomic locking (portable, works on macOS)
-    local max_attempts=50
-    local attempt=0
-    while ! mkdir "$lock_dir" 2>/dev/null; do
-        ((attempt++))
-        if [[ "$attempt" -ge "$max_attempts" ]]; then
-            log_warning "Could not acquire lock for tracking.yaml after $max_attempts attempts"
-            break
-        fi
-        sleep 0.1
-    done
-
-    # Ensure lock is released on exit
-    trap "rmdir '$lock_dir' 2>/dev/null" EXIT
+    local field="$1"
+    local value="$2"
 
     python3 << EOF
 import yaml
 from datetime import datetime
 
-with open('$TRACKING_FILE', 'r') as f:
-    data = yaml.safe_load(f)
+try:
+    with open('$TRACKING_FILE', 'r') as f:
+        data = yaml.safe_load(f) or {}
+except FileNotFoundError:
+    data = {}
 
-# Update module field
+# Ensure structure exists
+if 'holistic' not in data:
+    data['holistic'] = {
+        'status': 'pending',
+        'iterations': 0,
+        'last_reviewed': None,
+        'files_examined': [],
+        'issues_fixed': 0
+    }
+
+# Update field
 if '$field' == 'iterations':
-    data['modules']['$module']['$field'] = int('$value')
-elif '$field' == 'issues_found':
-    # Append to list
-    if not data['modules']['$module'].get('issues_found'):
-        data['modules']['$module']['issues_found'] = []
-    data['modules']['$module']['issues_found'].append('$value')
+    data['holistic']['$field'] = int('$value')
+elif '$field' == 'issues_fixed':
+    data['holistic']['$field'] = int('$value')
 else:
-    data['modules']['$module']['$field'] = '$value'
+    data['holistic']['$field'] = '$value'
 
 # Update timestamp
-if '$field' in ['status', 'last_result']:
-    data['modules']['$module']['last_reviewed'] = datetime.now().isoformat()
-
-# Update summary
-total = 0
-clean = 0
-issues = 0
-for m in data['modules'].values():
-    total += m.get('iterations', 0)
-    if m.get('status') == 'clean':
-        clean += 1
-    elif m.get('status') == 'issues':
-        issues += 1
-
-data['summary']['total_reviews'] = total
-data['summary']['modules_clean'] = clean
-data['summary']['modules_with_issues'] = issues
-data['summary']['last_run'] = datetime.now().isoformat()
+data['holistic']['last_reviewed'] = datetime.now().isoformat()
 
 with open('$TRACKING_FILE', 'w') as f:
     yaml.dump(data, f, default_flow_style=False, sort_keys=False)
 EOF
-
-    # Release lock
-    rmdir "$lock_dir" 2>/dev/null || true
 }
 
-# Get source directory for a module
-get_module_source_dir() {
-    local module="$1"
-    # scripts and modal are root-level directories
-    if [[ "$module" == "scripts" || "$module" == "modal" ]]; then
-        echo "$REPO_ROOT/$module"
-    else
-        echo "$SRC_DIR/$module"
-    fi
-}
+# Initialize or reset tracking
+init_tracking() {
+    python3 << EOF
+import yaml
+from datetime import datetime
 
-# Collect source code for a module
-collect_source_code() {
-    local module="$1"
-    local output=""
-    local module_dir
-    module_dir=$(get_module_source_dir "$module")
-
-    if [[ -d "$module_dir" ]]; then
-        while IFS= read -r -d '' pyfile; do
-            local rel_path="${pyfile#$REPO_ROOT/}"
-            output+="
-=== FILE: $rel_path ===
-$(cat "$pyfile")
-
-"
-        done < <(find "$module_dir" -name "*.py" -type f -print0 | sort -z)
-    fi
-
-    # For structure module, also include modal/ files (for context)
-    if [[ "$module" == "structure" ]]; then
-        local modal_dir="$REPO_ROOT/modal"
-        if [[ -d "$modal_dir" ]]; then
-            while IFS= read -r -d '' pyfile; do
-                local rel_path="${pyfile#$REPO_ROOT/}"
-                output+="
-=== FILE: $rel_path ===
-$(cat "$pyfile")
-
-"
-            done < <(find "$modal_dir" -name "*.py" -type f -print0 | sort -z)
-        fi
-    fi
-
-    echo "$output"
-}
-
-# Run a single review iteration
-run_review_iteration() {
-    local module="$1"
-    local iteration="$2"
-
-    log_info "Running review iteration $iteration for module: $module"
-
-    # Get the prompt
-    local prompt_file="$PROMPTS_DIR/${module}.md"
-    if [[ ! -f "$prompt_file" ]]; then
-        log_error "Prompt file not found: $prompt_file"
-        return 1
-    fi
-
-    # Get module README context
-    local readme_path
-    readme_path=$(get_module_readme "$module")
-    local readme_context=""
-    if [[ -f "$readme_path" ]]; then
-        readme_context=$(cat "$readme_path")
-    else
-        log_warning "Module README not found: $readme_path"
-    fi
-
-    # Collect source code
-    local source_code
-    source_code=$(collect_source_code "$module")
-
-    # Read the prompt
-    local prompt
-    prompt=$(cat "$prompt_file")
-
-    # Check for iteration history log
-    local history_file="$SCRIPT_DIR/logs/${module}_history.md"
-    local history_context=""
-    if [[ -f "$history_file" ]]; then
-        history_context=$(cat "$history_file")
-    fi
-
-    # Build history section if we have previous iterations
-    local history_section=""
-    if [[ -n "$history_context" ]]; then
-        history_section="
----
-
-# PREVIOUS ITERATION HISTORY
-
-The following shows what previous review iterations found and fixed.
-Use this to understand what has already been addressed and avoid repeating the same findings.
-
-$history_context
-
----
-"
-    fi
-
-    # Construct the full review request
-    local full_request="
-$prompt
-$history_section
----
-
-# MODULE README CONTEXT
-
-The following is the scientific context from the module's README.md file.
-If you find this context is wrong or incomplete, you should update it directly in the README.
-
-$readme_context
-
----
-
-# SOURCE CODE TO REVIEW
-
-$source_code
-
----
-
-Please review the source code above against the README context and the scientific criteria in the prompt.
-Remember: If no code issues are found, respond with exactly NO_ISSUES (and nothing else).
-Note: Updating the module README.md to fix documentation issues does NOT count as a code issue.
-"
-
-    # Create a temporary file for the request
-    local temp_file
-    temp_file=$(mktemp)
-    echo "$full_request" > "$temp_file"
-
-    # Run claude with --print for non-interactive mode
-    local result
-    if [[ "$VERBOSE" == "1" ]]; then
-        log_info "Sending request to Claude..."
-    fi
-
-    # Use claude --print with full permissions for automated review loop
-    result=$(claude --print --dangerously-skip-permissions < "$temp_file" 2>&1) || {
-        log_error "Claude review failed"
-        rm -f "$temp_file"
-        return 1
+data = {
+    'holistic': {
+        'status': 'pending',
+        'iterations': 0,
+        'last_reviewed': None,
+        'files_examined': [],
+        'issues_fixed': 0
+    },
+    'summary': {
+        'total_iterations': 0,
+        'last_run': datetime.now().isoformat()
     }
+}
 
-    rm -f "$temp_file"
+with open('$TRACKING_FILE', 'w') as f:
+    yaml.dump(data, f, default_flow_style=False, sort_keys=False)
+EOF
+    log_info "Tracking file initialized"
+}
 
-    # Log this iteration's result to history file
+# Parse structured history from Claude's output
+append_to_history() {
+    local iteration="$1"
+    local result="$2"
     local timestamp
     timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
     {
         echo "## Iteration $iteration ($timestamp)"
         echo ""
@@ -346,97 +326,209 @@ Note: Updating the module README.md to fix documentation issues does NOT count a
         echo ""
         echo "---"
         echo ""
-    } >> "$history_file"
+    } >> "$HISTORY_FILE"
+}
 
-    # Check for NO_ISSUES - robust parsing that handles whitespace and extra output
-    # Look for NO_ISSUES on its own line (with possible whitespace)
+# Get summary of previous iterations for context
+get_history_summary() {
+    if [[ ! -f "$HISTORY_FILE" ]]; then
+        echo "No previous iterations."
+        return
+    fi
+
+    # Return full history if small enough, otherwise summarize
+    local history_size
+    history_size=$(wc -c < "$HISTORY_FILE" | tr -d ' ')
+    local max_history_chars=$((TARGET_TOKENS * 2))  # ~50% of budget for history
+
+    if [[ "$history_size" -lt "$max_history_chars" ]]; then
+        cat "$HISTORY_FILE"
+    else
+        log_warning "History file large ($history_size bytes), truncating to recent iterations"
+        # Get last 3 iterations
+        grep -n "^## Iteration" "$HISTORY_FILE" | tail -3 | head -1 | cut -d: -f1 | xargs -I{} tail -n +{} "$HISTORY_FILE"
+    fi
+}
+
+# Run a single review iteration
+run_review_iteration() {
+    local iteration="$1"
+
+    log_info "Running holistic review iteration $iteration"
+
+    # Check prompt file exists
+    if [[ ! -f "$PROMPT_FILE" ]]; then
+        log_error "Prompt file not found: $PROMPT_FILE"
+        return 1
+    fi
+
+    # Build the review request
+    local prompt
+    prompt=$(cat "$PROMPT_FILE")
+
+    local manifest
+    manifest=$(generate_file_manifest)
+
+    local history
+    history=$(get_history_summary)
+
+    # Construct full request
+    local full_request="
+$prompt
+
+---
+
+# FILE MANIFEST
+
+Use this to understand the codebase structure. Use the Read tool to examine specific files.
+
+$manifest
+
+---
+
+# PREVIOUS ITERATION HISTORY
+
+Review what has been examined and fixed in previous iterations.
+Focus on areas NOT YET REVIEWED or verify that previous fixes are correct.
+
+$history
+
+---
+
+# ITERATION $iteration INSTRUCTIONS
+
+1. Read the history above to understand what's been done
+2. Identify areas not yet thoroughly reviewed
+3. Use Read tool to examine files - do NOT ask for files to be provided
+4. Fix any issues you find by editing files directly
+5. Report your findings in the structured format specified in the prompt
+
+Remember: Output NO_ISSUES only if you made zero code edits AND verified previous fixes.
+"
+
+    # Estimate context usage
+    local prompt_tokens
+    prompt_tokens=$(estimate_tokens "$full_request")
+    log_debug "Estimated prompt tokens: $prompt_tokens (budget: $TARGET_TOKENS)"
+
+    if [[ "$prompt_tokens" -gt "$TARGET_TOKENS" ]]; then
+        log_warning "Prompt exceeds context budget ($prompt_tokens > $TARGET_TOKENS tokens)"
+    fi
+
+    # Create temp file for request
+    local temp_file
+    temp_file=$(mktemp)
+    echo "$full_request" > "$temp_file"
+
+    # Run claude
+    log_info "Sending request to Claude..."
+
+    local result
+    if ! result=$(claude --print --dangerously-skip-permissions < "$temp_file" 2>&1); then
+        log_error "Claude review failed"
+        rm -f "$temp_file"
+        return 1
+    fi
+
+    rm -f "$temp_file"
+
+    # Estimate response tokens and record stats
+    local response_tokens
+    response_tokens=$(estimate_tokens "$result")
+    local summary
+    summary=$(extract_summary "$result")
+    record_iteration_stats "$iteration" "$prompt_tokens" "$response_tokens" "$summary"
+
+    # Append to history
+    append_to_history "$iteration" "$result"
+
+    # Check for NO_ISSUES
     if echo "$result" | grep -qE '^\s*NO_ISSUES\s*$'; then
-        log_success "Module $module: NO_ISSUES found"
-        update_tracking "$module" "status" "clean"
-        update_tracking "$module" "last_result" "NO_ISSUES"
-        echo ""  # Return empty hash to signal success
+        # Verify no files were actually modified (enforce clean verification iteration)
+        if [[ -n $(git -C "$REPO_ROOT" status --porcelain) ]]; then
+            log_warning "Claude said NO_ISSUES but files were modified"
+            log_warning "Requiring verification iteration (edits need fresh review)"
+            # Don't accept - treat as issues found
+            git -C "$REPO_ROOT" status --short
+            echo "$result" | shasum -a 256 | cut -d' ' -f1
+            return 1
+        fi
+        log_success "Holistic review: NO_ISSUES found (verified: no files changed)"
+        update_tracking "status" "clean"
         return 0
     else
-        log_warning "Module $module: Issues found"
-        update_tracking "$module" "status" "issues"
-        update_tracking "$module" "last_result" "issues_found"
+        log_warning "Holistic review: Issues found or work done"
+        update_tracking "status" "in_progress"
 
-        # Print the issues to stdout
+        # Print results
         echo ""
-        echo "=== Issues found in $module (iteration $iteration) ==="
+        echo "=== Iteration $iteration Results ==="
         echo "$result"
-        echo "========================================================"
+        echo "===================================="
         echo ""
 
-        # Return hash of issues for stuck detection
+        # Return hash for stuck detection
         echo "$result" | shasum -a 256 | cut -d' ' -f1
         return 1
     fi
 }
 
-# Review a single module (loops until clean or max iterations)
-review_module() {
-    local module="$1"
+# Main review loop
+run_holistic_review() {
+    log_info "Starting holistic review loop (max $MAX_ITERATIONS iterations)"
+    log_info "Context budget: ${CONTEXT_BUDGET} ($TARGET_TOKENS tokens)"
 
-    log_info "Starting review loop for module: $module"
-
-    # Check if module exists
-    if ! is_valid_module "$module"; then
-        log_error "Unknown module: $module"
-        log_info "Available modules: $(get_modules | tr '\n' ' ')"
-        return 1
-    fi
+    ensure_logs_dir
+    init_iteration_stats
 
     # Get current iteration count
     local current_iterations
-    current_iterations=$(read_tracking "modules.${module}.iterations")
+    current_iterations=$(read_tracking "holistic.iterations")
     current_iterations=${current_iterations:-0}
 
-    # Check if already at max
     if [[ "$current_iterations" -ge "$MAX_ITERATIONS" ]]; then
-        log_warning "Module $module has already reached max iterations ($MAX_ITERATIONS)"
+        log_warning "Already at max iterations ($MAX_ITERATIONS). Use --reset to start fresh."
         return 0
     fi
 
-    # Update status to in_progress
-    update_tracking "$module" "status" "in_progress"
-
-    # Stuck detection - track previous issue hash
+    # Stuck detection
     local prev_issue_hash=""
     local stuck_count=0
-    local max_stuck=2  # Exit if same issues seen this many times
+    local max_stuck=2
 
-    # Loop until clean or max iterations
+    # Review loop
     while [[ "$current_iterations" -lt "$MAX_ITERATIONS" ]]; do
         local iteration=$((current_iterations + 1))
-        update_tracking "$module" "iterations" "$iteration"
+        update_tracking "iterations" "$iteration"
 
-        log_info "Module $module: iteration $iteration/$MAX_ITERATIONS"
+        log_info "Iteration $iteration/$MAX_ITERATIONS"
 
-        # Run review and capture output (including issue hash on failure)
+        # Run review
         local output
         local exit_code
-        output=$(run_review_iteration "$module" "$iteration")
+        output=$(run_review_iteration "$iteration")
         exit_code=$?
 
         if [[ "$exit_code" -eq 0 ]]; then
-            # Clean - we're done
-            log_success "Module $module passed review (iteration $iteration)"
+            log_success "Review complete - no issues found (iteration $iteration)"
+            update_tracking "status" "clean"
+            print_summary_table
             return 0
         fi
 
-        # Issues found - check for stuck condition
+        # Stuck detection
         local issue_hash
-        issue_hash=$(echo "$output" | tail -1)  # Hash is on last line
+        issue_hash=$(echo "$output" | tail -1)
 
         if [[ "$issue_hash" == "$prev_issue_hash" ]]; then
             ((stuck_count++))
-            log_warning "Module $module: same issues detected ($stuck_count/$max_stuck)"
+            log_warning "Same findings detected ($stuck_count/$max_stuck)"
 
             if [[ "$stuck_count" -ge "$max_stuck" ]]; then
-                log_error "Module $module appears stuck - same issues $max_stuck times in a row"
+                log_error "Review appears stuck - same findings $max_stuck times"
                 log_error "Human intervention may be needed"
-                update_tracking "$module" "status" "stuck"
+                update_tracking "status" "stuck"
+                print_summary_table
                 return 1
             fi
         else
@@ -446,200 +538,116 @@ review_module() {
         prev_issue_hash="$issue_hash"
         current_iterations=$iteration
 
-        # Brief pause between iterations to avoid hammering API
+        # Pause between iterations
         sleep 2
     done
 
-    log_warning "Module $module reached max iterations ($MAX_ITERATIONS) with issues remaining"
+    log_warning "Reached max iterations ($MAX_ITERATIONS) - review may be incomplete"
+    update_tracking "status" "max_iterations"
+    print_summary_table
     return 1
 }
 
-# Review all modules sequentially
-review_all_sequential() {
-    log_info "Reviewing all modules sequentially..."
-
-    local failed=0
-    for module in "${MODULES[@]}"; do
-        if ! review_module "$module"; then
-            ((failed++)) || true
-        fi
-    done
-
-    echo ""
-    if [[ "$failed" -eq 0 ]]; then
-        log_success "All ${#MODULES[@]} modules passed review!"
-    else
-        log_warning "Review complete. Modules with issues: $failed"
-    fi
-
-    # Return 0 on success (all clean), 1 if any failed
-    [[ "$failed" -eq 0 ]]
-}
-
-# Review modules in batches (respects Claude subscription concurrency limits)
-# Usage: review_all_parallel [batch_size]
-# Default batch_size is 2 (safe for most subscriptions)
-review_all_parallel() {
-    local batch_size="${BATCH_SIZE:-2}"
-    log_info "Reviewing all modules in batches of $batch_size..."
-
-    local modules_list=("${MODULES[@]}")
-    local temp_dir
-    temp_dir=$(mktemp -d)
-    local total_failed=0
-
-    # Process in batches
-    local i=0
-    while [[ "$i" -lt "${#modules_list[@]}" ]]; do
-        local batch=()
-        local pids=()
-
-        # Build batch
-        for ((j=0; j<batch_size && i+j<${#modules_list[@]}; j++)); do
-            batch+=("${modules_list[i+j]}")
-        done
-
-        log_info "Starting batch: ${batch[*]}"
-
-        # Launch batch in background
-        for module in "${batch[@]}"; do
-            (
-                review_module "$module" > "$temp_dir/${module}.log" 2>&1
-                echo $? > "$temp_dir/${module}.exit"
-            ) &
-            pids+=($!)
-        done
-
-        # Wait for batch to complete
-        wait "${pids[@]}"
-
-        # Report batch results
-        for module in "${batch[@]}"; do
-            local exit_code
-            exit_code=$(cat "$temp_dir/${module}.exit" 2>/dev/null || echo "1")
-
-            if [[ "$exit_code" == "0" ]]; then
-                log_success "$module: clean"
-            else
-                log_warning "$module: issues found"
-                ((total_failed++)) || true
-            fi
-        done
-
-        ((i+=batch_size))
-    done
-
-    # Show detailed logs
-    echo ""
-    for module in "${modules_list[@]}"; do
-        echo "=== Results for $module ==="
-        cat "$temp_dir/${module}.log" 2>/dev/null || echo "(no output)"
-        echo "==========================="
-        echo ""
-    done
-
-    # Cleanup
-    rm -rf "$temp_dir"
-
-    if [[ "$total_failed" -eq 0 ]]; then
-        log_success "All ${#modules_list[@]} modules passed review!"
-    else
-        log_warning "Review complete. Modules with issues: $total_failed"
-    fi
-
-    [[ "$total_failed" -eq 0 ]]
-}
-
-# Review all modules (entry point)
-review_all() {
-    local parallel="${1:-false}"
-
-    if [[ "$parallel" == "true" ]]; then
-        review_all_parallel
-    else
-        review_all_sequential
-    fi
-}
-
-# Show current status
+# Show status
 show_status() {
     echo ""
-    echo "=== Review Tracking Status ==="
+    echo "=== Holistic Review Status ==="
     echo ""
+
+    if [[ ! -f "$TRACKING_FILE" ]]; then
+        echo "No tracking file found. Run a review first."
+        return
+    fi
 
     python3 - "$TRACKING_FILE" << 'PYEOF'
 import sys
 import yaml
 
-tracking_file = sys.argv[1]
+with open(sys.argv[1], 'r') as f:
+    data = yaml.safe_load(f) or {}
 
-with open(tracking_file, 'r') as f:
-    data = yaml.safe_load(f)
+holistic = data.get('holistic', {})
+status = holistic.get('status', 'unknown')
+iterations = holistic.get('iterations', 0)
+last_reviewed = holistic.get('last_reviewed', 'never')
 
-print("Modules:")
-for name, info in data.get('modules', {}).items():
-    status = info.get('status', 'unknown')
-    iterations = info.get('iterations', 0)
-    last_reviewed = info.get('last_reviewed', 'never')
-    if last_reviewed and last_reviewed != 'null' and last_reviewed is not None:
-        last_reviewed = str(last_reviewed)[:19]  # Truncate ISO timestamp
-    else:
-        last_reviewed = 'never'
+status_emoji = {
+    'pending': '[ ]',
+    'in_progress': '[~]',
+    'clean': '[✓]',
+    'stuck': '[!]',
+    'max_iterations': '[M]'
+}.get(status, '[?]')
 
-    status_emoji = {
-        'pending': '[ ]',
-        'in_progress': '[~]',
-        'clean': '[+]',
-        'issues': '[!]'
-    }.get(status, '[?]')
+print(f"Status: {status_emoji} {status}")
+print(f"Iterations: {iterations}")
+print(f"Last reviewed: {last_reviewed}")
 
-    print(f"  {status_emoji} {name}: {status} (iterations: {iterations}, last: {last_reviewed})")
-
-print("")
-summary = data.get('summary', {})
-print(f"Summary:")
-print(f"  Total reviews: {summary.get('total_reviews', 0)}")
-print(f"  Modules clean: {summary.get('modules_clean', 0)}")
-print(f"  Modules with issues: {summary.get('modules_with_issues', 0)}")
-print(f"  Last run: {summary.get('last_run', 'never')}")
+if 'summary' in data:
+    print(f"\nTotal iterations (all time): {data['summary'].get('total_iterations', 0)}")
+    print(f"Last run: {data['summary'].get('last_run', 'never')}")
 PYEOF
+
+    # Show history file size
+    if [[ -f "$HISTORY_FILE" ]]; then
+        local history_lines
+        history_lines=$(wc -l < "$HISTORY_FILE" | tr -d ' ')
+        echo ""
+        echo "History: $HISTORY_FILE ($history_lines lines)"
+    fi
+}
+
+# Reset for fresh start
+reset_review() {
+    log_warning "Resetting holistic review state..."
+
+    # Archive old history if exists
+    if [[ -f "$HISTORY_FILE" ]]; then
+        local archive_name="$LOGS_DIR/holistic_history_$(date +%Y%m%d_%H%M%S).md"
+        mv "$HISTORY_FILE" "$archive_name"
+        log_info "Archived old history to: $archive_name"
+    fi
+
+    # Reset tracking
+    init_tracking
+
+    log_success "Review state reset. Ready for fresh holistic review."
 }
 
 # Main entry point
 main() {
     check_dependencies
 
-    if [[ $# -eq 0 ]]; then
-        echo "Usage: $0 <module|all|--status> [--parallel]"
-        echo ""
-        echo "Modules: $(get_modules | tr '\n' ' ')"
-        echo ""
-        echo "Options:"
-        echo "  <module>     Review a specific module"
-        echo "  all          Review all modules (sequential)"
-        echo "  all --parallel  Review all modules in parallel"
-        echo "  --status     Show current tracking status"
-        echo ""
-        echo "Environment variables:"
-        echo "  MAX_ITERATIONS  Max iterations per module (default: 5)"
-        echo "  VERBOSE         Set to 1 for verbose output"
-        exit 1
-    fi
-
-    case "$1" in
+    case "${1:-}" in
         --status|-s)
             show_status
             ;;
-        all)
-            # Check for --parallel flag
-            if [[ "${2:-}" == "--parallel" ]]; then
-                review_all "true"
-            else
-                review_all "false"
-            fi
+        --reset|-r)
+            reset_review
+            ;;
+        --help|-h)
+            echo "Usage: $0 [OPTIONS]"
+            echo ""
+            echo "Run holistic scientific code review using Ralph Wiggum loop."
+            echo ""
+            echo "Options:"
+            echo "  (no args)    Run holistic review"
+            echo "  --status     Show current review status"
+            echo "  --reset      Reset history and start fresh"
+            echo "  --help       Show this help"
+            echo ""
+            echo "Environment variables:"
+            echo "  MAX_ITERATIONS   Max iterations (default: 10)"
+            echo "  CONTEXT_BUDGET   Context fraction (default: 0.5)"
+            echo "  VERBOSE          Set to 1 for debug output"
+            ;;
+        "")
+            run_holistic_review
             ;;
         *)
-            review_module "$1"
+            log_error "Unknown option: $1"
+            echo "Use --help for usage information"
+            exit 1
             ;;
     esac
 }

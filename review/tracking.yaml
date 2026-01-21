@@ -1,52 +1,9 @@
-modules:
-  analysis:
-    status: clean
-    iterations: 2
-    last_reviewed: '2026-01-20T19:28:16.281828'
-    last_result: NO_ISSUES
-    issues_found: []
-  formatting:
-    status: clean
-    iterations: 1
-    last_reviewed: '2026-01-20T19:29:51.033281'
-    last_result: NO_ISSUES
-    issues_found: []
-  design:
-    status: pending
-    iterations: 0
-    last_reviewed: null
-    last_result: null
-    issues_found: []
-  structure:
-    status: pending
-    iterations: 0
-    last_reviewed: null
-    last_result: null
-    issues_found: []
-  pipeline:
-    status: issues
-    iterations: 1
-    last_reviewed: '2026-01-20T19:34:48.045348'
-    last_result: issues_found
-    issues_found: []
-  scripts:
-    status: clean
-    iterations: 1
-    last_reviewed: '2026-01-20T19:36:59.392023'
-    last_result: NO_ISSUES
-    issues_found: []
-  modal:
-    status: pending
-    iterations: 0
-    last_reviewed: null
-    last_result: null
-    issues_found: []
-settings:
-  max_iterations: 5
-  readme_path: ../README.md
-  source_root: ../src
+holistic:
+  status: pending
+  iterations: 1
+  last_reviewed: '2026-01-21T16:47:39.463488'
+  files_examined: []
+  issues_fixed: 0
 summary:
-  total_reviews: 5
-  modules_clean: 3
-  modules_with_issues: 1
-  last_run: '2026-01-20T19:36:59.392057'
+  total_iterations: 0
+  last_run: '2026-01-21T14:29:19.783229'

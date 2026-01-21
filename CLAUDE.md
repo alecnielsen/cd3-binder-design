@@ -131,8 +131,8 @@ FILTER_THRESHOLDS = {
 
 ### Liability Motifs
 ```python
-DEAMIDATION = ['NG', 'NS', 'NT', 'ND']
-ISOMERIZATION = ['DG', 'DS', 'DT', 'DD']
+DEAMIDATION = ['NG', 'NS', 'NT', 'ND', 'NH']  # N followed by small/flexible residue
+ISOMERIZATION = ['DG', 'DS', 'DT', 'DD', 'DH', 'DN']  # D followed by small/flexible residue
 GLYCOSYLATION = r'N[^P][ST]'  # N-X-S/T where X != P
 ```
 
@@ -189,7 +189,7 @@ pytest tests/test_liabilities.py -v  # Specific module
 12. **Calibration uses full scFv** - For VH/VL pairs, calibration constructs scFv (not VH-only) for accurate threshold setting
 13. **Contact counts are residue-level** - `num_contacts` counts unique residue pairs, not atomic contacts
 14. **Epitope residues configurable** - `config.epitope.okt3_epitope_residues` overrides hardcoded defaults
-15. **Aggregation filter active** - Checks aromatic content (>15%) and consecutive aromatics (3+)
+15. **Aggregation filter active** - CDR-specific: >20% aromatic or 2+ consecutive aromatics. Fallback (no CDRs): >15% aromatic or 3+ consecutive aromatics.
 16. **Fallback config wired** - `relax_soft_filters_first` and `max_threshold_relaxation` are now used
 17. **CRITICAL: BoltzGen extracts target chain** - Multi-chain PDBs (1XIW has UCHT1 Fab, 1SY6 has OKT3 Fab) would bias designs. `boltzgen_app.py` extracts only the specified target chain before design.
 18. **CRITICAL: 1XIW numbering starts at 12** - CD3ε chain A in 1XIW uses PDB residue numbers starting at 12, not 1. OKT3 epitope comparison handles this via sequence alignment. Never assume 1-indexed numbering for PDB data.
