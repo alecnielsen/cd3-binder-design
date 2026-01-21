@@ -89,12 +89,18 @@ class InterfaceAnalyzer:
     chain A) for OKT3 epitope comparisons. When comparing epitopes from
     predicted complexes, ensure the target chain uses the same numbering
     scheme, or provide the target sequence for alignment-based comparison.
+
+    Note on numbering: 1XIW chain A residue numbering starts at 12, not 1.
+    The OKT3 epitope residues are stored in actual PDB numbering, and the
+    canonical CD3ε residue number array is cached for proper alignment.
     """
 
-    # Cached OKT3 epitope residues (in canonical CD3ε numbering)
+    # Cached OKT3 epitope residues (in actual 1XIW PDB numbering, NOT 1-indexed)
     _cached_okt3_epitope: list[int] = None
     # Cached canonical CD3ε sequence (from 1XIW chain A)
     _cached_cd3e_sequence: str = None
+    # Cached 1XIW chain A residue numbers (actual PDB numbering)
+    _cached_cd3e_residue_numbers: list[int] = None
 
     @classmethod
     def get_okt3_epitope(cls, force_refresh: bool = False) -> list[int]:
@@ -131,14 +137,19 @@ class InterfaceAnalyzer:
         return cls._cached_okt3_epitope
 
     @classmethod
-    def get_canonical_cd3e_sequence(cls, force_refresh: bool = False) -> str:
-        """Get canonical CD3ε sequence from 1XIW chain A.
+    def get_canonical_cd3e_sequence(cls, force_refresh: bool = False) -> tuple[str, list[int]]:
+        """Get canonical CD3ε sequence and residue numbers from 1XIW chain A.
+
+        IMPORTANT: 1XIW chain A residue numbering starts at 12, not 1.
+        This function returns both the sequence AND the actual PDB residue
+        numbers, which are needed for proper epitope alignment.
 
         Args:
             force_refresh: If True, re-extract even if cached.
 
         Returns:
-            CD3ε amino acid sequence.
+            Tuple of (sequence, residue_numbers) where residue_numbers[i]
+            is the PDB residue number for sequence[i].
         """
         if cls._cached_cd3e_sequence is None or force_refresh:
             try:
@@ -159,29 +170,35 @@ class InterfaceAnalyzer:
                     pdb_content = download_pdb("1XIW", cached_path)
 
                 # Chain A (or E) is CD3ε in 1XIW; chain D is UCHT1 VH
-                seq, _ = extract_sequence_with_numbering(pdb_content, "A")
+                # Note: 1XIW chain A numbering starts at 12, not 1!
+                seq, nums = extract_sequence_with_numbering(pdb_content, "A")
                 cls._cached_cd3e_sequence = seq
+                cls._cached_cd3e_residue_numbers = nums
             except Exception as e:
                 import warnings
                 warnings.warn(f"Failed to get CD3ε sequence: {e}")
                 cls._cached_cd3e_sequence = ""
+                cls._cached_cd3e_residue_numbers = []
 
-        return cls._cached_cd3e_sequence
+        return cls._cached_cd3e_sequence, cls._cached_cd3e_residue_numbers
 
     def __init__(
         self,
         contact_distance: float = 5.0,
         okt3_epitope_residues: list[int] = None,
         canonical_cd3e_sequence: str = None,
+        canonical_cd3e_residue_numbers: list[int] = None,
     ):
         """Initialize analyzer.
 
         Args:
             contact_distance: Distance cutoff for contacts (Å).
             okt3_epitope_residues: Custom OKT3 epitope residues. If None,
-                dynamically extracts from 1SY6 (in canonical numbering).
+                dynamically extracts from 1SY6 (in canonical 1XIW numbering).
             canonical_cd3e_sequence: Canonical CD3ε sequence for alignment.
                 If None, uses 1XIW chain A sequence.
+            canonical_cd3e_residue_numbers: PDB residue numbers for the canonical
+                sequence. If None, uses 1XIW chain A numbering (starts at 12).
         """
         self.contact_distance = contact_distance
         # Use provided residues or dynamically extract from 1SY6
@@ -190,11 +207,14 @@ class InterfaceAnalyzer:
         else:
             self.okt3_epitope_residues = self.get_okt3_epitope()
 
-        # Store canonical sequence for alignment-based comparisons
+        # Store canonical sequence and residue numbers for alignment-based comparisons
         if canonical_cd3e_sequence is not None:
             self.canonical_cd3e_sequence = canonical_cd3e_sequence
+            self.canonical_cd3e_residue_numbers = canonical_cd3e_residue_numbers or []
         else:
-            self.canonical_cd3e_sequence = self.get_canonical_cd3e_sequence()
+            seq, nums = self.get_canonical_cd3e_sequence()
+            self.canonical_cd3e_sequence = seq
+            self.canonical_cd3e_residue_numbers = nums
 
     def analyze_interface(
         self,
@@ -359,36 +379,38 @@ class InterfaceAnalyzer:
         epitope: list[int],
         binder_name: str = "design",
         target_sequence: str = None,
+        epitope_start: int = 1,
     ) -> EpitopeComparison:
         """Compare an epitope to the OKT3 epitope.
 
-        IMPORTANT: The OKT3 epitope uses canonical CD3ε numbering (1XIW chain A).
-        If the input epitope uses different numbering (e.g., from a predicted
-        structure with 1-indexed residue numbers), provide target_sequence
-        to enable alignment-based comparison.
+        IMPORTANT: The OKT3 epitope uses actual 1XIW PDB numbering (starts at 12,
+        NOT 1). When comparing epitopes from predicted structures (typically
+        1-indexed), provide target_sequence to enable proper alignment.
 
         Args:
-            epitope: Residue positions for the epitope.
+            epitope: Residue positions for the epitope (in the input structure's
+                numbering scheme).
             binder_name: Name for the binder.
             target_sequence: Target sequence for alignment. If provided,
                 maps the input epitope to canonical numbering before comparison.
+            epitope_start: Starting residue number for the input epitope.
+                Default is 1 (typical for predicted structures).
 
         Returns:
             EpitopeComparison with OKT3.
         """
         if target_sequence and self.canonical_cd3e_sequence:
-            # Use alignment-based comparison
-            return self.compare_epitopes_aligned(
-                epitope_1=self.okt3_epitope_residues,
-                epitope_2=epitope,
-                sequence_1=self.canonical_cd3e_sequence,
-                sequence_2=target_sequence,
-                name_1="OKT3",
-                name_2=binder_name,
-                seq1_start=1,  # Canonical numbering typically starts at 1
-                seq2_start=1,  # Predicted structures typically start at 1
+            # Use alignment-based comparison with proper PDB numbering
+            # OKT3 epitope uses actual 1XIW PDB numbering (starts at ~12)
+            # Input epitope typically uses 1-indexed sequential numbering
+            return self._compare_to_okt3_aligned(
+                epitope=epitope,
+                target_sequence=target_sequence,
+                binder_name=binder_name,
+                epitope_start=epitope_start,
             )
         else:
+            # Direct comparison (assumes same numbering scheme)
             return self.compare_epitopes(
                 epitope_1=epitope,
                 epitope_2=self.okt3_epitope_residues,
@@ -396,22 +418,111 @@ class InterfaceAnalyzer:
                 name_2="OKT3",
             )
 
+    def _compare_to_okt3_aligned(
+        self,
+        epitope: list[int],
+        target_sequence: str,
+        binder_name: str,
+        epitope_start: int = 1,
+    ) -> EpitopeComparison:
+        """Alignment-based comparison to OKT3 epitope.
+
+        This method properly handles the numbering mismatch between:
+        - OKT3 epitope: actual 1XIW PDB numbering (starts at 12)
+        - Input epitope: typically 1-indexed sequential (starts at 1)
+
+        The comparison is done by:
+        1. Aligning input sequence to canonical CD3ε sequence
+        2. Converting OKT3 epitope residues to sequence positions
+        3. Mapping those positions through the alignment
+        4. Comparing the aligned epitopes
+
+        Args:
+            epitope: Input epitope residue numbers.
+            target_sequence: Input structure's target sequence.
+            binder_name: Name for the binder.
+            epitope_start: Starting residue number for input epitope.
+
+        Returns:
+            EpitopeComparison with OKT3.
+        """
+        from src.structure.pdb_utils import _map_positions_via_alignment
+
+        # Build mapping from OKT3 PDB residue numbers to sequence positions
+        if not self.canonical_cd3e_residue_numbers:
+            import warnings
+            warnings.warn(
+                "No canonical CD3ε residue numbers available. "
+                "Falling back to direct comparison."
+            )
+            return self.compare_epitopes(
+                epitope_1=epitope,
+                epitope_2=self.okt3_epitope_residues,
+                name_1=binder_name,
+                name_2="OKT3",
+            )
+
+        # Convert OKT3 epitope from PDB numbering to 0-indexed sequence positions
+        pdb_num_to_seqpos = {
+            num: i for i, num in enumerate(self.canonical_cd3e_residue_numbers)
+        }
+        okt3_seqpos = [
+            pdb_num_to_seqpos[res]
+            for res in self.okt3_epitope_residues
+            if res in pdb_num_to_seqpos
+        ]
+
+        # Convert input epitope to 0-indexed sequence positions
+        input_seqpos = [res - epitope_start for res in epitope]
+
+        # Align sequences and map OKT3 positions to input numbering
+        mapped_okt3 = _map_positions_via_alignment(
+            query_seq=target_sequence,
+            query_nums=list(range(epitope_start, epitope_start + len(target_sequence))),
+            ref_seq=self.canonical_cd3e_sequence,
+            ref_positions=okt3_seqpos,
+        )
+
+        if not mapped_okt3:
+            import warnings
+            warnings.warn(
+                f"Failed to align sequences for epitope comparison. "
+                "Falling back to direct comparison."
+            )
+            return self.compare_epitopes(
+                epitope_1=epitope,
+                epitope_2=self.okt3_epitope_residues,
+                name_1=binder_name,
+                name_2="OKT3",
+            )
+
+        # Now both epitopes are in the input structure's numbering scheme
+        return self.compare_epitopes(
+            epitope_1=epitope,
+            epitope_2=mapped_okt3,
+            name_1=binder_name,
+            name_2="OKT3",
+        )
+
     def annotate_epitope_class(
         self,
         epitope: list[int],
         overlap_threshold: float = 0.5,
         target_sequence: str = None,
+        epitope_start: int = 1,
     ) -> tuple[str, float]:
         """Annotate whether an epitope is OKT3-like or novel.
 
-        IMPORTANT: The OKT3 epitope uses canonical CD3ε numbering (1XIW chain A).
-        If the input epitope uses different numbering (e.g., from a predicted
-        structure), provide target_sequence to enable alignment-based comparison.
+        IMPORTANT: The OKT3 epitope uses actual 1XIW PDB numbering (starts at 12).
+        If the input epitope uses different numbering (e.g., 1-indexed for predicted
+        structures), provide target_sequence to enable alignment-based comparison.
 
         Args:
             epitope: Residue positions for the epitope.
             overlap_threshold: Threshold for OKT3-like classification.
             target_sequence: Target sequence for alignment-based comparison.
+            epitope_start: Starting residue number for the input epitope.
+                Default is 1 (typical for predicted structures).
 
         Returns:
             Tuple of (class, overlap_fraction).
@@ -420,6 +531,7 @@ class InterfaceAnalyzer:
             epitope,
             binder_name="design",
             target_sequence=target_sequence,
+            epitope_start=epitope_start,
         )
 
         if comparison.overlap_fraction >= overlap_threshold:

@@ -92,6 +92,7 @@ def main():
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Target structures to download
+    # IMPORTANT: Filenames must match config.yaml expectations
     targets = [
         {
             "pdb_id": "1XIW",
@@ -99,16 +100,20 @@ def main():
             # NOTE: 1XIW has CD3ε on chains A and E (duplicates in asymmetric unit)
             # Chain A has 91 residues, chain E has 87 (A has better C-terminal coverage)
             # Chains D, H are UCHT1 VH - NOT CD3!
+            # CRITICAL: We extract ONLY chain A (CD3ε) to avoid BoltzGen seeing UCHT1
             "cd3e_chain": "A",
+            "output_name": "cd3_epsilon_delta_1XIW",  # Match config.yaml
         },
         {
             "pdb_id": "1SY6",
             "description": "CD3εγ + OKT3 Fab complex",
-            # NOTE: 1SY6 uses chain A for CD3ε (not E). Chain assignments:
-            # - Chain A: CD3ε (epsilon) - the target antigen
+            # NOTE: 1SY6 chain A is a CD3γ/ε FUSION construct, not pure CD3ε
+            # - Chain A: CD3γ/ε fusion - includes CD3ε extracellular domain
             # - Chain H: OKT3 VH (heavy chain variable region)
             # - Chain L: OKT3 VL (light chain variable region)
+            # CRITICAL: We extract ONLY chain A to avoid BoltzGen seeing OKT3 Fab
             "cd3e_chain": "A",
+            "output_name": "cd3_epsilon_gamma_1SY6",  # Match config.yaml
         },
     ]
 
@@ -127,8 +132,9 @@ def main():
                 success = False
                 continue
 
-        # Extract CD3ε chain
-        cd3e_path = output_dir / f"cd3_epsilon_{pdb_id.lower()}.pdb"
+        # Extract CD3ε chain with correct filename matching config.yaml
+        output_name = target.get("output_name", f"cd3_epsilon_{pdb_id.lower()}")
+        cd3e_path = output_dir / f"{output_name}.pdb"
         if not extract_cd3_epsilon(pdb_path, cd3e_path, target["cd3e_chain"]):
             success = False
 
@@ -136,9 +142,9 @@ def main():
     print("\nCreating combined target file...")
     combined_path = output_dir / "cd3_epsilon_combined.pdb"
 
-    # Use 1XIW as primary (simpler structure)
+    # Use 1XIW as primary (simpler structure, no fusion construct)
     import shutil
-    primary = output_dir / "cd3_epsilon_1xiw.pdb"
+    primary = output_dir / "cd3_epsilon_delta_1XIW.pdb"
     if primary.exists():
         shutil.copy(primary, combined_path)
         print(f"  Primary target: {combined_path}")
@@ -155,8 +161,8 @@ def main():
 
     sequences = {}
     for target in targets:
-        pdb_id = target["pdb_id"].lower()
-        cd3e_path = output_dir / f"cd3_epsilon_{pdb_id}.pdb"
+        output_name = target.get("output_name", f"cd3_epsilon_{target['pdb_id'].lower()}")
+        cd3e_path = output_dir / f"{output_name}.pdb"
 
         if cd3e_path.exists():
             sequence = []
@@ -173,8 +179,8 @@ def main():
 
             sequence.sort(key=lambda x: x[0])
             seq_str = "".join([aa for _, aa in sequence])
-            sequences[pdb_id] = seq_str
-            print(f"  {pdb_id}: {len(seq_str)} residues")
+            sequences[output_name] = seq_str
+            print(f"  {output_name}: {len(seq_str)} residues")
 
     # Save sequences to FASTA
     fasta_path = output_dir / "cd3_epsilon_sequences.fasta"

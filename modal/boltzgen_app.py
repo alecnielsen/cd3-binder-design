@@ -3,6 +3,10 @@
 This module provides a Modal app for running BoltzGen
 on GPU infrastructure for de novo antibody design.
 
+IMPORTANT: This module extracts ONLY the target chain from input PDBs
+before passing to BoltzGen. Multi-chain PDBs (e.g., with bound antibodies)
+would bias design if passed in full.
+
 Deploy with:
     modal deploy modal/boltzgen_app.py
 
@@ -11,6 +15,114 @@ Run locally:
 """
 
 import modal
+
+
+def extract_chain_from_pdb_content(pdb_content: str, chain_id: str) -> str:
+    """Extract a single chain from PDB content.
+
+    CRITICAL: This function ensures only the target chain is passed to BoltzGen.
+    Passing multi-chain PDBs (e.g., CD3 + bound antibody) can bias designs toward
+    the pre-occupied epitope or generate antibody-like sequences.
+
+    Args:
+        pdb_content: Full PDB file content as string.
+        chain_id: Chain ID to extract (e.g., "A" for CD3ε).
+
+    Returns:
+        PDB string containing only the specified chain.
+
+    Raises:
+        ValueError: If the specified chain is not found or has no atoms.
+    """
+    lines = []
+    atom_count = 0
+
+    for line in pdb_content.split("\n"):
+        if line.startswith("ATOM") or line.startswith("HETATM"):
+            if len(line) > 21 and line[21] == chain_id:
+                lines.append(line)
+                atom_count += 1
+        elif line.startswith("TER"):
+            if lines and len(lines[-1]) > 21 and lines[-1][21] == chain_id:
+                lines.append(line)
+        elif line.startswith("END"):
+            lines.append(line)
+            break
+
+    if atom_count == 0:
+        # List available chains for debugging
+        available_chains = set()
+        for line in pdb_content.split("\n"):
+            if line.startswith("ATOM") and len(line) > 21:
+                available_chains.add(line[21])
+        raise ValueError(
+            f"Chain '{chain_id}' not found in PDB. "
+            f"Available chains: {sorted(available_chains)}"
+        )
+
+    return "\n".join(lines)
+
+
+def validate_pdb_for_design(pdb_content: str, target_chain: str) -> tuple[bool, str]:
+    """Validate that a PDB is appropriate for binder design.
+
+    Checks for common issues that could bias design results:
+    - Multi-chain complexes (e.g., target + bound antibody)
+    - Known problematic structures (1XIW with UCHT1, 1SY6 with OKT3)
+
+    Args:
+        pdb_content: PDB file content as string.
+        target_chain: Chain ID that will be used for design.
+
+    Returns:
+        Tuple of (is_valid, warning_message).
+        is_valid is True if the PDB appears suitable for design.
+        warning_message describes any issues found.
+    """
+    # Count chains in the PDB
+    chains = set()
+    for line in pdb_content.split("\n"):
+        if line.startswith("ATOM") and len(line) > 21:
+            chains.add(line[21])
+
+    warnings = []
+
+    # Check for multi-chain complexes
+    if len(chains) > 1:
+        other_chains = sorted(c for c in chains if c != target_chain)
+        warnings.append(
+            f"PDB contains {len(chains)} chains ({sorted(chains)}). "
+            f"Only chain {target_chain} will be extracted for design. "
+            f"Chains {other_chains} will be removed to prevent design bias."
+        )
+
+    # Check for known problematic structures
+    # Look for UCHT1 or OKT3 signatures in HEADER/TITLE
+    header_lines = [
+        line for line in pdb_content.split("\n")[:50]
+        if line.startswith(("HEADER", "TITLE", "COMPND"))
+    ]
+    header_text = " ".join(header_lines).upper()
+
+    if "UCHT1" in header_text or "1XIW" in header_text:
+        if len(chains) > 2:  # CD3ε + CD3δ + UCHT1
+            warnings.append(
+                "Detected 1XIW structure with UCHT1 Fab. "
+                "Extracting only the target chain to avoid design bias."
+            )
+
+    if "OKT3" in header_text or "1SY6" in header_text:
+        warnings.append(
+            "Detected 1SY6 structure with OKT3 Fab. "
+            "Note: Chain A is a CD3γ/ε fusion construct, not pure CD3ε. "
+            "Extracting only the target chain to avoid design bias."
+        )
+
+    is_valid = True  # We always extract the single chain, so it's always "valid"
+    warning_message = " ".join(warnings) if warnings else ""
+
+    return is_valid, warning_message
+
 
 # Create Modal app
 app = modal.App("boltzgen-cd3")
@@ -49,9 +161,14 @@ def run_boltzgen(
 ) -> list[dict]:
     """Run BoltzGen to design binders.
 
+    IMPORTANT: This function extracts ONLY the target chain before passing
+    to BoltzGen. Multi-chain PDBs (e.g., CD3 + bound Fab) would bias designs
+    if passed in full, potentially targeting the wrong epitope or generating
+    antibody-like sequences instead of true CD3 binders.
+
     Args:
-        target_pdb_content: PDB file content as string.
-        target_chain: Chain ID of target in PDB.
+        target_pdb_content: PDB file content as string (can be multi-chain).
+        target_chain: Chain ID of target in PDB (will be extracted).
         binder_type: Type of binder to design ("vhh" or "scfv").
         num_designs: Number of designs to generate.
         hotspot_residues: Optional residues to target for binding.
@@ -61,13 +178,21 @@ def run_boltzgen(
 
     Returns:
         List of design dictionaries with sequences and scores.
+
+    Raises:
+        ValueError: If target_chain is not found in the PDB.
     """
     import tempfile
     import os
 
-    # Write target PDB to temp file
+    # CRITICAL: Extract only the target chain to avoid design bias
+    # Multi-chain PDBs (e.g., 1XIW with UCHT1, 1SY6 with OKT3) would cause
+    # BoltzGen to see the bound antibody, biasing designs inappropriately.
+    extracted_pdb = extract_chain_from_pdb_content(target_pdb_content, target_chain)
+
+    # Write extracted single-chain PDB to temp file
     with tempfile.NamedTemporaryFile(mode="w", suffix=".pdb", delete=False) as f:
-        f.write(target_pdb_content)
+        f.write(extracted_pdb)
         target_path = f.name
 
     try:
@@ -121,15 +246,20 @@ def run_boltzgen(
     timeout=7200,  # 2 hours for batch
 )
 def run_boltzgen_batch(
-    target_pdbs: list[dict],  # [{"name": "1XIW", "content": "..."}]
+    target_pdbs: list[dict],  # [{"name": "1XIW", "content": "...", "chain": "A"}]
     binder_type: str = "vhh",
     num_designs_per_target: int = 100,
     seed: int = 42,
 ) -> dict[str, list[dict]]:
     """Run BoltzGen on multiple targets.
 
+    IMPORTANT: Each target dict should include a "chain" key specifying which
+    chain to extract for design. Only the target chain is passed to BoltzGen
+    to avoid design bias from bound antibodies in crystal structures.
+
     Args:
-        target_pdbs: List of dicts with "name" and "content" keys.
+        target_pdbs: List of dicts with "name", "content", and optional "chain" keys.
+            If "chain" is not specified, defaults to "A".
         binder_type: Type of binder to design.
         num_designs_per_target: Designs per target.
         seed: Base random seed.
@@ -142,9 +272,11 @@ def run_boltzgen_batch(
     for i, target in enumerate(target_pdbs):
         target_name = target["name"]
         target_content = target["content"]
+        target_chain = target.get("chain", "A")  # Default to chain A
 
         designs = run_boltzgen.local(
             target_pdb_content=target_content,
+            target_chain=target_chain,
             binder_type=binder_type,
             num_designs=num_designs_per_target,
             seed=seed + i * 1000,
@@ -158,6 +290,7 @@ def run_boltzgen_batch(
 @app.local_entrypoint()
 def main(
     target_pdb: str = None,
+    target_chain: str = "A",
     binder_type: str = "vhh",
     num_designs: int = 10,
     seed: int = 42,
@@ -166,26 +299,34 @@ def main(
 
     Args:
         target_pdb: Path to target PDB file.
+        target_chain: Chain ID of target to extract (default: "A").
         binder_type: Type of binder ("vhh" or "scfv").
         num_designs: Number of designs.
         seed: Random seed.
     """
     if target_pdb is None:
-        print("Usage: modal run modal/boltzgen_app.py --target-pdb <path>")
+        print("Usage: modal run modal/boltzgen_app.py --target-pdb <path> [--target-chain A]")
         return
 
     # Read target PDB
     with open(target_pdb, "r") as f:
         target_content = f.read()
 
+    # Validate PDB and warn about potential issues
+    is_valid, warning = validate_pdb_for_design(target_content, target_chain)
+    if warning:
+        print(f"\n⚠️  WARNING: {warning}\n")
+
     print(f"Running BoltzGen on {target_pdb}")
+    print(f"  Target chain: {target_chain}")
     print(f"  Binder type: {binder_type}")
     print(f"  Num designs: {num_designs}")
     print(f"  Seed: {seed}")
 
-    # Run on Modal
+    # Run on Modal (chain extraction happens inside run_boltzgen)
     designs = run_boltzgen.remote(
         target_pdb_content=target_content,
+        target_chain=target_chain,
         binder_type=binder_type,
         num_designs=num_designs,
         seed=seed,

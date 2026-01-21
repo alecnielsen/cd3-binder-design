@@ -18,18 +18,25 @@ This directory contains the CD3 structures used as design targets.
 
 ## Setup
 
-Run the setup script to download structures:
+**IMPORTANT**: Always use the setup script to prepare target structures.
+Manual download creates full PDB files with bound antibodies, which will
+bias BoltzGen designs. The setup script extracts ONLY the CD3ε chain.
+
+Run the setup script:
 
 ```bash
 python scripts/01_setup_targets.py
 ```
 
-Or download manually:
+This creates:
+- `cd3_epsilon_delta_1XIW.pdb` - CD3ε chain A only (no UCHT1 Fab)
+- `cd3_epsilon_gamma_1SY6.pdb` - CD3γ/ε fusion chain A only (no OKT3 Fab)
+
+**DO NOT** download the full PDBs manually for design use:
 
 ```bash
-# Download from RCSB
-curl -o cd3_epsilon_delta_1XIW.pdb "https://files.rcsb.org/download/1XIW.pdb"
-curl -o cd3_epsilon_gamma_1SY6.pdb "https://files.rcsb.org/download/1SY6.pdb"
+# WRONG - these contain bound antibodies that bias designs!
+# curl -o cd3_epsilon_delta_1XIW.pdb "https://files.rcsb.org/download/1XIW.pdb"
 ```
 
 ## Chain Information
