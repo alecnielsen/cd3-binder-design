@@ -50,14 +50,18 @@ def parse_pdb_sequence(pdb_content: str, chain_id: str = "A") -> str:
 
             res_name = line[17:20].strip()
             res_num = int(line[22:26])
-            res_key = (res_num, res_name)
+            # Include insertion code (column 27) to handle inserted residues like 52A
+            insertion_code = line[26] if len(line) > 26 else " "
+            res_key = (res_num, insertion_code, res_name)
 
             if res_key not in seen_residues and res_name in aa_3to1:
                 seen_residues.add(res_key)
-                sequence.append((res_num, aa_3to1[res_name]))
+                # Sort key includes insertion code for proper ordering
+                sequence.append((res_num, insertion_code, aa_3to1[res_name]))
 
-    sequence.sort(key=lambda x: x[0])
-    return "".join([aa for _, aa in sequence])
+    # Sort by residue number, then by insertion code
+    sequence.sort(key=lambda x: (x[0], x[1]))
+    return "".join([aa for _, _, aa in sequence])
 
 
 def calculate_interface_metrics(
@@ -275,8 +279,8 @@ def run_calibration(
     return {
         "known_binder_results": results,
         "calibrated_thresholds": {
-            "min_pdockq": min(pdockq_values) - 0.05,
-            "min_interface_area": min(area_values) - 100,
+            "min_pdockq": max(0.0, min(pdockq_values) - 0.05),
+            "min_interface_area": max(0.0, min(area_values) - 100),
             "min_contacts": max(0, min(contact_values) - 2),
         },
         "known_binder_stats": {

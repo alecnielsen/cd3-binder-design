@@ -106,8 +106,7 @@ class CrossMabFormatter(BispecificFormatter):
             target_2="CD3",
             notes=(
                 "CrossMab format with CH1-CL swap on CD3 arm for correct LC pairing. "
-                "Knob-in-hole mutations for HC heterodimerization. "
-                "LALA mutations in CH2 for Fc silencing."
+                "Knob-in-hole mutations for HC heterodimerization."
             ),
         )
 

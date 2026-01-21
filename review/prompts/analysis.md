@@ -84,11 +84,13 @@ If you find **code issues**:
    - File path and line number
    - Description of what was wrong
    - What you changed and why
+3. Do NOT say "NO_ISSUES" - another iteration will verify your fixes
 
-If no **code issues** are found (or after fixing all issues), respond with exactly:
+If you reviewed the code and found **no issues to fix**, respond with exactly:
 NO_ISSUES
 
 **Important notes:**
+- Only say "NO_ISSUES" if you made zero edits this iteration
+- If you fixed anything, report it and let the next iteration verify
 - Do not invent issues if the code is correct. Only report genuine scientific or implementation problems.
 - README updates do NOT count as issues. If you update the module README.md to fix documentation, still output "NO_ISSUES" if no code problems were found.
-- "NO_ISSUES" means the code is scientifically correct, even if you made documentation improvements.

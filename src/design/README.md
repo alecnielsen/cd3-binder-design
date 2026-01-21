@@ -37,7 +37,9 @@ Starting from known anti-CD3 CDR sequences, we will:
 - Generate combinatorial variants
 - Predict effects on binding via structure modeling
 
-### Track 3: Hybrid Approach
+### Track 3: Hybrid Approach (Future Work)
+
+*Note: This track is documented for future implementation but is not yet implemented in code.*
 
 For scFv designs:
 1. Use BoltzGen to design VH or VL individually
@@ -100,7 +102,7 @@ design:
 
 **Fallback if assumption fails**: Rely entirely on optimization track (teplizumab, SP34, UCHT1 variants).
 
-### Assumption 3: ~50 nM Kd Balances Efficacy and Safety
+### Assumption 2: ~50 nM Kd Balances Efficacy and Safety
 
 **Claim**: CD3 binders with ~50 nM Kd provide sufficient T-cell killing with reduced cytokine release.
 

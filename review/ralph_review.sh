@@ -119,11 +119,27 @@ print(val if val else '')
 "
 }
 
-# Update tracking YAML
+# Update tracking YAML (with file locking for parallel safety)
 update_tracking() {
     local module="$1"
     local field="$2"
     local value="$3"
+    local lock_dir="$TRACKING_FILE.lock"
+
+    # Use mkdir for atomic locking (portable, works on macOS)
+    local max_attempts=50
+    local attempt=0
+    while ! mkdir "$lock_dir" 2>/dev/null; do
+        ((attempt++))
+        if [[ "$attempt" -ge "$max_attempts" ]]; then
+            log_warning "Could not acquire lock for tracking.yaml after $max_attempts attempts"
+            break
+        fi
+        sleep 0.1
+    done
+
+    # Ensure lock is released on exit
+    trap "rmdir '$lock_dir' 2>/dev/null" EXIT
 
     python3 << EOF
 import yaml
@@ -166,6 +182,9 @@ data['summary']['last_run'] = datetime.now().isoformat()
 with open('$TRACKING_FILE', 'w') as f:
     yaml.dump(data, f, default_flow_style=False, sort_keys=False)
 EOF
+
+    # Release lock
+    rmdir "$lock_dir" 2>/dev/null || true
 }
 
 # Get source directory for a module
@@ -447,57 +466,88 @@ review_all_sequential() {
     done
 
     echo ""
-    log_info "Review complete. Modules with issues: $failed"
+    if [[ "$failed" -eq 0 ]]; then
+        log_success "All ${#MODULES[@]} modules passed review!"
+    else
+        log_warning "Review complete. Modules with issues: $failed"
+    fi
 
-    return $failed
+    # Return 0 on success (all clean), 1 if any failed
+    [[ "$failed" -eq 0 ]]
 }
 
-# Review all modules in parallel
+# Review modules in batches (respects Claude subscription concurrency limits)
+# Usage: review_all_parallel [batch_size]
+# Default batch_size is 2 (safe for most subscriptions)
 review_all_parallel() {
-    log_info "Reviewing all modules in parallel..."
+    local batch_size="${BATCH_SIZE:-2}"
+    log_info "Reviewing all modules in batches of $batch_size..."
 
-    local pids=()
     local modules_list=("${MODULES[@]}")
     local temp_dir
     temp_dir=$(mktemp -d)
+    local total_failed=0
 
-    # Launch all reviews in background
-    for module in "${modules_list[@]}"; do
-        log_info "Starting parallel review: $module"
-        (
-            review_module "$module" > "$temp_dir/${module}.log" 2>&1
-            echo $? > "$temp_dir/${module}.exit"
-        ) &
-        pids+=($!)
+    # Process in batches
+    local i=0
+    while [[ "$i" -lt "${#modules_list[@]}" ]]; do
+        local batch=()
+        local pids=()
+
+        # Build batch
+        for ((j=0; j<batch_size && i+j<${#modules_list[@]}; j++)); do
+            batch+=("${modules_list[i+j]}")
+        done
+
+        log_info "Starting batch: ${batch[*]}"
+
+        # Launch batch in background
+        for module in "${batch[@]}"; do
+            (
+                review_module "$module" > "$temp_dir/${module}.log" 2>&1
+                echo $? > "$temp_dir/${module}.exit"
+            ) &
+            pids+=($!)
+        done
+
+        # Wait for batch to complete
+        wait "${pids[@]}"
+
+        # Report batch results
+        for module in "${batch[@]}"; do
+            local exit_code
+            exit_code=$(cat "$temp_dir/${module}.exit" 2>/dev/null || echo "1")
+
+            if [[ "$exit_code" == "0" ]]; then
+                log_success "$module: clean"
+            else
+                log_warning "$module: issues found"
+                ((total_failed++)) || true
+            fi
+        done
+
+        ((i+=batch_size))
     done
 
-    # Wait for all to complete
-    log_info "Waiting for ${#pids[@]} parallel reviews to complete..."
-    wait "${pids[@]}"
-
-    # Collect results
-    local failed=0
+    # Show detailed logs
+    echo ""
     for module in "${modules_list[@]}"; do
-        local exit_code
-        exit_code=$(cat "$temp_dir/${module}.exit" 2>/dev/null || echo "1")
-
-        echo ""
         echo "=== Results for $module ==="
         cat "$temp_dir/${module}.log" 2>/dev/null || echo "(no output)"
         echo "==========================="
-
-        if [[ "$exit_code" != "0" ]]; then
-            ((failed++)) || true
-        fi
+        echo ""
     done
 
     # Cleanup
     rm -rf "$temp_dir"
 
-    echo ""
-    log_info "Parallel review complete. Modules with issues: $failed"
+    if [[ "$total_failed" -eq 0 ]]; then
+        log_success "All ${#modules_list[@]} modules passed review!"
+    else
+        log_warning "Review complete. Modules with issues: $total_failed"
+    fi
 
-    return $failed
+    [[ "$total_failed" -eq 0 ]]
 }
 
 # Review all modules (entry point)

@@ -132,6 +132,13 @@ class DesignPipeline:
             contacts_margin=self.config.calibration.contacts_margin,
         )
 
+        # Validate calibration success: all known binders should pass
+        num_expected = len(self.config.calibration.positive_controls)
+        num_successful = len(calibration_results.get("known_binder_results", []))
+        if num_successful < num_expected:
+            print(f"  WARNING: Only {num_successful}/{num_expected} known binders were successfully calibrated!")
+            print(f"           Calibration thresholds may be less reliable.")
+
         # Update config with calibrated thresholds
         thresholds = calibration_results["calibrated_thresholds"]
         self.config.calibrated_min_pdockq = thresholds["min_pdockq"]
@@ -282,6 +289,7 @@ class DesignPipeline:
                     "num_contacts": result.num_contacts,
                     "interface_residues_target": result.interface_residues_target,
                     "target_structure": target_pdb,
+                    "target_sequence": result.target_sequence,
                     "binder_sequence_used": binder_sequence,
                 }
 
@@ -359,11 +367,15 @@ class DesignPipeline:
                 score.interface_area = sp.get("interface_area")
                 score.num_contacts = sp.get("num_contacts")
 
-                # Epitope annotation
+                # Epitope annotation - use target sequence for alignment-based comparison
+                # since predicted structures use 1-indexed sequential numbering which
+                # differs from canonical CD3ε numbering (1XIW chain A)
                 if sp.get("interface_residues_target"):
+                    target_sequence = sp.get("target_sequence")
                     epitope_class, overlap = interface_analyzer.annotate_epitope_class(
                         sp["interface_residues_target"],
                         self.config.epitope.overlap_threshold,
+                        target_sequence=target_sequence,
                     )
                     score.epitope_class = epitope_class
                     score.okt3_overlap = overlap

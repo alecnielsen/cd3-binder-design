@@ -83,6 +83,12 @@ modal run modal/boltz2_app.py --binder-seq "EVQL..." --target-pdb data/targets/c
 
 **Critical**: pDockQ is a structural confidence metric, NOT an affinity predictor. High pDockQ does not mean high binding affinity.
 
+**PDB Parsing Notes:**
+- Handles standard amino acids (20 canonical)
+- Properly handles insertion codes (e.g., residue 52A comes after 52)
+- Filters by chain ID
+- Returns sequences in residue number order
+
 **GPU Configuration:**
 - GPU: A100 (40GB)
 - Timeout: 30 min (single), 2 hours (batch), 1 hour (calibration)

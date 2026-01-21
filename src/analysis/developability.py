@@ -332,10 +332,15 @@ class DevelopabilityAssessor:
         flags = []
         passes = True
 
-        # Check liabilities
+        # Check hard liabilities (deamidation, isomerization, glycosylation in CDRs)
         if liability_report.cdr_liabilities > 0:
             flags.append(f"CDR liabilities: {liability_report.cdr_liabilities}")
             passes = False
+
+        # Check soft liabilities (oxidation in CDRs - flag but don't reject)
+        if liability_report.cdr_oxidation_count > 0:
+            flags.append(f"CDR oxidation (soft): {liability_report.cdr_oxidation_count}")
+            # Note: Does NOT set passes = False (soft filter per README)
 
         if liability_report.unpaired_cysteines > 0:
             flags.append("Unpaired cysteine")
@@ -392,10 +397,13 @@ class DevelopabilityAssessor:
         weights = []
 
         # Liability score (25% weight)
+        # Hard CDR liabilities penalize heavily, soft (oxidation) penalizes moderately
         liability_score = max(0, 1 - liability.cdr_liabilities * 0.2 - liability.total_liabilities * 0.05)
+        # Soft penalty for CDR oxidation (doesn't fail, but lowers score)
+        liability_score -= liability.cdr_oxidation_count * 0.05
         if liability.unpaired_cysteines > 0:
             liability_score *= 0.5
-        scores.append(liability_score)
+        scores.append(max(0, liability_score))
         weights.append(0.25)
 
         # Humanness score (25% weight) - guard against None when BioPhi unavailable

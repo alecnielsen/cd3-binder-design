@@ -365,9 +365,9 @@ def run_calibration(
     calibration = {
         "known_binder_results": [r.to_dict() for r in results],
         "calibrated_thresholds": {
-            "min_pdockq": min(pdockq_values) - pdockq_margin,
-            "min_interface_area": min(area_values) - interface_area_margin,
-            "min_contacts": min(contact_values) - contacts_margin,
+            "min_pdockq": max(0.0, min(pdockq_values) - pdockq_margin),
+            "min_interface_area": max(0.0, min(area_values) - interface_area_margin),
+            "min_contacts": max(0, min(contact_values) - contacts_margin),
         },
         "margins_used": {
             "pdockq_margin": pdockq_margin,

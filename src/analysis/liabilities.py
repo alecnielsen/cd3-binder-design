@@ -1,8 +1,8 @@
 """Sequence liability detection for antibody developability assessment.
 
 Identifies sequence motifs associated with:
-- Deamidation (NG, NS, NT, ND)
-- Isomerization (DG, DS, DT, DD)
+- Deamidation (NG, NS, NT, ND, NH)
+- Isomerization (DG, DS, DT, DD, DH, DN)
 - N-glycosylation (N-X-S/T where X != P)
 - Oxidation (exposed M, W)
 - Unpaired cysteines
@@ -47,16 +47,23 @@ class LiabilityReport:
     oxidation_sites: list[LiabilitySite]
     unpaired_cysteines: int
     total_liabilities: int
-    cdr_liabilities: int
+    cdr_liabilities: int  # Hard liabilities only (deamidation, isomerization, glycosylation)
+    cdr_oxidation_count: int = 0  # Soft filter: oxidation in CDRs (flagged but not rejected)
 
     @property
     def has_cdr_liabilities(self) -> bool:
-        """Check if any liabilities are in CDR regions."""
+        """Check if any hard liabilities are in CDR regions.
+
+        Note: Oxidation is a soft filter and not included here.
+        """
         return self.cdr_liabilities > 0
 
     @property
     def is_clean(self) -> bool:
-        """Check if sequence has no critical liabilities."""
+        """Check if sequence has no critical liabilities.
+
+        Note: CDR oxidation sites are soft filters and don't affect this check.
+        """
         return self.cdr_liabilities == 0 and self.unpaired_cysteines == 0
 
     def to_dict(self) -> dict:
@@ -81,6 +88,7 @@ class LiabilityReport:
             "unpaired_cysteines": self.unpaired_cysteines,
             "total_liabilities": self.total_liabilities,
             "cdr_liabilities": self.cdr_liabilities,
+            "cdr_oxidation_count": self.cdr_oxidation_count,
             "is_clean": self.is_clean,
         }
 
@@ -105,7 +113,7 @@ class LiabilityScanner:
         return False, None
 
     def find_deamidation_sites(self, sequence: str) -> list[LiabilitySite]:
-        """Find potential deamidation sites (NG, NS, NT, ND motifs)."""
+        """Find potential deamidation sites (NG, NS, NT, ND, NH motifs)."""
         sites = []
         sequence = sequence.upper()
 
@@ -129,7 +137,7 @@ class LiabilityScanner:
         return sites
 
     def find_isomerization_sites(self, sequence: str) -> list[LiabilitySite]:
-        """Find potential isomerization sites (DG, DS, DT, DD motifs)."""
+        """Find potential isomerization sites (DG, DS, DT, DD, DH, DN motifs)."""
         sites = []
         sequence = sequence.upper()
 
@@ -215,6 +223,11 @@ class LiabilityScanner:
 
         Returns:
             LiabilityReport with all identified liabilities.
+
+        Note:
+            cdr_liabilities counts only hard liabilities (deamidation, isomerization,
+            glycosylation) in CDRs. Oxidation in CDRs is tracked separately in
+            cdr_oxidation_count as a soft filter per the README specification.
         """
         deamidation = self.find_deamidation_sites(sequence)
         isomerization = self.find_isomerization_sites(sequence)
@@ -223,7 +236,13 @@ class LiabilityScanner:
         unpaired_cys = self.count_unpaired_cysteines(sequence)
 
         all_sites = deamidation + isomerization + glycosylation + oxidation
-        cdr_sites = [s for s in all_sites if s.in_cdr]
+
+        # Hard liabilities in CDRs (excludes oxidation which is a soft filter)
+        hard_liability_sites = deamidation + isomerization + glycosylation
+        cdr_hard_sites = [s for s in hard_liability_sites if s.in_cdr]
+
+        # Soft filter: oxidation in CDRs (flagged but not rejected)
+        cdr_oxidation = [s for s in oxidation if s.in_cdr]
 
         return LiabilityReport(
             sequence=sequence,
@@ -233,7 +252,8 @@ class LiabilityScanner:
             oxidation_sites=oxidation,
             unpaired_cysteines=unpaired_cys,
             total_liabilities=len(all_sites) + (1 if unpaired_cys else 0),
-            cdr_liabilities=len(cdr_sites),
+            cdr_liabilities=len(cdr_hard_sites),
+            cdr_oxidation_count=len(cdr_oxidation),
         )
 
     def scan_with_cdr_detection(

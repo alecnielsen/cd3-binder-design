@@ -159,6 +159,8 @@ class PipelineConfig:
                 "pi_range": self.filtering.pi_range,
                 "max_hydrophobic_patches": self.filtering.max_hydrophobic_patches,
                 "min_candidates": self.filtering.min_candidates,
+                "relax_soft_filters_first": self.filtering.relax_soft_filters_first,
+                "max_threshold_relaxation": self.filtering.max_threshold_relaxation,
             },
             "formatting": {
                 "tumor_target": self.formatting.tumor_target,

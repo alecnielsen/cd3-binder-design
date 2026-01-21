@@ -113,6 +113,9 @@ light_chain_2 = cd3_vl + ch1                           # VL fused to CH1 (swap)
 
 - scFv is constructed as VH-linker-VL (not VL-linker-VH)
 - VHH formats have no scFv linker (single domain)
-- Light chain count varies: 2 for CrossMab, 1 for Fab+scFv/VHH, 2 for Morrison
+- Chain objects in BispecificConstruct:
+  - CrossMab: 4 chains (2 distinct heavy chains, 2 distinct light chains)
+  - Fab+scFv/VHH: 3 chains (2 distinct heavy chains, 1 light chain)
+  - Morrison: 2 chains (1 heavy chain type, 1 light chain type) - symmetric formats represent one of each chain type since both heavy chains are identical
 - Asymmetric formats have different heavy chains; symmetric formats have identical heavy chains
-- Constant regions should be IgG1 subclass
+- Constant regions are IgG1 subclass

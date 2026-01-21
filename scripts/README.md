@@ -15,7 +15,7 @@ The scripts are numbered to indicate their execution order:
 | 4 | `04_predict_structures.py` | Run Boltz-2 complex structure prediction |
 | 5 | `05_filter_candidates.py` | Apply filtering cascade (binding, humanness, liabilities) |
 | 6 | `06_format_bispecifics.py` | Convert candidates to bispecific antibody formats |
-| 7 | `07_generate_report.py` | Generate final HTML/PDF report |
+| 7 | `07_generate_report.py` | Generate final HTML and JSON reports |
 
 ## Running the Pipeline
 
@@ -41,8 +41,8 @@ python scripts/run_full_pipeline.py --config config.yaml --start-from 3
 # Step 0: Calibration (RUN FIRST)
 python scripts/00_run_calibration.py --config config.yaml
 
-# Step 1: Setup targets
-python scripts/01_setup_targets.py --config config.yaml
+# Step 1: Setup targets (does not require config)
+python scripts/01_setup_targets.py --output-dir data/targets
 
 # Step 2: De novo design (requires Modal)
 python scripts/02_run_denovo_design.py --config config.yaml
@@ -132,7 +132,7 @@ Converts candidates into 5 bispecific formats:
 
 ### Report Generation (Step 7)
 
-- Generates HTML/PDF developability scorecard
+- Generates HTML and JSON developability scorecards
 - Includes ranked candidate table with metrics
 - Documents all filter relaxations and risk flags
 - Adds provenance metadata for reproducibility

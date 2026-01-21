@@ -86,7 +86,7 @@ class InterfaceAnalyzer:
     """Analyzer for protein-protein binding interfaces.
 
     IMPORTANT: This analyzer uses canonical CD3ε numbering (matching 1XIW
-    chain D) for OKT3 epitope comparisons. When comparing epitopes from
+    chain A) for OKT3 epitope comparisons. When comparing epitopes from
     predicted complexes, ensure the target chain uses the same numbering
     scheme, or provide the target sequence for alignment-based comparison.
     """

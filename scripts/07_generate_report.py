@@ -24,7 +24,7 @@ def main():
     print("=" * 60)
 
     from src.pipeline.config import PipelineConfig, get_provenance
-    from src.pipeline.filter_cascade import CandidateScore
+    from src.pipeline.filter_cascade import CandidateScore, FilterResult
     from src.pipeline.report_generator import generate_report
 
     # Load config
@@ -85,6 +85,11 @@ def main():
             score.deamidation_sites = c["liabilities"].get("deamidation_sites", [])
             score.glycosylation_sites = c["liabilities"].get("glycosylation_sites", [])
             score.oxidation_sites = c["liabilities"].get("oxidation_sites", [])
+
+        # Restore filter results for report display
+        if "filter_results" in c:
+            for filter_name, result_value in c["filter_results"].items():
+                score.filter_results[filter_name] = FilterResult(result_value)
 
         score.risk_flags = c.get("risk_flags", [])
 

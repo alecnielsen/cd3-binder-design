@@ -27,11 +27,12 @@ The analysis module implements Filters 2-5 of the cascade:
 - Net charge: -2 to +4 (avoid extremes)
 - Isoelectric point: 6.0-9.0
 - Hydrophobic patches: <= 2 stretches of 5+ hydrophobic residues
-- CDR hydrophobicity: Mean Kyte-Doolittle < 1.0
 
-**Filter 5: AGGREGATION PROPENSITY**
-- Low aromatic content in CDRs (< 20%)
-- No consecutive aromatic residues (FF, WW, YY, FW, etc.)
+**Filter 5: AGGREGATION PROPENSITY (soft metrics)**
+The following are tracked and penalize the composite score, but are NOT hard filters:
+- CDR hydrophobicity: Mean Kyte-Doolittle (tracked, penalizes composite score)
+- Aromatic content in CDRs (tracked, threshold 20% in config)
+- Consecutive aromatic residues (FF, WW, YY, FW, etc. - counted as aromatic clusters)
 
 ## Sequence Liability Detection
 
@@ -102,7 +103,7 @@ Note: The original structural Chothia definition uses H2: 52-56, but we use the 
 
 ## Implementation Notes
 
-- CDR-specific liability filtering: `CandidateScore` has `cdr_*_count` fields; `allow_deamidation_cdr=False` only rejects CDR liabilities
-- Hard vs soft filters: Deamidation/isomerization/glycosylation in CDRs are hard filters; oxidation is a soft filter
+- CDR-specific liability filtering: `LiabilityReport` has `cdr_liabilities` (hard: deamidation, isomerization, glycosylation) and `cdr_oxidation_count` (soft) fields
+- Hard vs soft filters: Deamidation/isomerization/glycosylation in CDRs are hard filters (cause rejection); oxidation in CDRs is a soft filter (flags but doesn't reject, penalizes composite score)
 - Hydrophobic residues for patch detection: A, I, L, M, F, V, W (excludes Y which has Kyte-Doolittle -1.3)
 - BioPhi soft-fail: If BioPhi is not installed, humanness scoring returns `None` scores and the pipeline continues (soft-fail behavior)

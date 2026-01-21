@@ -1,52 +1,52 @@
 modules:
   analysis:
     status: clean
-    iterations: 0
-    last_reviewed: '2026-01-20T18:23:52.026027'
+    iterations: 2
+    last_reviewed: '2026-01-20T19:28:16.281828'
     last_result: NO_ISSUES
     issues_found: []
   formatting:
     status: clean
     iterations: 1
-    last_reviewed: '2026-01-20T18:24:07.521464'
+    last_reviewed: '2026-01-20T19:29:51.033281'
     last_result: NO_ISSUES
     issues_found: []
   design:
-    status: clean
-    iterations: 4
-    last_reviewed: '2026-01-20T18:33:52.408009'
-    last_result: NO_ISSUES
+    status: pending
+    iterations: 0
+    last_reviewed: null
+    last_result: null
     issues_found: []
   structure:
-    status: clean
-    iterations: 1
-    last_reviewed: '2026-01-20T18:26:20.437227'
-    last_result: NO_ISSUES
+    status: pending
+    iterations: 0
+    last_reviewed: null
+    last_result: null
     issues_found: []
   pipeline:
-    status: clean
+    status: issues
     iterations: 1
-    last_reviewed: '2026-01-20T18:24:17.223897'
-    last_result: NO_ISSUES
+    last_reviewed: '2026-01-20T19:34:48.045348'
+    last_result: issues_found
     issues_found: []
   scripts:
     status: clean
-    iterations: 0
-    last_reviewed: '2026-01-20T18:24:13.638724'
+    iterations: 1
+    last_reviewed: '2026-01-20T19:36:59.392023'
     last_result: NO_ISSUES
     issues_found: []
   modal:
-    status: clean
-    iterations: 1
-    last_reviewed: '2026-01-20T18:23:38.590485'
-    last_result: NO_ISSUES
+    status: pending
+    iterations: 0
+    last_reviewed: null
+    last_result: null
     issues_found: []
 settings:
   max_iterations: 5
   readme_path: ../README.md
   source_root: ../src
 summary:
-  total_reviews: 8
-  modules_clean: 7
-  modules_with_issues: 0
-  last_run: '2026-01-20T18:33:52.408034'
+  total_reviews: 5
+  modules_clean: 3
+  modules_with_issues: 1
+  last_run: '2026-01-20T19:36:59.392057'

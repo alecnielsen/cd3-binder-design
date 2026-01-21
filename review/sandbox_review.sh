@@ -79,9 +79,8 @@ run_sandboxed() {
     log_warn "Blocked: ~/.ssh, ~/.aws, ~/.gnupg, ~/.kube, Documents, etc."
     log_info "Using existing Claude subscription auth"
 
-    # Create temp file for sandbox profile
-    local profile_file
-    profile_file=$(mktemp /tmp/sandbox_profile.XXXXXX.sb)
+    # Create temp file for sandbox profile (use PID for uniqueness in parallel runs)
+    local profile_file="/tmp/sandbox_profile_$$.sb"
     generate_sandbox_profile > "$profile_file"
 
     # Run with sandbox
