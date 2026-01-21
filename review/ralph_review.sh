@@ -444,16 +444,15 @@ Remember: Output NO_ISSUES only if you made zero code edits AND verified previou
 
     # Check for NO_ISSUES
     if echo "$result" | grep -qE '^\s*NO_ISSUES\s*$'; then
-        # Verify no files were actually modified (enforce clean verification iteration)
+        # Verify no uncommitted changes (Claude should have committed any fixes)
         if [[ -n $(git -C "$REPO_ROOT" status --porcelain) ]]; then
-            log_warning "Claude said NO_ISSUES but files were modified"
-            log_warning "Requiring verification iteration (edits need fresh review)"
-            # Don't accept - treat as issues found
+            log_warning "Claude said NO_ISSUES but has uncommitted changes"
+            log_warning "Claude should commit fixes before reporting NO_ISSUES"
             git -C "$REPO_ROOT" status --short
             echo "$result" | shasum -a 256 | cut -d' ' -f1
             return 1
         fi
-        log_success "Holistic review: NO_ISSUES found (verified: no files changed)"
+        log_success "Holistic review: NO_ISSUES found (verified: git clean)"
         update_tracking "status" "clean"
         return 0
     else

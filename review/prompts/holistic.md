@@ -69,6 +69,16 @@ cd3-binder-design/
 - **1SY6 fusion**: Contains CD3γ/ε fusion, not pure CD3ε
 - **Licensing**: All tools must be MIT/BSD/Apache/CC-BY (no IgFold, no NetMHCIIpan)
 
+## After Making Fixes
+
+**IMPORTANT**: After fixing any issues, you MUST commit your changes before reporting:
+
+```bash
+git add -A && git commit -m "Ralph review: <brief description of fixes>"
+```
+
+This ensures each iteration's fixes are tracked and the next iteration starts from a clean state.
+
 ## Output Format
 
 ### If you find issues:
