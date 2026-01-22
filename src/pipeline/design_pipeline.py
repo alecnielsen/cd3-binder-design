@@ -351,6 +351,12 @@ class DesignPipeline:
                             binder_type = "vhh"
                     else:
                         binder_type = "vhh"
+            elif binder_type == "scfv" and vl_seq is None and vh_seq:
+                from src.utils.constants import parse_scfv, is_likely_scfv
+                if is_likely_scfv(vh_seq):
+                    parsed = parse_scfv(vh_seq)
+                    if parsed:
+                        vh_seq, vl_seq = parsed
 
             score = CandidateScore(
                 candidate_id=candidate.get("design_id", candidate.get("name", "unknown")),

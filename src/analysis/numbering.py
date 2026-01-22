@@ -244,12 +244,7 @@ def get_cdr_positions(
 
     if numbered is None:
         # Return empty positions if numbering fails
-        prefix = chain_type
-        return {
-            f"{prefix}1": (0, 0),
-            f"{prefix}2": (0, 0),
-            f"{prefix}3": (0, 0),
-        }
+        return {}
 
     return numbered.get_cdr_positions_dict()
 

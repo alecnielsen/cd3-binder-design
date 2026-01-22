@@ -87,7 +87,11 @@ class ReportGenerator:
         # Score statistics
         scores = [c.composite_score for c in candidates]
         pdockq_values = [c.pdockq for c in candidates if c.pdockq is not None]
-        humanness_values = [c.oasis_score_mean or c.oasis_score_vh for c in candidates if c.oasis_score_mean or c.oasis_score_vh]
+        humanness_values = []
+        for c in candidates:
+            humanness_value = c.oasis_score_mean if c.oasis_score_mean is not None else c.oasis_score_vh
+            if humanness_value is not None:
+                humanness_values.append(humanness_value)
 
         return {
             "num_candidates": len(candidates),
@@ -253,7 +257,8 @@ class ReportGenerator:
 
             # Pre-format values that may be None
             pdockq_val = f"{c.pdockq:.3f}" if c.pdockq is not None else "N/A"
-            humanness_val = f"{c.oasis_score_mean:.3f}" if c.oasis_score_mean is not None else "N/A"
+            humanness_score = c.oasis_score_mean if c.oasis_score_mean is not None else c.oasis_score_vh
+            humanness_val = f"{humanness_score:.3f}" if humanness_score is not None else "N/A"
             overlap_val = f"{c.okt3_overlap:.1%}" if c.okt3_overlap is not None else "N/A"
 
             # Helper to get CSS class and display value for filter results

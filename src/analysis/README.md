@@ -55,6 +55,7 @@ BioPhi OASis scores humanness by comparing sequences to the human antibody reper
 - VHH scoring uses chain_type='H' (single domain, no light chain)
 - For VH/VL pairs, the mean OASis score is reported
 - Higher OASis score = more human-like
+- A score of `0.0` is treated as a real value (i.e., it fails the threshold, not a soft-fail)
 
 ## Critical Assumptions
 
@@ -87,6 +88,7 @@ Computational filters reduce risk but don't guarantee success:
 ## CDR Numbering Schemes
 
 The module supports IMGT, Chothia, and Kabat numbering via ANARCI. Key boundaries:
+If ANARCI is not available or numbering fails, CDR positions are omitted (no positions are assigned).
 
 **IMGT** (default):
 - CDR1: 27-38, CDR2: 56-65, CDR3: 105-117 (same for H and L chains)
@@ -106,4 +108,4 @@ Note: The original structural Chothia definition uses H2: 52-56, but we use the 
 - CDR-specific liability filtering: `LiabilityReport` has `cdr_liabilities` (hard: deamidation, isomerization, glycosylation) and `cdr_oxidation_count` (soft) fields
 - Hard vs soft filters: Deamidation/isomerization/glycosylation in CDRs are hard filters (cause rejection); oxidation in CDRs is a soft filter (flags but doesn't reject, penalizes composite score)
 - Hydrophobic residues for patch detection: A, I, L, M, F, V, W (excludes Y which has Kyte-Doolittle -1.3)
-- BioPhi soft-fail: If BioPhi is not installed, humanness scoring returns `None` scores and the pipeline continues (soft-fail behavior)
+- BioPhi soft-fail: If BioPhi is not installed, humanness scoring returns `None` scores and the pipeline continues (soft-fail behavior). A real score of `0.0` is treated as a valid value (fails the threshold).

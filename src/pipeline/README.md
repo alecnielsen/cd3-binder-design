@@ -13,7 +13,7 @@ The pipeline follows this flow:
 
 1. **Input Preparation**: Download CD3 structures, prepare starting sequences
 2. **Design Generation**: De novo (BoltzGen) + Optimization tracks
-3. **CDR Identification**: ANARCI numbering
+3. **CDR Identification**: ANARCI numbering (if ANARCI is unavailable, CDR positions are omitted and CDR-specific filters fall back to sequence-level heuristics)
 4. **Structure Prediction**: ABodyBuilder2 + Boltz-2
 5. **Calibration Phase**: Set thresholds using known binders
 6. **Filtering Cascade**: Binding quality -> Humanness -> Liabilities -> Developability -> Aggregation
@@ -33,6 +33,7 @@ Filters are applied in the documented order:
 5. **Aggregation propensity**: Aromatic content, consecutive aromatics
 
 **Important:** Hard filters (liabilities in CDRs) vs soft filters (oxidation) are distinguished.
+**Humanness scoring:** `None` scores (e.g., BioPhi missing) are treated as soft-fail; a real score of `0.0` is treated as a hard fail below threshold.
 
 ## Candidate Ranking
 
@@ -134,3 +135,4 @@ _provenance:
 - Fallback config is wired: `relax_soft_filters_first` and `max_threshold_relaxation` are used
 - Epitope residues default to dynamic extraction from 1SY6; `config.epitope.okt3_epitope_residues` overrides with explicit list
 - Aggregation filter is active: CDR-specific: >20% aromatic or 2+ consecutive aromatics. Fallback (no CDRs): >15% aromatic or 3+ consecutive aromatics.
+- scFv inputs are parsed into VH/VL when only a full scFv sequence is provided, so all downstream analyses operate on the correct chain boundaries.

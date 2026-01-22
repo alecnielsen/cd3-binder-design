@@ -220,7 +220,9 @@ class FilterCascade:
 
     def filter_humanness(self, candidate: CandidateScore) -> FilterResult:
         """Filter by humanness score."""
-        score = candidate.oasis_score_mean or candidate.oasis_score_vh
+        score = candidate.oasis_score_mean
+        if score is None:
+            score = candidate.oasis_score_vh
 
         if score is None:
             return FilterResult.SOFT_FAIL  # Can't assess, flag but don't reject
@@ -409,7 +411,11 @@ class FilterCascade:
             score += weights["structural_confidence"] * min(candidate.pdockq, 1.0)
 
         # Humanness score
-        humanness = candidate.oasis_score_mean or candidate.oasis_score_vh or 0.5
+        humanness = candidate.oasis_score_mean
+        if humanness is None:
+            humanness = candidate.oasis_score_vh
+        if humanness is None:
+            humanness = 0.5
         score += weights["humanness"] * humanness
 
         # Liability score (inverse of liability count)
