@@ -1,2 +1,16 @@
 __pycache__/
 .archive/
+
+# Ralph working directory (keep config, ignore state/logs)
+.ralph/logs/
+.ralph/.circuit_breaker*
+.ralph/.claude_session_id
+.ralph/.ralph_session*
+.ralph/.call_count
+.ralph/.last_reset
+.ralph/.exit_signals
+.ralph/.response_analysis
+.ralph/status.json
+.ralph/progress.json
+.ralph/docs/generated/
+fix_plan.md
