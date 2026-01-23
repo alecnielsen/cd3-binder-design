@@ -18,6 +18,8 @@ Run locally:
     modal run modal/boltzgen_app.py --target-pdb data/targets/cd3.pdb --target-chain A
 """
 
+from __future__ import annotations
+
 import json
 import subprocess
 from pathlib import Path
@@ -190,21 +192,33 @@ def build_design_spec_yaml(
 
 @app.function(
     volumes={models_dir: boltzgen_model_volume},
-    timeout=20 * MINUTES,
+    timeout=60 * MINUTES,
     image=download_image,
 )
 def download_model(force_download: bool = False):
     """Download BoltzGen model weights to Modal volume."""
     from huggingface_hub import snapshot_download
 
-    # BoltzGen models - adjust repo_id if different
+    # All BoltzGen checkpoints are in boltzgen/boltzgen-1
+    # See: https://huggingface.co/boltzgen/boltzgen-1
+    print("Downloading BoltzGen model weights from boltzgen/boltzgen-1...")
     snapshot_download(
-        repo_id="boltz-community/boltzgen",
-        local_dir=models_dir,
+        repo_id="boltzgen/boltzgen-1",
+        local_dir=models_dir / "boltzgen-1",
         force_download=force_download,
     )
+
+    # Also download inference data (molecular info) - this is a dataset repo
+    print("Downloading inference data...")
+    snapshot_download(
+        repo_id="boltzgen/inference-data",
+        repo_type="dataset",
+        local_dir=models_dir / "inference-data",
+        force_download=force_download,
+    )
+
     boltzgen_model_volume.commit()
-    print(f"Model downloaded to {models_dir}")
+    print(f"Models downloaded to {models_dir}")
 
 
 @app.function(
@@ -276,20 +290,37 @@ def run_boltzgen(
     print(f"Running: {' '.join(cmd)}")
     result = subprocess.run(cmd, capture_output=True, text=True)
 
-    if result.returncode != 0:
-        print(f"STDOUT: {result.stdout}")
-        print(f"STDERR: {result.stderr}")
-        raise RuntimeError(f"BoltzGen failed: {result.stderr}")
-
     print(f"STDOUT: {result.stdout}")
+    if result.returncode != 0:
+        print(f"STDERR: {result.stderr}")
+        # Check if intermediate designs exist despite failure
+        # BoltzGen v0.2.0 has a bug in confidence module that crashes folding
+        ifold_dir = output_dir / "intermediate_designs_inverse_folded"
+        if ifold_dir.exists():
+            print(f"Pipeline failed but intermediate designs found at {ifold_dir}")
+        else:
+            raise RuntimeError(f"BoltzGen failed: {result.stderr}")
 
     # Parse outputs - BoltzGen outputs FASTA and/or CIF files
     designs = []
 
-    # Look for output files
-    fasta_files = list(output_dir.glob("**/*.fasta")) + list(output_dir.glob("**/*.fa"))
-    cif_files = list(output_dir.glob("**/*.cif"))
-    json_files = list(output_dir.glob("**/*.json"))
+    # Look for output files - prefer final_ranked_designs, fall back to intermediate
+    search_dirs = [
+        output_dir / "final_ranked_designs",
+        output_dir / "intermediate_designs_inverse_folded",
+        output_dir / "intermediate_designs",
+    ]
+
+    fasta_files = []
+    cif_files = []
+    json_files = []
+
+    for search_dir in search_dirs:
+        if search_dir.exists():
+            fasta_files.extend(list(search_dir.glob("**/*.fasta")))
+            fasta_files.extend(list(search_dir.glob("**/*.fa")))
+            cif_files.extend(list(search_dir.glob("**/*.cif")))
+            json_files.extend(list(search_dir.glob("**/*.json")))
 
     print(f"Found {len(fasta_files)} FASTA, {len(cif_files)} CIF, {len(json_files)} JSON files")
 
@@ -321,6 +352,72 @@ def run_boltzgen(
                 "header": current_header,
                 "source_file": fasta_file.name,
             })
+
+    # If no FASTA files, try to extract sequences from CIF files
+    if not designs and cif_files:
+        print("No FASTA files found, extracting sequences from CIF files...")
+        # Only process inverse-folded files (they have sequences in _entity_poly)
+        ifold_cifs = [f for f in cif_files if "inverse_folded" in str(f.parent)]
+        if not ifold_cifs:
+            ifold_cifs = cif_files  # Fallback to all CIF files
+        print(f"  Processing {len(ifold_cifs)} CIF files from inverse_folded dir...")
+        for cif_file in ifold_cifs:
+            # Skip the design_spec.cif visualization file (only target, no design)
+            if cif_file.name == "design_spec.cif":
+                continue
+            print(f"  Processing {cif_file}...")
+            try:
+                content = cif_file.read_text()
+                lines = content.split("\n")
+
+                # Debug: show lines around _entity_poly.pdbx_seq_one_letter_code
+                for i, line in enumerate(lines):
+                    if "_entity_poly.pdbx_seq_one_letter_code" in line:
+                        print(f"    Found at line {i}:")
+                        for j in range(max(0, i-2), min(len(lines), i+10)):
+                            print(f"      {j}: {lines[j][:80]}")
+
+                # Also try to find sequences in _pdbx_poly_seq_scheme which lists each residue
+                seq_by_chain = {}
+                in_poly_seq = False
+                for line in lines:
+                    if "_pdbx_poly_seq_scheme.mon_id" in line:
+                        in_poly_seq = True
+                        continue
+                    if in_poly_seq:
+                        if line.startswith("_") or line.startswith("#"):
+                            break
+                        # Parse data line: asym_id entity_id seq_id mon_id ...
+                        parts = line.split()
+                        if len(parts) >= 4:
+                            chain = parts[0]
+                            mon_id = parts[3]  # 3-letter code
+                            if chain not in seq_by_chain:
+                                seq_by_chain[chain] = []
+                            seq_by_chain[chain].append(mon_id)
+
+                # Convert 3-letter to 1-letter
+                aa_3to1 = {
+                    "ALA": "A", "ARG": "R", "ASN": "N", "ASP": "D", "CYS": "C",
+                    "GLN": "Q", "GLU": "E", "GLY": "G", "HIS": "H", "ILE": "I",
+                    "LEU": "L", "LYS": "K", "MET": "M", "PHE": "F", "PRO": "P",
+                    "SER": "S", "THR": "T", "TRP": "W", "TYR": "Y", "VAL": "V",
+                }
+                print(f"    Chains from _pdbx_poly_seq_scheme: {list(seq_by_chain.keys())}")
+                for chain, residues in seq_by_chain.items():
+                    seq = "".join([aa_3to1.get(r, "X") for r in residues])
+                    print(f"    Chain {chain}: {seq[:50]}... ({len(seq)} aa)")
+                    if chain == "B" and "X" not in seq:
+                        designs.append({
+                            "sequence": seq,
+                            "header": cif_file.stem,
+                            "source_file": cif_file.name,
+                        })
+                        break
+            except Exception as e:
+                print(f"    Error parsing {cif_file.name}: {e}")
+                import traceback
+                traceback.print_exc()
 
     # Try to parse confidence scores from JSON if available
     for json_file in json_files:
