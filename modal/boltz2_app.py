@@ -7,26 +7,34 @@ Deploy with:
     modal deploy modal/boltz2_app.py
 
 Run locally:
-    modal run modal/boltz2_app.py::predict_complex --binder-seq "EVQL..." --target-pdb data/targets/cd3.pdb
+    modal run modal/boltz2_app.py --binder-seq "EVQL..." --target-seq "DGNE..."
 """
+
+import json
+import subprocess
+from pathlib import Path
+from typing import Optional
 
 import modal
 
-# Create Modal app
+MINUTES = 60
+
 app = modal.App("boltz2-cd3")
 
-# Define container image with Boltz-2 dependencies
-boltz2_image = (
-    modal.Image.debian_slim(python_version="3.10")
-    .pip_install(
-        "torch>=2.0.0",
-        "numpy",
-        "biopython",
-        "einops",
-        "scipy",
-    )
-    # Note: Boltz installation may require additional steps
-    .pip_install("boltz")
+# Container with Boltz-2
+image = modal.Image.debian_slim(python_version="3.12").pip_install(
+    "boltz==2.1.1",
+)
+
+# Persistent volume for model weights
+boltz_model_volume = modal.Volume.from_name("boltz-models", create_if_missing=True)
+models_dir = Path("/models/boltz")
+
+# Image for downloading model
+download_image = (
+    modal.Image.debian_slim()
+    .pip_install("huggingface-hub==0.36.0", "hf_transfer")
+    .env({"HF_HUB_ENABLE_HF_TRANSFER": "1"})
 )
 
 
@@ -50,42 +58,61 @@ def parse_pdb_sequence(pdb_content: str, chain_id: str = "A") -> str:
 
             res_name = line[17:20].strip()
             res_num = int(line[22:26])
-            # Include insertion code (column 27) to handle inserted residues like 52A
             insertion_code = line[26] if len(line) > 26 else " "
             res_key = (res_num, insertion_code, res_name)
 
             if res_key not in seen_residues and res_name in aa_3to1:
                 seen_residues.add(res_key)
-                # Sort key includes insertion code for proper ordering
                 sequence.append((res_num, insertion_code, aa_3to1[res_name]))
 
-    # Sort by residue number, then by insertion code
     sequence.sort(key=lambda x: (x[0], x[1]))
     return "".join([aa for _, _, aa in sequence])
 
 
+def build_yaml(sequences: dict[str, str], use_msa: bool = False) -> str:
+    """Build Boltz YAML input from sequences dict."""
+    lines = ["version: 1", "sequences:"]
+    for chain_id, seq in sequences.items():
+        lines.extend([
+            "  - protein:",
+            f"      id: {chain_id}",
+            f"      sequence: {seq}",
+        ])
+        if not use_msa:
+            lines.append("      msa: empty")
+    return "\n".join(lines)
+
+
 def calculate_interface_metrics(
-    pdb_string: str,
+    cif_or_pdb: str,
     binder_chain: str = "B",
     target_chain: str = "A",
     distance_cutoff: float = 5.0,
 ) -> dict:
-    """Calculate interface metrics from predicted complex."""
-    # Parse atom coordinates
+    """Calculate interface metrics from predicted complex structure."""
     binder_atoms = []
     target_atoms = []
     binder_residues = set()
     target_residues = set()
 
-    for line in pdb_string.split("\n"):
+    for line in cif_or_pdb.split("\n"):
+        # Handle both PDB and basic mmCIF ATOM lines
         if not line.startswith("ATOM"):
             continue
 
-        chain = line[21]
-        x = float(line[30:38])
-        y = float(line[38:46])
-        z = float(line[46:54])
-        res_num = int(line[22:26])
+        # Try PDB format first
+        if len(line) >= 54 and line[30:38].strip().replace(".", "").replace("-", "").isdigit():
+            chain = line[21]
+            try:
+                x = float(line[30:38])
+                y = float(line[38:46])
+                z = float(line[46:54])
+                res_num = int(line[22:26])
+            except (ValueError, IndexError):
+                continue
+        else:
+            # Skip mmCIF for now - would need proper parsing
+            continue
 
         if chain == binder_chain:
             binder_atoms.append((res_num, x, y, z))
@@ -104,8 +131,6 @@ def calculate_interface_metrics(
                 binder_residues.add(res_b)
                 target_residues.add(res_t)
 
-    # Estimate interface area (rough approximation)
-    # ~80 Å² per interface residue is more realistic than 50 Å²
     interface_area = (len(binder_residues) + len(target_residues)) * 80.0
 
     return {
@@ -117,93 +142,144 @@ def calculate_interface_metrics(
 
 
 @app.function(
-    image=boltz2_image,
-    gpu="A100",
-    timeout=1800,  # 30 min timeout
-    retries=2,
+    volumes={models_dir: boltz_model_volume},
+    timeout=20 * MINUTES,
+    image=download_image,
+)
+def download_model(force_download: bool = False):
+    """Download Boltz-2 model weights to Modal volume."""
+    from huggingface_hub import snapshot_download
+
+    snapshot_download(
+        repo_id="boltz-community/boltz-2",
+        local_dir=models_dir,
+        force_download=force_download,
+    )
+    boltz_model_volume.commit()
+    print(f"Model downloaded to {models_dir}")
+
+
+@app.function(
+    image=image,
+    volumes={models_dir: boltz_model_volume},
+    timeout=10 * MINUTES,
+    gpu="H100",
 )
 def predict_complex(
     binder_sequence: str,
-    target_pdb_content: str,
-    target_chain: str = "A",
+    target_sequence: str,
+    use_msa: bool = False,
     seed: int = 42,
 ) -> dict:
     """Predict binder-target complex structure.
 
     Args:
         binder_sequence: Binder amino acid sequence.
-        target_pdb_content: Target PDB file content.
-        target_chain: Target chain ID.
+        target_sequence: Target amino acid sequence.
+        use_msa: Whether to use MSA server (slower but may be more accurate).
         seed: Random seed.
 
     Returns:
         Dictionary with prediction results.
     """
-    import tempfile
-    import os
+    # Build YAML input - target is chain A, binder is chain B
+    yaml_content = build_yaml({"A": target_sequence, "B": binder_sequence}, use_msa=use_msa)
 
-    # Extract target sequence
-    target_sequence = parse_pdb_sequence(target_pdb_content, target_chain)
+    input_path = Path("input.yaml")
+    input_path.write_text(yaml_content)
 
-    try:
-        # Import Boltz
-        import boltz
+    cmd = [
+        "boltz", "predict", str(input_path),
+        "--cache", str(models_dir),
+        "--accelerator", "gpu",
+    ]
+    if use_msa:
+        cmd.append("--use_msa_server")
 
-        # Predict complex structure
-        result = boltz.predict_complex(
-            sequences=[binder_sequence, target_sequence],
-            seed=seed,
-        )
+    print(f"Running: {' '.join(cmd)}")
+    result = subprocess.run(cmd, capture_output=True, text=True)
 
-        # Get PDB string
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".pdb", delete=False) as f:
-            temp_path = f.name
+    if result.returncode != 0:
+        print(f"STDERR: {result.stderr}")
+        raise RuntimeError(f"Boltz-2 prediction failed: {result.stderr}")
 
-        result.save(temp_path)
-        with open(temp_path, "r") as f:
-            pdb_string = f.read()
+    # Find outputs
+    results_dir = list(Path(".").glob("boltz_results_*"))[0]
+    pred_dir = list((results_dir / "predictions").iterdir())[0]
 
-        os.unlink(temp_path)
+    cif_file = list(pred_dir.glob("*_model_0.cif"))[0]
+    conf_file = list(pred_dir.glob("confidence_*.json"))[0]
 
-        # Calculate interface metrics
-        interface = calculate_interface_metrics(pdb_string)
+    cif_content = cif_file.read_text()
+    confidence = json.loads(conf_file.read_text())
 
-        return {
-            "pdb_string": pdb_string,
-            "binder_sequence": binder_sequence,
-            "target_sequence": target_sequence,
-            "pdockq": getattr(result, "pdockq", 0.0),
-            "ptm": getattr(result, "ptm", 0.0),
-            "plddt_mean": getattr(result, "plddt_mean", 0.0),
-            "ipae": getattr(result, "ipae", 0.0),
-            "num_contacts": interface["num_contacts"],
-            "interface_residues_binder": interface["interface_residues_binder"],
-            "interface_residues_target": interface["interface_residues_target"],
-            "interface_area": interface["interface_area"],
-            "seed": seed,
-        }
+    # Calculate interface metrics (note: mmCIF parsing is limited)
+    interface = calculate_interface_metrics(cif_content, binder_chain="B", target_chain="A")
 
-    except Exception as e:
-        raise RuntimeError(f"Boltz-2 prediction failed: {e}")
+    return {
+        "cif_string": cif_content,
+        "binder_sequence": binder_sequence,
+        "target_sequence": target_sequence,
+        "pdockq": confidence.get("pdockq", 0.0),
+        "ptm": confidence.get("ptm", 0.0),
+        "plddt_mean": confidence.get("complex_plddt", 0.0),
+        "ipae": confidence.get("ipae", 0.0),
+        "iptm": confidence.get("protein_iptm", 0.0),
+        "num_contacts": interface["num_contacts"],
+        "interface_residues_binder": interface["interface_residues_binder"],
+        "interface_residues_target": interface["interface_residues_target"],
+        "interface_area": interface["interface_area"],
+        "seed": seed,
+    }
 
 
 @app.function(
-    image=boltz2_image,
-    gpu="A100",
-    timeout=7200,  # 2 hours for batch
+    image=image,
+    volumes={models_dir: boltz_model_volume},
+    timeout=10 * MINUTES,
+    gpu="H100",
+)
+def predict_complex_from_pdb(
+    binder_sequence: str,
+    target_pdb_content: str,
+    target_chain: str = "A",
+    use_msa: bool = False,
+    seed: int = 42,
+) -> dict:
+    """Predict complex using target from PDB content.
+
+    Args:
+        binder_sequence: Binder amino acid sequence.
+        target_pdb_content: Target PDB file content.
+        target_chain: Target chain ID to extract.
+        use_msa: Whether to use MSA server.
+        seed: Random seed.
+
+    Returns:
+        Dictionary with prediction results.
+    """
+    target_sequence = parse_pdb_sequence(target_pdb_content, target_chain)
+    return predict_complex(binder_sequence, target_sequence, use_msa=use_msa, seed=seed)
+
+
+@app.function(
+    image=image,
+    volumes={models_dir: boltz_model_volume},
+    timeout=120 * MINUTES,
+    gpu="H100",
 )
 def predict_complex_batch(
     binder_sequences: list[str],
-    target_pdb_content: str,
-    target_chain: str = "A",
+    target_sequence: str,
+    use_msa: bool = False,
     seed: int = 42,
 ) -> list[dict]:
     """Predict complexes for multiple binders.
 
     Args:
         binder_sequences: List of binder sequences.
-        target_pdb_content: Target PDB content.
-        target_chain: Target chain ID.
+        target_sequence: Target sequence.
+        use_msa: Whether to use MSA server.
         seed: Base random seed.
 
     Returns:
@@ -212,11 +288,12 @@ def predict_complex_batch(
     results = []
 
     for i, seq in enumerate(binder_sequences):
+        print(f"Predicting {i+1}/{len(binder_sequences)}...")
         try:
-            result = predict_complex.local(
+            result = predict_complex(
                 binder_sequence=seq,
-                target_pdb_content=target_pdb_content,
-                target_chain=target_chain,
+                target_sequence=target_sequence,
+                use_msa=use_msa,
                 seed=seed + i,
             )
             results.append(result)
@@ -231,14 +308,15 @@ def predict_complex_batch(
 
 
 @app.function(
-    image=boltz2_image,
-    gpu="A100",
-    timeout=3600,
+    image=image,
+    volumes={models_dir: boltz_model_volume},
+    timeout=60 * MINUTES,
+    gpu="H100",
 )
 def run_calibration(
     known_binder_sequences: list[str],
-    target_pdb_content: str,
-    target_chain: str = "A",
+    target_sequence: str,
+    use_msa: bool = False,
     seed: int = 42,
 ) -> dict:
     """Run calibration using known binders.
@@ -247,8 +325,8 @@ def run_calibration(
 
     Args:
         known_binder_sequences: List of known binder sequences.
-        target_pdb_content: Target PDB content.
-        target_chain: Target chain ID.
+        target_sequence: Target sequence.
+        use_msa: Whether to use MSA server.
         seed: Random seed.
 
     Returns:
@@ -257,11 +335,12 @@ def run_calibration(
     results = []
 
     for i, seq in enumerate(known_binder_sequences):
+        print(f"Calibrating with binder {i+1}/{len(known_binder_sequences)}...")
         try:
-            result = predict_complex.local(
+            result = predict_complex(
                 binder_sequence=seq,
-                target_pdb_content=target_pdb_content,
-                target_chain=target_chain,
+                target_sequence=target_sequence,
+                use_msa=use_msa,
                 seed=seed + i,
             )
             results.append(result)
@@ -272,32 +351,32 @@ def run_calibration(
         raise RuntimeError("Calibration failed - no successful predictions")
 
     # Calculate thresholds
-    pdockq_values = [r["pdockq"] for r in results]
-    area_values = [r["interface_area"] for r in results]
-    contact_values = [r["num_contacts"] for r in results]
+    pdockq_values = [r["pdockq"] for r in results if "pdockq" in r]
+    area_values = [r["interface_area"] for r in results if "interface_area" in r]
+    contact_values = [r["num_contacts"] for r in results if "num_contacts" in r]
 
     return {
         "known_binder_results": results,
         "calibrated_thresholds": {
-            "min_pdockq": max(0.0, min(pdockq_values) - 0.05),
-            "min_interface_area": max(0.0, min(area_values) - 100),
-            "min_contacts": max(0, min(contact_values) - 2),
+            "min_pdockq": max(0.0, min(pdockq_values) - 0.05) if pdockq_values else 0.0,
+            "min_interface_area": max(0.0, min(area_values) - 100) if area_values else 0.0,
+            "min_contacts": max(0, min(contact_values) - 2) if contact_values else 0,
         },
         "known_binder_stats": {
             "pdockq": {
-                "min": min(pdockq_values),
-                "max": max(pdockq_values),
-                "mean": sum(pdockq_values) / len(pdockq_values),
+                "min": min(pdockq_values) if pdockq_values else 0,
+                "max": max(pdockq_values) if pdockq_values else 0,
+                "mean": sum(pdockq_values) / len(pdockq_values) if pdockq_values else 0,
             },
             "interface_area": {
-                "min": min(area_values),
-                "max": max(area_values),
-                "mean": sum(area_values) / len(area_values),
+                "min": min(area_values) if area_values else 0,
+                "max": max(area_values) if area_values else 0,
+                "mean": sum(area_values) / len(area_values) if area_values else 0,
             },
             "contacts": {
-                "min": min(contact_values),
-                "max": max(contact_values),
-                "mean": sum(contact_values) / len(contact_values),
+                "min": min(contact_values) if contact_values else 0,
+                "max": max(contact_values) if contact_values else 0,
+                "mean": sum(contact_values) / len(contact_values) if contact_values else 0,
             },
         },
     }
@@ -306,33 +385,58 @@ def run_calibration(
 @app.local_entrypoint()
 def main(
     binder_seq: str = None,
+    target_seq: str = None,
     target_pdb: str = None,
+    target_chain: str = "A",
+    use_msa: bool = False,
     seed: int = 42,
+    download: bool = False,
 ):
     """Local entrypoint for testing.
 
     Args:
         binder_seq: Binder amino acid sequence.
-        target_pdb: Path to target PDB file.
+        target_seq: Target amino acid sequence.
+        target_pdb: Path to target PDB file (alternative to target_seq).
+        target_chain: Chain ID to extract from PDB.
+        use_msa: Whether to use MSA server.
         seed: Random seed.
+        download: If True, download model weights and exit.
     """
-    if binder_seq is None or target_pdb is None:
-        print("Usage: modal run modal/boltz2_app.py --binder-seq 'EVQL...' --target-pdb <path>")
+    if download:
+        print("Downloading Boltz-2 model weights...")
+        download_model.remote()
+        print("Done!")
         return
 
-    # Read target PDB
-    with open(target_pdb, "r") as f:
-        target_content = f.read()
+    if binder_seq is None:
+        print("Usage: modal run modal/boltz2_app.py --binder-seq 'EVQL...' --target-seq 'DGNE...'")
+        print("   or: modal run modal/boltz2_app.py --binder-seq 'EVQL...' --target-pdb <path>")
+        print("   or: modal run modal/boltz2_app.py --download")
+        return
+
+    # Get target sequence
+    if target_seq:
+        target_sequence = target_seq
+    elif target_pdb:
+        with open(target_pdb, "r") as f:
+            target_pdb_content = f.read()
+        target_sequence = parse_pdb_sequence(target_pdb_content, target_chain)
+    else:
+        print("Error: Must provide either --target-seq or --target-pdb")
+        return
 
     print(f"Running Boltz-2 complex prediction")
     print(f"  Binder length: {len(binder_seq)} aa")
-    print(f"  Target: {target_pdb}")
+    print(f"  Target length: {len(target_sequence)} aa")
+    print(f"  MSA: {'enabled' if use_msa else 'disabled'}")
     print(f"  Seed: {seed}")
 
     # Run on Modal
     result = predict_complex.remote(
         binder_sequence=binder_seq,
-        target_pdb_content=target_content,
+        target_sequence=target_sequence,
+        use_msa=use_msa,
         seed=seed,
     )
 
@@ -340,6 +444,7 @@ def main(
     print(f"  pDockQ: {result['pdockq']:.3f}")
     print(f"  pTM: {result['ptm']:.3f}")
     print(f"  pLDDT mean: {result['plddt_mean']:.1f}")
+    print(f"  ipTM: {result.get('iptm', 0):.3f}")
     print(f"  Interface contacts: {result['num_contacts']}")
     print(f"  Interface area: {result['interface_area']:.1f} A^2")
     print(f"  Target contact residues: {result['interface_residues_target'][:10]}...")

@@ -1,98 +1,80 @@
-# Handoff Notes - BoltzGen Integration
+# Handoff Notes - Modal Integration
 
-## Current Issue: `modal/boltzgen_app.py` Has Incorrect API
+## Status: Modal Apps Rewritten
 
-The existing `modal/boltzgen_app.py` assumes a BoltzGen API that doesn't exist:
+Both `modal/boltz2_app.py` and `modal/boltzgen_app.py` have been rewritten to use the actual CLI interfaces (via subprocess), matching the working pattern from `protein-predict`.
 
+### What Changed
+
+**boltz2_app.py:**
+- Now uses `boltz predict input.yaml` via subprocess
+- Builds YAML input with sequences
+- Parses output CIF and confidence JSON
+- Added model download function with persistent Modal volume
+- Uses H100 GPU (same as protein-predict)
+
+**boltzgen_app.py:**
+- Now uses `boltzgen run spec.yaml --protocol nanobody-anything` via subprocess
+- Builds design spec YAML with target sequence and designable binder positions
+- Parses output FASTA/CIF files for designed sequences
+- Added model download function with persistent Modal volume
+- Uses A100 GPU
+
+### Key Implementation Details
+
+Both apps follow this pattern:
 ```python
-# WRONG - This API doesn't exist:
-from boltzgen import BoltzGen
-model = BoltzGen.load()
-designs = model.design(target_structure=..., binder_type="scfv", ...)
+# 1. Build YAML input
+yaml_content = build_yaml(sequences)
+Path("input.yaml").write_text(yaml_content)
+
+# 2. Call CLI via subprocess
+cmd = ["boltz", "predict", "input.yaml", "--accelerator", "gpu"]
+result = subprocess.run(cmd, capture_output=True, text=True)
+
+# 3. Parse output files
+cif_file = list(Path(".").glob("boltz_results_*/predictions/*/*.cif"))[0]
 ```
 
-### Actual BoltzGen API
+### Next Steps
 
-BoltzGen uses a **CLI-based workflow** with YAML design specifications:
+1. **Download model weights** (first time only):
+   ```bash
+   modal run modal/boltz2_app.py --download
+   modal run modal/boltzgen_app.py --download
+   ```
 
-```bash
-boltzgen run design_spec.yaml \
-    --protocol protein-anything \
-    --output output_dir \
-    --num_designs 100
-```
+2. **Test the apps**:
+   ```bash
+   # Test Boltz-2
+   modal run modal/boltz2_app.py --binder-seq "EVQLVES..." --target-seq "DGNE..."
 
-Available protocols:
-- `protein-anything` - Generic protein binder
-- `nanobody-anything` - VHH nanobodies (~120 aa)
-- `antibody-anything` - Antibody CDR design
+   # Test BoltzGen
+   modal run modal/boltzgen_app.py --target-pdb data/targets/cd3.pdb --target-chain A
+   ```
 
-### Key Finding: No scFv Linker in BoltzGen
+3. **Run calibration** once Modal apps are verified working:
+   ```bash
+   python scripts/00_run_calibration.py
+   ```
 
-**BoltzGen does NOT automatically add (G4S)3 linkers to outputs.**
+4. **Run full pipeline**:
+   ```bash
+   python scripts/run_full_pipeline.py --config config.yaml
+   ```
 
-Evidence:
-- Searched entire BoltzGen package for "linker" and "GGGGS" - nothing found
-- Design spec YAML has no linker configuration option
-- BoltzGen produces single-domain binders, not VH-linker-VL scFvs
+### Potential Issues to Watch
 
-The (G4S)3 linker in `config.yaml:73` is for **downstream bispecific assembly**, not BoltzGen.
+1. **BoltzGen output format** - The output parsing assumes FASTA files; actual output format may differ. Check `boltzgen run --help` for exact output structure.
 
-## Required Changes
+2. **Model weight paths** - The `--cache` flag paths may need adjustment based on actual BoltzGen/Boltz CLI expectations.
 
-### Option A: Fix `modal/boltzgen_app.py` to use actual BoltzGen CLI
+3. **HuggingFace repo IDs** - The download functions assume `boltz-community/boltz-2` and `boltz-community/boltzgen`. Verify these are correct.
 
-```python
-# Use subprocess to call boltzgen CLI
-import subprocess
-import yaml
+4. **mmCIF parsing** - The interface metrics calculation uses simple PDB parsing; mmCIF output from Boltz-2 may need proper parsing for accurate contact calculations.
 
-def run_boltzgen(target_pdb_content, num_designs, ...):
-    # 1. Write design spec YAML
-    design_spec = {
-        "entities": [
-            {"protein": {"sequence": target_sequence, "design": False}},
-            {"protein": {"sequence": "X" * 120, "design": True, "binding": ["A"]}}
-        ]
-    }
+### References
 
-    # 2. Call boltzgen CLI
-    subprocess.run(["boltzgen", "run", spec_path, "--protocol", "nanobody-anything", ...])
-
-    # 3. Parse output CIF/FASTA files
-```
-
-### Option B: Remove `binder_type="scfv"` Support
-
-Since BoltzGen doesn't natively produce scFvs:
-- Only support `binder_type="vhh"` (nanobody)
-- Add scFv linker in post-processing if needed
-
-## Design Spec YAML Format
-
-Valid keys: `entities`, `protein`, `id`, `sequence`, `design`, `binding`, `constraints`, `total_len`, `min`, `max`
-
-Example:
-```yaml
-entities:
-  - protein:
-      id: A
-      sequence: DGNEEMGGITQTPYKVSISGTTVILTCPQYPGSEILWQHNDKNIGGDEDDKNIGSDEDHLSLKEFSELEQSGYYVC
-  - protein:
-      id: B
-      sequence: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-      design: true
-      binding: [A]
-```
-
-## Next Steps
-
-1. Decide: Fix boltzgen_app.py to use CLI, or simplify to VHH-only?
-2. If scFv needed: Add post-processing to concatenate VH + linker + VL
-3. Update tests to match actual BoltzGen behavior
-
-## References
-
-- [BoltzGen GitHub](https://github.com/HannesStark/boltzgen)
-- [BoltzGen CLI help](run `boltzgen run --help` in Modal container)
-- `config.yaml:72-74` - downstream linker definitions
+- Working Boltz implementation: `/Users/alec/kernel/protein-predict/boltz_modal.py`
+- BoltzGen GitHub: https://github.com/HannesStark/boltzgen
+- Boltz GitHub: https://github.com/jwohlwend/boltz

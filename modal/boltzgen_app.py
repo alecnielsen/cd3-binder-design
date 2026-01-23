@@ -11,10 +11,39 @@ Deploy with:
     modal deploy modal/boltzgen_app.py
 
 Run locally:
-    modal run modal/boltzgen_app.py::run_boltzgen --target-pdb data/targets/cd3.pdb
+    # First download model weights
+    modal run modal/boltzgen_app.py --download
+
+    # Then run design
+    modal run modal/boltzgen_app.py --target-pdb data/targets/cd3.pdb --target-chain A
 """
 
+import json
+import subprocess
+from pathlib import Path
+
 import modal
+
+MINUTES = 60
+
+app = modal.App("boltzgen-cd3")
+
+# Container with BoltzGen
+boltzgen_image = (
+    modal.Image.debian_slim(python_version="3.11")
+    .pip_install("boltzgen")
+)
+
+# Persistent volume for model weights
+boltzgen_model_volume = modal.Volume.from_name("boltzgen-models", create_if_missing=True)
+models_dir = Path("/models/boltzgen")
+
+# Image for downloading model
+download_image = (
+    modal.Image.debian_slim()
+    .pip_install("huggingface-hub==0.36.0", "hf_transfer")
+    .env({"HF_HUB_ENABLE_HF_TRANSFER": "1"})
+)
 
 
 def extract_chain_from_pdb_content(pdb_content: str, chain_id: str) -> str:
@@ -50,7 +79,6 @@ def extract_chain_from_pdb_content(pdb_content: str, chain_id: str) -> str:
             break
 
     if atom_count == 0:
-        # List available chains for debugging
         available_chains = set()
         for line in pdb_content.split("\n"):
             if line.startswith("ATOM") and len(line) > 21:
@@ -63,118 +91,151 @@ def extract_chain_from_pdb_content(pdb_content: str, chain_id: str) -> str:
     return "\n".join(lines)
 
 
-def validate_pdb_for_design(pdb_content: str, target_chain: str) -> tuple[bool, str]:
-    """Validate that a PDB is appropriate for binder design.
+def parse_pdb_sequence(pdb_content: str, chain_id: str = "A") -> str:
+    """Extract amino acid sequence from PDB content."""
+    aa_3to1 = {
+        "ALA": "A", "ARG": "R", "ASN": "N", "ASP": "D", "CYS": "C",
+        "GLN": "Q", "GLU": "E", "GLY": "G", "HIS": "H", "ILE": "I",
+        "LEU": "L", "LYS": "K", "MET": "M", "PHE": "F", "PRO": "P",
+        "SER": "S", "THR": "T", "TRP": "W", "TYR": "Y", "VAL": "V",
+    }
 
-    Checks for common issues that could bias design results:
-    - Multi-chain complexes (e.g., target + bound antibody)
-    - Known problematic structures (1XIW with UCHT1, 1SY6 with OKT3)
+    sequence = []
+    seen_residues = set()
+
+    for line in pdb_content.split("\n"):
+        if line.startswith("ATOM"):
+            chain = line[21]
+            if chain != chain_id:
+                continue
+
+            res_name = line[17:20].strip()
+            res_num = int(line[22:26])
+            insertion_code = line[26] if len(line) > 26 else " "
+            res_key = (res_num, insertion_code, res_name)
+
+            if res_key not in seen_residues and res_name in aa_3to1:
+                seen_residues.add(res_key)
+                sequence.append((res_num, insertion_code, aa_3to1[res_name]))
+
+    sequence.sort(key=lambda x: (x[0], x[1]))
+    return "".join([aa for _, _, aa in sequence])
+
+
+def build_design_spec_yaml(
+    target_sequence: str,
+    binder_length: int = 120,
+    hotspot_residues: list[int] | None = None,
+) -> str:
+    """Build BoltzGen design specification YAML.
 
     Args:
-        pdb_content: PDB file content as string.
-        target_chain: Chain ID that will be used for design.
+        target_sequence: Target protein sequence.
+        binder_length: Length of binder to design (120 for VHH).
+        hotspot_residues: Optional list of target residues to focus binding on.
 
     Returns:
-        Tuple of (is_valid, warning_message).
-        is_valid is True if the PDB appears suitable for design.
-        warning_message describes any issues found.
+        YAML string for BoltzGen design spec.
     """
-    # Count chains in the PDB
-    chains = set()
-    for line in pdb_content.split("\n"):
-        if line.startswith("ATOM") and len(line) > 21:
-            chains.add(line[21])
+    # Build design spec
+    # Target is chain A (fixed), binder is chain B (to be designed)
+    spec = {
+        "entities": [
+            {
+                "protein": {
+                    "id": "A",
+                    "sequence": target_sequence,
+                    "design": False,
+                }
+            },
+            {
+                "protein": {
+                    "id": "B",
+                    "sequence": "X" * binder_length,  # X marks designable positions
+                    "design": True,
+                    "binding": ["A"],
+                }
+            }
+        ]
+    }
 
-    warnings = []
+    # Add hotspot constraints if specified
+    if hotspot_residues:
+        spec["entities"][1]["protein"]["constraints"] = {
+            "contacts": [{"chain": "A", "residues": hotspot_residues}]
+        }
 
-    # Check for multi-chain complexes
-    if len(chains) > 1:
-        other_chains = sorted(c for c in chains if c != target_chain)
-        warnings.append(
-            f"PDB contains {len(chains)} chains ({sorted(chains)}). "
-            f"Only chain {target_chain} will be extracted for design. "
-            f"Chains {other_chains} will be removed to prevent design bias."
-        )
+    # Convert to YAML manually (avoid PyYAML dependency)
+    lines = ["entities:"]
 
-    # Check for known problematic structures
-    # Look for UCHT1 or OKT3 signatures in HEADER/TITLE
-    header_lines = [
-        line for line in pdb_content.split("\n")[:50]
-        if line.startswith(("HEADER", "TITLE", "COMPND"))
-    ]
-    header_text = " ".join(header_lines).upper()
+    for entity in spec["entities"]:
+        lines.append("  - protein:")
+        protein = entity["protein"]
+        lines.append(f"      id: {protein['id']}")
+        lines.append(f"      sequence: {protein['sequence']}")
+        if "design" in protein:
+            lines.append(f"      design: {'true' if protein['design'] else 'false'}")
+        if "binding" in protein:
+            lines.append(f"      binding: [{', '.join(protein['binding'])}]")
+        if "constraints" in protein:
+            lines.append("      constraints:")
+            lines.append("        contacts:")
+            for contact in protein["constraints"]["contacts"]:
+                lines.append(f"          - chain: {contact['chain']}")
+                residues_str = ", ".join(str(r) for r in contact["residues"])
+                lines.append(f"            residues: [{residues_str}]")
 
-    if "UCHT1" in header_text or "1XIW" in header_text:
-        if len(chains) > 2:  # CD3ε + CD3δ + UCHT1
-            warnings.append(
-                "Detected 1XIW structure with UCHT1 Fab. "
-                "Extracting only the target chain to avoid design bias."
-            )
-
-    if "OKT3" in header_text or "1SY6" in header_text:
-        warnings.append(
-            "Detected 1SY6 structure with OKT3 Fab. "
-            "Note: Chain A is a CD3γ/ε fusion construct, not pure CD3ε. "
-            "Extracting only the target chain to avoid design bias."
-        )
-
-    is_valid = True  # We always extract the single chain, so it's always "valid"
-    warning_message = " ".join(warnings) if warnings else ""
-
-    return is_valid, warning_message
+    return "\n".join(lines)
 
 
-# Create Modal app
-app = modal.App("boltzgen-cd3")
-
-# Define container image with BoltzGen dependencies
-boltzgen_image = (
-    modal.Image.debian_slim(python_version="3.10")
-    .pip_install(
-        "torch>=2.0.0",
-        "numpy",
-        "biopython",
-        "einops",
-        "scipy",
-    )
-    # Note: BoltzGen installation may require additional steps
-    # depending on the actual package distribution
-    .pip_install("boltzgen")
+@app.function(
+    volumes={models_dir: boltzgen_model_volume},
+    timeout=20 * MINUTES,
+    image=download_image,
 )
+def download_model(force_download: bool = False):
+    """Download BoltzGen model weights to Modal volume."""
+    from huggingface_hub import snapshot_download
+
+    # BoltzGen models - adjust repo_id if different
+    snapshot_download(
+        repo_id="boltz-community/boltzgen",
+        local_dir=models_dir,
+        force_download=force_download,
+    )
+    boltzgen_model_volume.commit()
+    print(f"Model downloaded to {models_dir}")
 
 
 @app.function(
     image=boltzgen_image,
-    gpu="A100",  # Request A100 GPU
-    timeout=3600,  # 1 hour timeout
-    retries=2,
+    volumes={models_dir: boltzgen_model_volume},
+    timeout=60 * MINUTES,
+    gpu="A100",
 )
 def run_boltzgen(
     target_pdb_content: str,
     target_chain: str = "A",
-    binder_type: str = "vhh",
     num_designs: int = 100,
-    hotspot_residues: list[int] = None,
+    binder_length: int = 120,
+    hotspot_residues: list[int] | None = None,
+    protocol: str = "nanobody-anything",
     seed: int = 42,
-    temperature: float = 1.0,
-    num_recycles: int = 3,
 ) -> list[dict]:
     """Run BoltzGen to design binders.
 
     IMPORTANT: This function extracts ONLY the target chain before passing
     to BoltzGen. Multi-chain PDBs (e.g., CD3 + bound Fab) would bias designs
-    if passed in full, potentially targeting the wrong epitope or generating
-    antibody-like sequences instead of true CD3 binders.
+    if passed in full.
 
     Args:
         target_pdb_content: PDB file content as string (can be multi-chain).
         target_chain: Chain ID of target in PDB (will be extracted).
-        binder_type: Type of binder to design ("vhh" or "scfv").
         num_designs: Number of designs to generate.
+        binder_length: Length of binder (120 for VHH, ~250 for scFv).
         hotspot_residues: Optional residues to target for binding.
+        protocol: BoltzGen protocol (nanobody-anything, protein-anything).
         seed: Random seed for reproducibility.
-        temperature: Sampling temperature.
-        num_recycles: Number of structure prediction recycles.
 
     Returns:
         List of design dictionaries with sequences and scores.
@@ -182,86 +243,129 @@ def run_boltzgen(
     Raises:
         ValueError: If target_chain is not found in the PDB.
     """
-    import tempfile
-    import os
-
     # CRITICAL: Extract only the target chain to avoid design bias
-    # Multi-chain PDBs (e.g., 1XIW with UCHT1, 1SY6 with OKT3) would cause
-    # BoltzGen to see the bound antibody, biasing designs inappropriately.
     extracted_pdb = extract_chain_from_pdb_content(target_pdb_content, target_chain)
 
-    # Write extracted single-chain PDB to temp file
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".pdb", delete=False) as f:
-        f.write(extracted_pdb)
-        target_path = f.name
+    # Get target sequence
+    target_sequence = parse_pdb_sequence(extracted_pdb, target_chain)
+    print(f"Target sequence ({len(target_sequence)} aa): {target_sequence[:50]}...")
 
-    try:
-        # Import BoltzGen
-        # Note: Actual import and API may differ based on BoltzGen version
-        from boltzgen import BoltzGen
+    # Build design spec YAML
+    spec_yaml = build_design_spec_yaml(
+        target_sequence=target_sequence,
+        binder_length=binder_length,
+        hotspot_residues=hotspot_residues,
+    )
 
-        # Load model
-        model = BoltzGen.load()
+    spec_path = Path("design_spec.yaml")
+    spec_path.write_text(spec_yaml)
+    print(f"Design spec:\n{spec_yaml}")
 
-        # Configure design parameters
-        design_config = {
-            "binder_type": binder_type,
-            "num_samples": num_designs,
-            "seed": seed,
-            "temperature": temperature,
-            "num_recycles": num_recycles,
-        }
+    output_dir = Path("boltzgen_output")
+    output_dir.mkdir(exist_ok=True)
 
-        if hotspot_residues:
-            design_config["hotspot_residues"] = hotspot_residues
+    # Run BoltzGen CLI
+    cmd = [
+        "boltzgen", "run", str(spec_path),
+        "--protocol", protocol,
+        "--output", str(output_dir),
+        "--num_designs", str(num_designs),
+        "--cache", str(models_dir),
+    ]
 
-        # Run design
-        designs = model.design(
-            target_structure=target_path,
-            target_chain=target_chain,
-            **design_config,
-        )
+    print(f"Running: {' '.join(cmd)}")
+    result = subprocess.run(cmd, capture_output=True, text=True)
 
-        # Convert to output format
-        results = []
-        for i, design in enumerate(designs):
-            results.append({
-                "sequence": design.sequence,
-                "confidence": getattr(design, "confidence", 0.0),
-                "plddt": getattr(design, "plddt", None),
-                "ptm": getattr(design, "ptm", None),
-                "design_idx": i,
+    if result.returncode != 0:
+        print(f"STDOUT: {result.stdout}")
+        print(f"STDERR: {result.stderr}")
+        raise RuntimeError(f"BoltzGen failed: {result.stderr}")
+
+    print(f"STDOUT: {result.stdout}")
+
+    # Parse outputs - BoltzGen outputs FASTA and/or CIF files
+    designs = []
+
+    # Look for output files
+    fasta_files = list(output_dir.glob("**/*.fasta")) + list(output_dir.glob("**/*.fa"))
+    cif_files = list(output_dir.glob("**/*.cif"))
+    json_files = list(output_dir.glob("**/*.json"))
+
+    print(f"Found {len(fasta_files)} FASTA, {len(cif_files)} CIF, {len(json_files)} JSON files")
+
+    # Parse FASTA outputs for sequences
+    for fasta_file in fasta_files:
+        content = fasta_file.read_text()
+        # Simple FASTA parser
+        current_header = None
+        current_seq = []
+
+        for line in content.split("\n"):
+            line = line.strip()
+            if line.startswith(">"):
+                if current_header and current_seq:
+                    designs.append({
+                        "sequence": "".join(current_seq),
+                        "header": current_header,
+                        "source_file": fasta_file.name,
+                    })
+                current_header = line[1:]
+                current_seq = []
+            elif line:
+                current_seq.append(line)
+
+        # Don't forget last sequence
+        if current_header and current_seq:
+            designs.append({
+                "sequence": "".join(current_seq),
+                "header": current_header,
+                "source_file": fasta_file.name,
             })
 
-        return results
+    # Try to parse confidence scores from JSON if available
+    for json_file in json_files:
+        try:
+            scores = json.loads(json_file.read_text())
+            # Match scores to designs by index if possible
+            if isinstance(scores, list):
+                for i, score in enumerate(scores):
+                    if i < len(designs):
+                        designs[i].update({
+                            "confidence": score.get("confidence", 0.0),
+                            "plddt": score.get("plddt", 0.0),
+                            "ptm": score.get("ptm", 0.0),
+                        })
+        except (json.JSONDecodeError, KeyError):
+            pass
 
-    finally:
-        # Clean up temp file
-        os.unlink(target_path)
+    # Add design indices
+    for i, design in enumerate(designs):
+        design["design_idx"] = i
+
+    print(f"Parsed {len(designs)} designs")
+    return designs
 
 
 @app.function(
     image=boltzgen_image,
+    volumes={models_dir: boltzgen_model_volume},
+    timeout=120 * MINUTES,
     gpu="A100",
-    timeout=7200,  # 2 hours for batch
 )
 def run_boltzgen_batch(
     target_pdbs: list[dict],  # [{"name": "1XIW", "content": "...", "chain": "A"}]
-    binder_type: str = "vhh",
     num_designs_per_target: int = 100,
+    binder_length: int = 120,
+    protocol: str = "nanobody-anything",
     seed: int = 42,
 ) -> dict[str, list[dict]]:
     """Run BoltzGen on multiple targets.
 
-    IMPORTANT: Each target dict should include a "chain" key specifying which
-    chain to extract for design. Only the target chain is passed to BoltzGen
-    to avoid design bias from bound antibodies in crystal structures.
-
     Args:
         target_pdbs: List of dicts with "name", "content", and optional "chain" keys.
-            If "chain" is not specified, defaults to "A".
-        binder_type: Type of binder to design.
         num_designs_per_target: Designs per target.
+        binder_length: Length of binder to design.
+        protocol: BoltzGen protocol.
         seed: Base random seed.
 
     Returns:
@@ -272,17 +376,23 @@ def run_boltzgen_batch(
     for i, target in enumerate(target_pdbs):
         target_name = target["name"]
         target_content = target["content"]
-        target_chain = target.get("chain", "A")  # Default to chain A
+        target_chain = target.get("chain", "A")
 
-        designs = run_boltzgen.local(
-            target_pdb_content=target_content,
-            target_chain=target_chain,
-            binder_type=binder_type,
-            num_designs=num_designs_per_target,
-            seed=seed + i * 1000,
-        )
+        print(f"\nProcessing target {i+1}/{len(target_pdbs)}: {target_name}")
 
-        results[target_name] = designs
+        try:
+            designs = run_boltzgen(
+                target_pdb_content=target_content,
+                target_chain=target_chain,
+                num_designs=num_designs_per_target,
+                binder_length=binder_length,
+                protocol=protocol,
+                seed=seed + i * 1000,
+            )
+            results[target_name] = designs
+        except Exception as e:
+            print(f"Error designing for {target_name}: {e}")
+            results[target_name] = [{"error": str(e)}]
 
     return results
 
@@ -291,50 +401,69 @@ def run_boltzgen_batch(
 def main(
     target_pdb: str = None,
     target_chain: str = "A",
-    binder_type: str = "vhh",
     num_designs: int = 10,
+    binder_length: int = 120,
+    protocol: str = "nanobody-anything",
     seed: int = 42,
+    download: bool = False,
 ):
     """Local entrypoint for testing.
 
     Args:
         target_pdb: Path to target PDB file.
         target_chain: Chain ID of target to extract (default: "A").
-        binder_type: Type of binder ("vhh" or "scfv").
         num_designs: Number of designs.
+        binder_length: Length of binder (120 for VHH).
+        protocol: BoltzGen protocol.
         seed: Random seed.
+        download: If True, download model weights and exit.
     """
+    if download:
+        print("Downloading BoltzGen model weights...")
+        download_model.remote()
+        print("Done!")
+        return
+
     if target_pdb is None:
         print("Usage: modal run modal/boltzgen_app.py --target-pdb <path> [--target-chain A]")
+        print("   or: modal run modal/boltzgen_app.py --download")
+        print("\nOptions:")
+        print("  --num-designs N      Number of designs to generate (default: 10)")
+        print("  --binder-length N    Binder length in aa (default: 120 for VHH)")
+        print("  --protocol NAME      Protocol: nanobody-anything, protein-anything")
         return
 
     # Read target PDB
     with open(target_pdb, "r") as f:
         target_content = f.read()
 
-    # Validate PDB and warn about potential issues
-    is_valid, warning = validate_pdb_for_design(target_content, target_chain)
-    if warning:
-        print(f"\n⚠️  WARNING: {warning}\n")
-
     print(f"Running BoltzGen on {target_pdb}")
     print(f"  Target chain: {target_chain}")
-    print(f"  Binder type: {binder_type}")
+    print(f"  Protocol: {protocol}")
+    print(f"  Binder length: {binder_length} aa")
     print(f"  Num designs: {num_designs}")
     print(f"  Seed: {seed}")
 
-    # Run on Modal (chain extraction happens inside run_boltzgen)
+    # Run on Modal
     designs = run_boltzgen.remote(
         target_pdb_content=target_content,
         target_chain=target_chain,
-        binder_type=binder_type,
         num_designs=num_designs,
+        binder_length=binder_length,
+        protocol=protocol,
         seed=seed,
     )
 
     print(f"\nGenerated {len(designs)} designs:")
     for i, d in enumerate(designs[:5]):
-        print(f"  {i+1}. Confidence: {d['confidence']:.3f}, Seq: {d['sequence'][:30]}...")
+        seq = d.get("sequence", "N/A")
+        conf = d.get("confidence", "N/A")
+        print(f"  {i+1}. Conf: {conf}, Seq: {seq[:40]}...")
 
     if len(designs) > 5:
         print(f"  ... and {len(designs) - 5} more")
+
+    # Save results
+    output_path = Path("boltzgen_designs.json")
+    output_path.write_text(json.dumps(designs, indent=2))
+    print(f"\nSaved to {output_path}")
