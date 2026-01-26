@@ -119,10 +119,9 @@ class BoltzGenRunner:
 
         try:
             import modal
-            # Check if authenticated
-            modal.Client()
+            # Just check that modal is importable (auth is checked on first call)
             self._modal_available = True
-        except Exception:
+        except ImportError:
             self._modal_available = False
 
         return self._modal_available
@@ -233,16 +232,23 @@ class BoltzGenRunner:
             with open(self.config.target_pdb_path, "r") as f:
                 target_pdb_content = f.read()
 
+            # Map binder_type to protocol and binder_length
+            if self.config.binder_type == "vhh":
+                protocol = "nanobody-anything"
+                binder_length = 120  # VHH ~120 aa
+            else:  # scfv
+                protocol = "nanobody-anything"  # BoltzGen uses same protocol
+                binder_length = 250  # scFv ~250 aa
+
             # Call Modal function
             results = run_boltzgen.remote(
                 target_pdb_content=target_pdb_content,
                 target_chain=self.config.target_chain,
-                binder_type=self.config.binder_type,
                 num_designs=self.config.num_designs,
+                binder_length=binder_length,
                 hotspot_residues=self.config.hotspot_residues,
+                protocol=protocol,
                 seed=self.config.seed,
-                temperature=self.config.temperature,
-                num_recycles=self.config.num_recycles,
             )
 
             # Parse results

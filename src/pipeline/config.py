@@ -214,7 +214,8 @@ class PipelineConfig:
     def save(self, output_path: str) -> str:
         """Save configuration to YAML file."""
         with open(output_path, "w") as f:
-            yaml.dump(self.to_dict(), f, default_flow_style=False)
+            # Use safe_dump to avoid Python-specific types like !!python/tuple
+            yaml.safe_dump(self.to_dict(), f, default_flow_style=False, sort_keys=False)
         return output_path
 
     @classmethod

@@ -2,136 +2,112 @@
 
 ## Current Status (2026-01-25)
 
-### Boltz-2: WORKING
+### Modal Apps: WORKING
 
-Successfully tested structure prediction:
+Both Modal apps work when called directly:
+
 ```bash
-modal run modal/boltz2_app.py --binder-seq "EVQLVES..." --target-seq "DGNE..."
+# BoltzGen - generates antibody-like sequences
+modal run modal/boltzgen_app.py --target-pdb data/targets/1XIW.pdb --target-chain A --num-designs 5
+
+# Boltz-2 - predicts complex structures
+modal run modal/boltz2_app.py --binder-seq "QVQLVE..." --target-seq "QTPYK..."
 ```
 
-Results:
-- pTM: 0.770
-- ipTM: 0.528
-- pLDDT: 0.9 (note: scale seems off, investigate)
-- Interface contacts: 0 (mmCIF parsing not implemented, see below)
+### Pipeline Integration: PARTIALLY WORKING
 
-**Known limitation:** Interface metrics return 0 because mmCIF parsing isn't implemented. The confidence scores from Boltz-2's JSON output work fine.
+Calibration runs but the full pipeline has issues (see "Remaining Issues" below).
 
-### BoltzGen: WORKING (Fixed 2026-01-25)
-
-Successfully generating de novo binder designs:
 ```bash
-modal run modal/boltzgen_app.py --target-pdb data/targets/1XIW.pdb --target-chain A --num-designs 10
+# This works
+PYTHONPATH=/Users/alec/kernel/cd3-binder-design python3 scripts/00_run_calibration.py
+
+# This has issues
+PYTHONPATH=/Users/alec/kernel/cd3-binder-design python3 scripts/run_full_pipeline.py --config config.yaml
 ```
 
-Example results:
-- design_spec_0: 122 aa, ipTM=0.271, pTM=0.713 (VH-like sequence)
-- design_spec_1: 116 aa, ipTM=0.157, pTM=0.741 (VH-like sequence)
-- design_spec_2: 110 aa, ipTM=0.171, pTM=0.722 (VL-like sequence)
+## Session Progress (2026-01-25)
 
-**Note:** BoltzGen's internal filtering (`filter_rmsd < 2.5`) often rejects all designs. We extract designs anyway for our own filtering pipeline.
+### Fixed Issues
 
-#### Root Cause (Fixed)
+1. **BoltzGen YAML format** - Complete rewrite to use correct BoltzGen specification
+   - Use `sequence: 110..130` (range notation) instead of `sequence: XXX...`
+   - Reference target via `file: { path: target.pdb }` instead of inline sequence
+   - Remove invalid keys (`design: true`, `binding: [A]`)
 
-The YAML format was completely wrong. BoltzGen uses a different specification:
+2. **Modal API updates** - Updated from deprecated `Function.lookup()` to `Function.from_name()`
 
-**OLD (Wrong):**
-```yaml
-entities:
-  - protein:
-      id: A
-      sequence: QTPYKVSISGTTVILT...  # Inline sequence
-      design: false
-  - protein:
-      id: B
-      sequence: XXXX...  # Placeholder
-      design: true
-      binding: [A]
+3. **Module shadowing** - Removed `modal/__init__.py` that was shadowing the `modal` pip package
+
+4. **Config YAML corruption** - Changed `yaml.dump()` to `yaml.safe_dump()` to avoid `!!python/tuple` tags
+
+5. **Boltz-2 inter-function calls** - Added `.local()` for calling between Modal functions
+
+6. **Modal function parameter mismatches** - Updated `boltzgen_runner.py` to pass correct parameters
+
+### Remaining Issues
+
+1. **Interface metrics return 0** - `calculate_interface_metrics()` in boltz2_app.py only parses PDB format, but Boltz-2 outputs mmCIF. pTM/ipTM/pLDDT work fine.
+
+2. **Some scripts don't accept --config** - `01_setup_targets.py` doesn't take `--config` but `run_full_pipeline.py` passes it. Use `--skip-setup` as workaround.
+
+3. **Parameter mismatches in src/ code** - The `src/design/boltzgen_runner.py` may still have mismatches with Modal function signatures. Partially fixed but needs verification.
+
+4. **Calibration shows identical results** - All 3 calibration binders show same pTM/pLDDT (possible caching issue or Boltz-2 not seeing different sequences).
+
+5. **Long execution time** - 200 designs takes very long. Reduced to 5 in config for testing.
+
+## Files Changed This Session
+
+```
+modal/boltzgen_app.py      - Fixed YAML format, CIF parsing, CSV metrics
+modal/boltz2_app.py        - Added .local() calls for inter-function calls
+modal/__init__.py          - DELETED (was shadowing modal package)
+src/structure/boltz_complex.py - Updated Modal API, use predict_complex directly
+src/design/boltzgen_runner.py  - Fixed Modal check, parameter mapping
+src/pipeline/config.py     - Use yaml.safe_dump()
+config.yaml                - Fixed target paths, reduced design count for testing
+data/outputs/calibration.json - Calibration results (interface metrics are 0)
 ```
 
-**NEW (Correct):**
-```yaml
-entities:
-  - protein:
-      id: B
-      sequence: 110..130  # Range notation for design length
-  - file:
-      path: target.pdb  # File reference, not inline sequence
-      include:
-        - chain:
-            id: A
-```
+## Quick Test Commands
 
-Key fixes:
-1. Use `sequence: 110..130` (range notation) instead of `sequence: XXX...`
-2. Reference target via `file: { path: ... }` instead of inline sequence
-3. Remove invalid keys (`design: true`, `binding: [A]`)
-4. Binder entity comes FIRST, target comes SECOND
-
-#### Files Changed
-
-- `modal/boltzgen_app.py`: Complete rewrite of `build_design_spec_yaml()` function
-- `modal/boltzgen_app.py`: Write target PDB to file and reference it in YAML
-- `modal/boltzgen_app.py`: Fixed CIF parsing to extract from `_entity_poly.pdbx_seq_one_letter_code`
-- `modal/boltzgen_app.py`: Added CSV metrics parsing for ipTM, pTM, etc.
-
-### Model Downloads: COMPLETE
-
-Both model weight downloads work:
 ```bash
-modal run modal/boltz2_app.py --download      # ~2GB from boltz-community/boltz-2
-modal run modal/boltzgen_app.py --download    # ~10GB from boltzgen/boltzgen-1 + boltzgen/inference-data
+# Set Python path
+export PYTHONPATH=/Users/alec/kernel/cd3-binder-design
+
+# Test BoltzGen directly (WORKS)
+modal run modal/boltzgen_app.py --target-pdb data/targets/1XIW.pdb --target-chain A --num-designs 5
+
+# Test Boltz-2 directly (WORKS)
+modal run modal/boltz2_app.py --binder-seq "QVQLVESGGGLVQAGGSLRLSEAASGFTFSSYGMGWVRQAPGKGREWVAA" --target-seq "QTPYKVSISGTTVILTCPQYPGSEILWQHNDKNIGGDEDDKNIGSDEDHLSLKEFSELEQSGYYVCYPRGSKPEDANFYLYLRARVCENCME"
+
+# Run calibration (WORKS but metrics are 0)
+python3 scripts/00_run_calibration.py
+
+# Run de novo design step (NEEDS TESTING)
+python3 scripts/02_run_denovo_design.py --config config.yaml
 ```
 
-Models stored in Modal volumes:
-- `boltz-models` - Boltz-2 weights
-- `boltzgen-models` - BoltzGen weights
+## Next Steps to Complete Pipeline
 
-## Next Steps
-
-1. **Run full pipeline** - Both BoltzGen and Boltz-2 are working. Run the full pipeline:
-   ```bash
-   python scripts/00_run_calibration.py
-   python scripts/run_full_pipeline.py --config config.yaml
-   ```
-
-2. **Generate more designs** - Current test used 3 designs. Production run should use 100+ per target.
-
-3. **Test with hotspot residues** - Can specify binding site residues for more targeted design:
-   ```yaml
-   binding_types:
-     - chain:
-         id: A
-         binding: 23,24,25,50,51  # OKT3 epitope residues
-   ```
-
-4. **Consider protocol options** - Current uses `nanobody-anything`. Also available:
-   - `protein-anything` - general protein binder design
-   - `antibody-anything` - for Fab/scFv with CDR design
+1. **Verify de novo design step** - Run with small count (5 designs) and verify output
+2. **Fix interface metrics** - Update `calculate_interface_metrics()` to parse mmCIF
+3. **Debug calibration** - Investigate why all binders show same scores
+4. **Test remaining pipeline steps** - Steps 03-07 haven't been tested
+5. **Increase design count** - Once working, increase to 100-200 designs
 
 ## Technical Notes
 
-### Modal CLI Location
-```bash
-/Users/alec/Library/Python/3.9/bin/modal
-```
+### Modal Apps Deployed
+- `boltzgen-cd3` - De novo binder design
+- `boltz2-cd3` - Complex structure prediction
 
-### Test Commands
-```bash
-# Boltz-2 (working)
-modal run modal/boltz2_app.py --binder-seq "EVQLVESGGGLVQPGGSLRLSCAASGFTFSDYWMNWVRQAPGKGLEWVAEIRLKSNNYATHYAESVKGRFTISRDNAKNSLYLQMNSLRAEDTAVYYCTGSYYGMDYWGQGTLVTVSS" --target-seq "DGNEEMGGITQTPYKVSISGTTVILTCPQYPGSEILWQHNDKNIGGDEDDKNIGSDEDHLSLKEFSELEQSGYYVCYPRGSKPEDANFYLYLRARVCENCME"
+### Model Weights (in Modal volumes)
+- `boltzgen-models` - BoltzGen weights (~10GB)
+- `boltz-models` - Boltz-2 weights (~2GB)
 
-# BoltzGen (working)
-modal run modal/boltzgen_app.py --target-pdb data/targets/1XIW.pdb --target-chain A --num-designs 10
-
-# Download models (first time only)
-modal run modal/boltzgen_app.py --download
-modal run modal/boltz2_app.py --download
-```
-
-## References
-
-- BoltzGen GitHub: https://github.com/HannesStark/boltzgen
-- BoltzGen HuggingFace: https://huggingface.co/boltzgen/boltzgen-1
-- Boltz GitHub: https://github.com/jwohlwend/boltz
-- Working Boltz implementation: `/Users/alec/kernel/protein-predict/boltz_modal.py`
+### Key Configuration
+- `config.yaml` - Main pipeline config
+- `data/targets/1XIW.pdb` - CD3εδ structure
+- `data/targets/1SY6.pdb` - CD3εγ + OKT3 structure
