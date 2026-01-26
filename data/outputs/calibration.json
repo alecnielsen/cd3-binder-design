@@ -1,0 +1,76 @@
+{
+  "known_binder_results": [
+    {
+      "binder_sequence": "QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPSRGYTNYNQKFKD KATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTLTVSSGGGGSGGGGSGGGGSQIVLTQSPAIMSASPGEKVTMTCSASSSVSYMNWYQQKSGTSPKRWIYDTSKLASGVPAHFRGSGS GTSYSLTISGMEAEDAATYYCQQWSSNPFTFGSGTKLEINR",
+      "target_sequence": "QTPYKVSISGTTVILTCPQYPGSEILWQHNDKNIGGDEDDKNIGSDEDHLSLKEFSELEQSGYYVCYPRGSKPEDANFYLYLRARVCENCM",
+      "pdockq": 0.0,
+      "pdockq_note": "Structural confidence, NOT affinity predictor",
+      "ptm": 0.7342754602432251,
+      "plddt_mean": 0.897081196308136,
+      "ipae": 0.0,
+      "interface_residues_binder": [],
+      "interface_residues_target": [],
+      "num_contacts": 0,
+      "interface_area": 0.0,
+      "model_version": "boltz2",
+      "seed": 42
+    },
+    {
+      "binder_sequence": "QVQLQQPGAELVKPGASVKLSCKASGYTFTDYNMHWVKQTPGQGLEWIGVIHPNYGGTSYNQKFKG KATLTVDKSSSTAYMELRSLTSEDSAVYYCARDYYGSSHYAMDYWGQGTSVTVSSGGGGSGGGGSGGGGSDIQMTQSPASLSASVGETVTITCRASENIYSYLAWYQQKQGKSPQLLVYNTKTLAEGVPSRFSGSGS GTQFSLKINSLQPEDFGSYYCQHHYGTPFTFGSGTKLEIK",
+      "target_sequence": "QTPYKVSISGTTVILTCPQYPGSEILWQHNDKNIGGDEDDKNIGSDEDHLSLKEFSELEQSGYYVCYPRGSKPEDANFYLYLRARVCENCM",
+      "pdockq": 0.0,
+      "pdockq_note": "Structural confidence, NOT affinity predictor",
+      "ptm": 0.7342754602432251,
+      "plddt_mean": 0.897081196308136,
+      "ipae": 0.0,
+      "interface_residues_binder": [],
+      "interface_residues_target": [],
+      "num_contacts": 0,
+      "interface_area": 0.0,
+      "model_version": "boltz2",
+      "seed": 42
+    },
+    {
+      "binder_sequence": "EVKLDETGGGLVQPGRPMKLSCVASGFTFSDYWMNWVRQSPEKGLEWVAEIRLKSNNYATHYAESVK GRFTISRDDSKSSVYLQMNNLRVEDTGIYYCTGSYYGMDYWGQGTSVTVSSGGGGSGGGGSGGGGSDIQMTQSPSSLSASLGERVSLTCRASQDIRNYLNWYQQKPDGTVKLLIYYTSRLHSGVPSRFSGSGS GTDYSLTISNLEQEDIATYFCQQGNTLPWTFGGGTKLEIK",
+      "target_sequence": "QTPYKVSISGTTVILTCPQYPGSEILWQHNDKNIGGDEDDKNIGSDEDHLSLKEFSELEQSGYYVCYPRGSKPEDANFYLYLRARVCENCM",
+      "pdockq": 0.0,
+      "pdockq_note": "Structural confidence, NOT affinity predictor",
+      "ptm": 0.7342754602432251,
+      "plddt_mean": 0.897081196308136,
+      "ipae": 0.0,
+      "interface_residues_binder": [],
+      "interface_residues_target": [],
+      "num_contacts": 0,
+      "interface_area": 0.0,
+      "model_version": "boltz2",
+      "seed": 42
+    }
+  ],
+  "calibrated_thresholds": {
+    "min_pdockq": 0.0,
+    "min_interface_area": 0.0,
+    "min_contacts": 0
+  },
+  "margins_used": {
+    "pdockq_margin": 0.05,
+    "interface_area_margin": 100.0,
+    "contacts_margin": 2
+  },
+  "known_binder_stats": {
+    "pdockq": {
+      "min": 0.0,
+      "max": 0.0,
+      "mean": 0.0
+    },
+    "interface_area": {
+      "min": 0.0,
+      "max": 0.0,
+      "mean": 0.0
+    },
+    "contacts": {
+      "min": 0,
+      "max": 0,
+      "mean": 0.0
+    }
+  }
+}

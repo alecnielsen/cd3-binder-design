@@ -259,7 +259,8 @@ def predict_complex_from_pdb(
         Dictionary with prediction results.
     """
     target_sequence = parse_pdb_sequence(target_pdb_content, target_chain)
-    return predict_complex(binder_sequence, target_sequence, use_msa=use_msa, seed=seed)
+    # Use .local() to call the other Modal function synchronously within the same container
+    return predict_complex.local(binder_sequence, target_sequence, use_msa=use_msa, seed=seed)
 
 
 @app.function(
@@ -290,7 +291,7 @@ def predict_complex_batch(
     for i, seq in enumerate(binder_sequences):
         print(f"Predicting {i+1}/{len(binder_sequences)}...")
         try:
-            result = predict_complex(
+            result = predict_complex.local(
                 binder_sequence=seq,
                 target_sequence=target_sequence,
                 use_msa=use_msa,
@@ -337,7 +338,7 @@ def run_calibration(
     for i, seq in enumerate(known_binder_sequences):
         print(f"Calibrating with binder {i+1}/{len(known_binder_sequences)}...")
         try:
-            result = predict_complex(
+            result = predict_complex.local(
                 binder_sequence=seq,
                 target_sequence=target_sequence,
                 use_msa=use_msa,

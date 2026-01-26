@@ -186,25 +186,25 @@ class Boltz2Predictor:
     ) -> ComplexPredictionResult:
         """Run prediction on Modal."""
         try:
-            from modal import Function
+            import modal
+            from src.structure.pdb_utils import extract_sequence_from_pdb
 
-            # Get the deployed function
-            predict_complex = Function.lookup("boltz2-cd3", "predict_complex")
+            # Get the deployed function (Modal API v0.60+)
+            # Use predict_complex directly (sequences only) to avoid .local() issues
+            predict_fn = modal.Function.from_name("boltz2-cd3", "predict_complex")
 
-            # Read target PDB
-            with open(target_pdb_path, "r") as f:
-                target_pdb_content = f.read()
+            # Extract target sequence locally
+            target_sequence = extract_sequence_from_pdb(target_pdb_path, target_chain)
 
-            # Call Modal function
-            result = predict_complex.remote(
+            # Call Modal function with sequences
+            result = predict_fn.remote(
                 binder_sequence=binder_sequence,
-                target_pdb_content=target_pdb_content,
-                target_chain=target_chain,
+                target_sequence=target_sequence,
                 seed=seed,
             )
 
             return ComplexPredictionResult(
-                pdb_string=result["pdb_string"],
+                pdb_string=result.get("cif_string", ""),  # Boltz-2 returns CIF
                 binder_sequence=binder_sequence,
                 target_sequence=result["target_sequence"],
                 pdockq=result["pdockq"],

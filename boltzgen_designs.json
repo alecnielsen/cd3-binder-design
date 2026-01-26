@@ -1,0 +1,33 @@
+[
+  {
+    "sequence": "QVQLVESGGGLVQAGGSLRLSEAASGFTFSSYGMGWVRQAPGKGREWVAAITYSGSYTYYADSVKGRFTISRDNAKNTLYLQMNSLKPEDTAVYYAARAEVDSSYNYAFDYWGQGTLVTVSS",
+    "header": "design_spec_0",
+    "source_file": "design_spec_0.cif",
+    "design_idx": 0,
+    "ipTM": 0.27149,
+    "pTM": 0.71272,
+    "pae_min": 9.32271,
+    "rmsd": 3.52514
+  },
+  {
+    "sequence": "QVQLQQSGAELKKAGASVKISIKASGYTFTSYWMHWVKQRPGQGLEWIGRINPSNGDTNYAQKFKGKATITADKSSSTAYMELSSLTSEDSAVYYEAREDGDYLYFGQGTLVTVSS",
+    "header": "design_spec_1",
+    "source_file": "design_spec_1.cif",
+    "design_idx": 1,
+    "ipTM": 0.15735,
+    "pTM": 0.74097,
+    "pae_min": 15.81366,
+    "rmsd": 9.08998
+  },
+  {
+    "sequence": "EVVYKQPGSVSASVGETVTISEKASQSISSSDYVHWYQQKPGQEPKLLIYDTSKRASGVPDRFSGSKSGTTASLTISGAQLEDTATYYALLQSSSGGEYTGGGTKLTVSE",
+    "header": "design_spec_2",
+    "source_file": "design_spec_2.cif",
+    "design_idx": 2,
+    "ipTM": 0.17081,
+    "pTM": 0.7217,
+    "pae_min": 15.4165,
+    "rmsd": 2.85206,
+    "rmsd_design": 5627.40723
+  }
+]

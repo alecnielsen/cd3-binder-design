@@ -224,10 +224,10 @@ class BoltzGenRunner:
         """
         # Import the Modal app
         try:
-            from modal import Function
+            import modal
 
-            # Get the deployed function
-            run_boltzgen = Function.lookup("boltzgen-cd3", "run_boltzgen")
+            # Get the deployed function (Modal API v0.60+)
+            run_boltzgen = modal.Function.from_name("boltzgen-cd3", "run_boltzgen")
 
             # Read target PDB
             with open(self.config.target_pdb_path, "r") as f:
