@@ -25,11 +25,14 @@ Modal (https://modal.com) provides on-demand GPU compute for:
 De novo binder design using BoltzGen.
 
 ```bash
+# Download model weights (first time only)
+modal run modal/boltzgen_app.py --download
+
 # Deploy
 modal deploy modal/boltzgen_app.py
 
-# Test locally
-modal run modal/boltzgen_app.py --target-pdb data/targets/cd3.pdb --target-chain A --num-designs 10
+# Run design
+modal run modal/boltzgen_app.py --target-pdb data/targets/1XIW.pdb --target-chain A --num-designs 10
 ```
 
 #### Critical: Target Chain Extraction
@@ -46,42 +49,74 @@ If the full multi-chain PDB were passed to BoltzGen, designs could:
 3. Generate antibody-like sequences by "learning" from the bound Fab
 
 The `extract_chain_from_pdb_content()` function ensures only the target chain
-(e.g., chain A = CD3ε) is passed to the model. A warning is printed if the
-input PDB contains multiple chains.
+(e.g., chain A = CD3ε) is passed to the model.
+
+#### BoltzGen YAML Format
+
+BoltzGen uses a specific YAML format for design specifications:
+
+```yaml
+entities:
+  - protein:
+      id: B
+      sequence: 110..130  # Range notation for binder length
+  - file:
+      path: target.pdb    # File reference for target
+      include:
+        - chain:
+            id: A
+
+# Optional: specify binding site residues
+binding_types:
+  - chain:
+      id: A
+      binding: 23,24,25,50,51
+```
+
+**Important**: Do NOT use `sequence: XXX...` placeholders or `design: true` keys - these are not valid BoltzGen format.
 
 **Functions:**
 - `run_boltzgen()`: Generate designs for a single target (extracts chain first)
 - `run_boltzgen_batch()`: Generate designs for multiple targets
 - `extract_chain_from_pdb_content()`: Extract single chain from multi-chain PDB
-- `validate_pdb_for_design()`: Check for multi-chain PDBs and warn
+- `build_design_spec_yaml()`: Generate correct YAML format
 
 **Parameters:**
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `target_pdb_content` | str | required | PDB file content (can be multi-chain) |
 | `target_chain` | str | "A" | Chain ID to extract for design |
-| `binder_type` | str | "vhh" | "vhh" or "scfv" |
 | `num_designs` | int | 100 | Number of designs to generate |
-| `hotspot_residues` | list[int] | None | Optional residues to target |
+| `binder_length` | int | 120 | Binder length in aa (110-130 range used) |
+| `hotspot_residues` | list[int] | None | Optional target residues for binding |
+| `protocol` | str | "nanobody-anything" | BoltzGen protocol |
 | `seed` | int | 42 | Random seed |
-| `temperature` | float | 1.0 | Sampling temperature |
-| `num_recycles` | int | 3 | Structure prediction recycles |
+
+**Output Metrics:**
+| Metric | Description |
+|--------|-------------|
+| `ipTM` | Interface predicted TM-score (0-1, higher = better binding) |
+| `pTM` | Predicted TM-score for binder structure |
+| `pae_min` | Minimum predicted aligned error at interface |
+| `rmsd` | RMSD between designed and refolded structure |
 
 **GPU Configuration:**
 - GPU: A100 (40GB)
 - Timeout: 1 hour (single), 2 hours (batch)
-- Retries: 2
 
 ### boltz2_app.py
 
 Protein complex structure prediction using Boltz-2.
 
 ```bash
+# Download model weights (first time only)
+modal run modal/boltz2_app.py --download
+
 # Deploy
 modal deploy modal/boltz2_app.py
 
-# Test locally
-modal run modal/boltz2_app.py --binder-seq "EVQL..." --target-pdb data/targets/cd3.pdb
+# Run prediction (sequences only - no PDB needed)
+modal run modal/boltz2_app.py --binder-seq "EVQLVESGGGLVQ..." --target-seq "QTPYKVSISGT..."
 ```
 
 **Functions:**
