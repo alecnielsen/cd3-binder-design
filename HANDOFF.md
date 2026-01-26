@@ -1,6 +1,6 @@
 # Handoff Notes - Modal Integration
 
-## Current Status (2026-01-22)
+## Current Status (2026-01-25)
 
 ### Boltz-2: WORKING
 
@@ -17,55 +17,63 @@ Results:
 
 **Known limitation:** Interface metrics return 0 because mmCIF parsing isn't implemented. The confidence scores from Boltz-2's JSON output work fine.
 
-### BoltzGen: NEEDS INVESTIGATION
+### BoltzGen: WORKING (Fixed 2026-01-25)
 
-The pipeline runs through design and inverse_folding steps but:
-1. **Inverse folding doesn't assign sequences** - Output CIF shows chain B still has all X's
-2. **Folding step crashes** - TypeError in confidence module
+Successfully generating de novo binder designs:
+```bash
+modal run modal/boltzgen_app.py --target-pdb data/targets/1XIW.pdb --target-chain A --num-designs 10
+```
 
-#### What We Observed
+Example results:
+- design_spec_0: 122 aa, ipTM=0.271, pTM=0.713 (VH-like sequence)
+- design_spec_1: 116 aa, ipTM=0.157, pTM=0.741 (VH-like sequence)
+- design_spec_2: 110 aa, ipTM=0.171, pTM=0.722 (VL-like sequence)
 
-Design spec being generated:
+**Note:** BoltzGen's internal filtering (`filter_rmsd < 2.5`) often rejects all designs. We extract designs anyway for our own filtering pipeline.
+
+#### Root Cause (Fixed)
+
+The YAML format was completely wrong. BoltzGen uses a different specification:
+
+**OLD (Wrong):**
 ```yaml
 entities:
   - protein:
       id: A
-      sequence: QTPYKVSISGTTVILTCPQYPGSEILWQHNDKNIGGDEDDKNIGSDEDHLSLKEFSELEQSGYYVCYPRGSKPEDANFYLYLRARVCENCM
+      sequence: QTPYKVSISGTTVILT...  # Inline sequence
       design: false
   - protein:
       id: B
-      sequence: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      sequence: XXXX...  # Placeholder
       design: true
       binding: [A]
 ```
 
-Output CIF after "successful" inverse_folding step:
+**NEW (Correct):**
+```yaml
+entities:
+  - protein:
+      id: B
+      sequence: 110..130  # Range notation for design length
+  - file:
+      path: target.pdb  # File reference, not inline sequence
+      include:
+        - chain:
+            id: A
 ```
-1 polypeptide(L) ? QTPYKVSISGTTVILTCPQYPGSEILWQHNDKNIGGDEDDKNIGSDEDHLSLKEFSELEQS  <- Target OK
-2 polypeptide(L) ? XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX   <- Binder still X's!
-```
 
-#### Likely Issues to Investigate
-
-1. **Design spec format may be wrong** - Our YAML structure (`design: true`, `binding: [A]`) may not match BoltzGen's expected input format. Check:
-   - BoltzGen GitHub examples
-   - OpenProtein's implementation (user says they have it working)
-   - `boltzgen run --help` for input format details
-
-2. **Protocol selection** - We're using `--protocol nanobody-anything`. Other options exist:
-   - `protein-anything`
-   - `peptide-anything`
-   - `antibody-anything`
-
-3. **Input might need PDB structure, not just sequence** - The design step might need the target's 3D structure, not just sequence in YAML
-
-4. **Binder specification** - The `sequence: XXX...` placeholder might not be the right way to specify "design this chain"
+Key fixes:
+1. Use `sequence: 110..130` (range notation) instead of `sequence: XXX...`
+2. Reference target via `file: { path: ... }` instead of inline sequence
+3. Remove invalid keys (`design: true`, `binding: [A]`)
+4. Binder entity comes FIRST, target comes SECOND
 
 #### Files Changed
 
-- `modal/boltzgen_app.py`: Added `from __future__ import annotations` for Python 3.9 compatibility
-- `modal/boltzgen_app.py`: Fixed download to use `boltzgen/boltzgen-1` repo (all checkpoints in one repo)
-- `modal/boltzgen_app.py`: Fixed inference-data download to use `repo_type="dataset"`
+- `modal/boltzgen_app.py`: Complete rewrite of `build_design_spec_yaml()` function
+- `modal/boltzgen_app.py`: Write target PDB to file and reference it in YAML
+- `modal/boltzgen_app.py`: Fixed CIF parsing to extract from `_entity_poly.pdbx_seq_one_letter_code`
+- `modal/boltzgen_app.py`: Added CSV metrics parsing for ipTM, pTM, etc.
 
 ### Model Downloads: COMPLETE
 
@@ -79,25 +87,27 @@ Models stored in Modal volumes:
 - `boltz-models` - Boltz-2 weights
 - `boltzgen-models` - BoltzGen weights
 
-## Next Steps for Investigation
+## Next Steps
 
-1. **Check BoltzGen input format**
-   - Look at examples in https://github.com/HannesStark/boltzgen
-   - The input might need a PDB file for the target structure, not just sequence
-   - Check if there's a specific format for specifying designable regions
+1. **Run full pipeline** - Both BoltzGen and Boltz-2 are working. Run the full pipeline:
+   ```bash
+   python scripts/00_run_calibration.py
+   python scripts/run_full_pipeline.py --config config.yaml
+   ```
 
-2. **Compare with OpenProtein implementation**
-   - User mentioned OpenProtein has BoltzGen working
-   - Find their implementation and compare input formats
+2. **Generate more designs** - Current test used 3 designs. Production run should use 100+ per target.
 
-3. **Test with official BoltzGen examples**
-   - Clone the BoltzGen repo
-   - Run their example notebooks/scripts
-   - Compare our input format with theirs
+3. **Test with hotspot residues** - Can specify binding site residues for more targeted design:
+   ```yaml
+   binding_types:
+     - chain:
+         id: A
+         binding: 23,24,25,50,51  # OKT3 epitope residues
+   ```
 
-4. **Check if target needs structure**
-   - BoltzGen might need the target PDB structure for spatial reasoning
-   - Try passing actual PDB file instead of extracting sequence
+4. **Consider protocol options** - Current uses `nanobody-anything`. Also available:
+   - `protein-anything` - general protein binder design
+   - `antibody-anything` - for Fab/scFv with CDR design
 
 ## Technical Notes
 
@@ -109,19 +119,15 @@ Models stored in Modal volumes:
 ### Test Commands
 ```bash
 # Boltz-2 (working)
-/Users/alec/Library/Python/3.9/bin/modal run modal/boltz2_app.py --binder-seq "EVQLVESGGGLVQPGGSLRLSCAASGFTFSDYWMNWVRQAPGKGLEWVAEIRLKSNNYATHYAESVKGRFTISRDNAKNSLYLQMNSLRAEDTAVYYCTGSYYGMDYWGQGTLVTVSS" --target-seq "DGNEEMGGITQTPYKVSISGTTVILTCPQYPGSEILWQHNDKNIGGDEDDKNIGSDEDHLSLKEFSELEQSGYYVCYPRGSKPEDANFYLYLRARVCENCME"
+modal run modal/boltz2_app.py --binder-seq "EVQLVESGGGLVQPGGSLRLSCAASGFTFSDYWMNWVRQAPGKGLEWVAEIRLKSNNYATHYAESVKGRFTISRDNAKNSLYLQMNSLRAEDTAVYYCTGSYYGMDYWGQGTLVTVSS" --target-seq "DGNEEMGGITQTPYKVSISGTTVILTCPQYPGSEILWQHNDKNIGGDEDDKNIGSDEDHLSLKEFSELEQSGYYVCYPRGSKPEDANFYLYLRARVCENCME"
 
-# BoltzGen (not working correctly)
-/Users/alec/Library/Python/3.9/bin/modal run modal/boltzgen_app.py --target-pdb data/targets/1XIW.pdb --target-chain A --num-designs 2
-```
+# BoltzGen (working)
+modal run modal/boltzgen_app.py --target-pdb data/targets/1XIW.pdb --target-chain A --num-designs 10
 
-### Key Error in BoltzGen Folding Step
+# Download models (first time only)
+modal run modal/boltzgen_app.py --download
+modal run modal/boltz2_app.py --download
 ```
-TypeError: expected Tensor as element 0 in argument 0, but got float
-```
-At: `/usr/local/lib/python3.11/site-packages/boltzgen/model/modules/confidence.py:143`
-
-This might be a secondary issue - the primary problem is that inverse folding isn't assigning sequences.
 
 ## References
 

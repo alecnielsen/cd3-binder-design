@@ -125,67 +125,58 @@ def parse_pdb_sequence(pdb_content: str, chain_id: str = "A") -> str:
 
 
 def build_design_spec_yaml(
-    target_sequence: str,
-    binder_length: int = 120,
+    target_cif_path: str,
+    target_chain: str = "A",
+    binder_length: int | tuple[int, int] = 120,
     hotspot_residues: list[int] | None = None,
 ) -> str:
     """Build BoltzGen design specification YAML.
 
+    Uses the correct BoltzGen format:
+    - Target referenced via file path (not inline sequence)
+    - Binder specified with range notation (e.g., "80..140")
+    - Binding sites via binding_types section
+
     Args:
-        target_sequence: Target protein sequence.
-        binder_length: Length of binder to design (120 for VHH).
+        target_cif_path: Path to target CIF file (relative to YAML location).
+        target_chain: Chain ID to use from target file.
+        binder_length: Length of binder - either int or (min, max) tuple.
         hotspot_residues: Optional list of target residues to focus binding on.
 
     Returns:
         YAML string for BoltzGen design spec.
     """
-    # Build design spec
-    # Target is chain A (fixed), binder is chain B (to be designed)
-    spec = {
-        "entities": [
-            {
-                "protein": {
-                    "id": "A",
-                    "sequence": target_sequence,
-                    "design": False,
-                }
-            },
-            {
-                "protein": {
-                    "id": "B",
-                    "sequence": "X" * binder_length,  # X marks designable positions
-                    "design": True,
-                    "binding": ["A"],
-                }
-            }
-        ]
-    }
+    # Format binder length as range notation
+    if isinstance(binder_length, tuple):
+        min_len, max_len = binder_length
+        length_spec = f"{min_len}..{max_len}"
+    else:
+        # Use a small range around the target length for flexibility
+        length_spec = f"{binder_length - 10}..{binder_length + 10}"
 
-    # Add hotspot constraints if specified
-    if hotspot_residues:
-        spec["entities"][1]["protein"]["constraints"] = {
-            "contacts": [{"chain": "A", "residues": hotspot_residues}]
-        }
-
-    # Convert to YAML manually (avoid PyYAML dependency)
+    # Build YAML manually (avoid PyYAML dependency)
     lines = ["entities:"]
 
-    for entity in spec["entities"]:
-        lines.append("  - protein:")
-        protein = entity["protein"]
-        lines.append(f"      id: {protein['id']}")
-        lines.append(f"      sequence: {protein['sequence']}")
-        if "design" in protein:
-            lines.append(f"      design: {'true' if protein['design'] else 'false'}")
-        if "binding" in protein:
-            lines.append(f"      binding: [{', '.join(protein['binding'])}]")
-        if "constraints" in protein:
-            lines.append("      constraints:")
-            lines.append("        contacts:")
-            for contact in protein["constraints"]["contacts"]:
-                lines.append(f"          - chain: {contact['chain']}")
-                residues_str = ", ".join(str(r) for r in contact["residues"])
-                lines.append(f"            residues: [{residues_str}]")
+    # Designed binder chain - use range notation
+    lines.append("  - protein:")
+    lines.append("      id: B")
+    lines.append(f"      sequence: {length_spec}")
+
+    # Target from file
+    lines.append("  - file:")
+    lines.append(f"      path: {target_cif_path}")
+    lines.append("      include:")
+    lines.append("        - chain:")
+    lines.append(f"            id: {target_chain}")
+
+    # Add binding site specification if hotspot residues provided
+    if hotspot_residues:
+        lines.append("")
+        lines.append("binding_types:")
+        lines.append("  - chain:")
+        lines.append(f"      id: {target_chain}")
+        residues_str = ",".join(str(r) for r in hotspot_residues)
+        lines.append(f"      binding: {residues_str}")
 
     return "\n".join(lines)
 
@@ -260,13 +251,20 @@ def run_boltzgen(
     # CRITICAL: Extract only the target chain to avoid design bias
     extracted_pdb = extract_chain_from_pdb_content(target_pdb_content, target_chain)
 
-    # Get target sequence
+    # Get target sequence for logging
     target_sequence = parse_pdb_sequence(extracted_pdb, target_chain)
     print(f"Target sequence ({len(target_sequence)} aa): {target_sequence[:50]}...")
 
-    # Build design spec YAML
+    # Write target PDB to file (BoltzGen needs file reference, not inline sequence)
+    # Note: BoltzGen accepts both PDB and CIF files
+    target_pdb_path = Path("target.pdb")
+    target_pdb_path.write_text(extracted_pdb)
+    print(f"Wrote extracted target chain {target_chain} to {target_pdb_path}")
+
+    # Build design spec YAML with file reference
     spec_yaml = build_design_spec_yaml(
-        target_sequence=target_sequence,
+        target_cif_path="target.pdb",  # BoltzGen accepts PDB too
+        target_chain=target_chain,
         binder_length=binder_length,
         hotspot_residues=hotspot_residues,
     )
@@ -314,6 +312,7 @@ def run_boltzgen(
     fasta_files = []
     cif_files = []
     json_files = []
+    csv_files = []
 
     for search_dir in search_dirs:
         if search_dir.exists():
@@ -321,8 +320,35 @@ def run_boltzgen(
             fasta_files.extend(list(search_dir.glob("**/*.fa")))
             cif_files.extend(list(search_dir.glob("**/*.cif")))
             json_files.extend(list(search_dir.glob("**/*.json")))
+            csv_files.extend(list(search_dir.glob("**/*.csv")))
 
-    print(f"Found {len(fasta_files)} FASTA, {len(cif_files)} CIF, {len(json_files)} JSON files")
+    print(f"Found {len(fasta_files)} FASTA, {len(cif_files)} CIF, {len(json_files)} JSON, {len(csv_files)} CSV files")
+
+    # Parse metrics from CSV if available (prefer metrics.csv which has design scores)
+    metrics_by_design = {}
+    # Sort to prefer metrics.csv over other CSVs
+    csv_files_sorted = sorted(csv_files, key=lambda f: "metrics" in f.name, reverse=True)
+    for csv_file in csv_files_sorted:
+        try:
+            content = csv_file.read_text()
+            csv_lines = content.strip().split("\n")
+            if len(csv_lines) < 2:
+                continue
+            headers = csv_lines[0].split(",")
+            print(f"  CSV {csv_file.name}: {headers[:8]}...")
+            for row in csv_lines[1:]:
+                values = row.split(",")
+                if len(values) >= len(headers):
+                    row_dict = dict(zip(headers, values))
+                    # Use 'id' column as key (BoltzGen uses this)
+                    design_id = row_dict.get("id", row_dict.get("file_name", ""))
+                    if design_id and design_id not in metrics_by_design:
+                        metrics_by_design[design_id] = row_dict
+                        iptm = row_dict.get("design_to_target_iptm", "N/A")
+                        ptm = row_dict.get("design_ptm", "N/A")
+                        print(f"    {design_id}: ipTM={iptm}, pTM={ptm}")
+        except Exception as e:
+            print(f"  Error parsing CSV {csv_file}: {e}")
 
     # Parse FASTA outputs for sequences
     for fasta_file in fasta_files:
@@ -356,11 +382,14 @@ def run_boltzgen(
     # If no FASTA files, try to extract sequences from CIF files
     if not designs and cif_files:
         print("No FASTA files found, extracting sequences from CIF files...")
-        # Only process inverse-folded files (they have sequences in _entity_poly)
-        ifold_cifs = [f for f in cif_files if "inverse_folded" in str(f.parent)]
+        # Only process inverse-folded files (skip refold_cif to avoid duplicates)
+        ifold_cifs = [
+            f for f in cif_files
+            if "inverse_folded" in str(f.parent) and "refold_cif" not in str(f)
+        ]
         if not ifold_cifs:
             ifold_cifs = cif_files  # Fallback to all CIF files
-        print(f"  Processing {len(ifold_cifs)} CIF files from inverse_folded dir...")
+        print(f"  Processing {len(ifold_cifs)} CIF files...")
         for cif_file in ifold_cifs:
             # Skip the design_spec.cif visualization file (only target, no design)
             if cif_file.name == "design_spec.cif":
@@ -370,50 +399,46 @@ def run_boltzgen(
                 content = cif_file.read_text()
                 lines = content.split("\n")
 
-                # Debug: show lines around _entity_poly.pdbx_seq_one_letter_code
-                for i, line in enumerate(lines):
-                    if "_entity_poly.pdbx_seq_one_letter_code" in line:
-                        print(f"    Found at line {i}:")
-                        for j in range(max(0, i-2), min(len(lines), i+10)):
-                            print(f"      {j}: {lines[j][:80]}")
+                # Parse _entity_poly loop for sequences
+                # Format: entity_id type strand_id sequence
+                # Entity 1 is the binder (chain B), Entity 2 is the target
+                in_entity_poly = False
+                entity_poly_cols = []
+                seq_col_idx = -1
+                binder_sequence = None
 
-                # Also try to find sequences in _pdbx_poly_seq_scheme which lists each residue
-                seq_by_chain = {}
-                in_poly_seq = False
                 for line in lines:
-                    if "_pdbx_poly_seq_scheme.mon_id" in line:
-                        in_poly_seq = True
-                        continue
-                    if in_poly_seq:
-                        if line.startswith("_") or line.startswith("#"):
-                            break
-                        # Parse data line: asym_id entity_id seq_id mon_id ...
+                    line = line.strip()
+                    if line.startswith("_entity_poly."):
+                        in_entity_poly = True
+                        col_name = line.split(".")[1]
+                        entity_poly_cols.append(col_name)
+                        if col_name == "pdbx_seq_one_letter_code":
+                            seq_col_idx = len(entity_poly_cols) - 1
+                    elif in_entity_poly:
+                        if line.startswith("_") or line.startswith("#") or line == "":
+                            in_entity_poly = False
+                            continue
+                        if line.startswith("loop_"):
+                            continue
+                        # Data line - parse entity_id and sequence
                         parts = line.split()
-                        if len(parts) >= 4:
-                            chain = parts[0]
-                            mon_id = parts[3]  # 3-letter code
-                            if chain not in seq_by_chain:
-                                seq_by_chain[chain] = []
-                            seq_by_chain[chain].append(mon_id)
+                        if len(parts) >= 4 and seq_col_idx >= 0:
+                            entity_id = parts[0]
+                            # Sequence is typically the last column
+                            sequence = parts[-1] if len(parts) > seq_col_idx else parts[seq_col_idx]
+                            print(f"    Entity {entity_id}: {sequence[:50]}... ({len(sequence)} aa)")
+                            # Entity 1 is the binder (first in YAML = chain B)
+                            if entity_id == "1" and "X" not in sequence:
+                                binder_sequence = sequence
 
-                # Convert 3-letter to 1-letter
-                aa_3to1 = {
-                    "ALA": "A", "ARG": "R", "ASN": "N", "ASP": "D", "CYS": "C",
-                    "GLN": "Q", "GLU": "E", "GLY": "G", "HIS": "H", "ILE": "I",
-                    "LEU": "L", "LYS": "K", "MET": "M", "PHE": "F", "PRO": "P",
-                    "SER": "S", "THR": "T", "TRP": "W", "TYR": "Y", "VAL": "V",
-                }
-                print(f"    Chains from _pdbx_poly_seq_scheme: {list(seq_by_chain.keys())}")
-                for chain, residues in seq_by_chain.items():
-                    seq = "".join([aa_3to1.get(r, "X") for r in residues])
-                    print(f"    Chain {chain}: {seq[:50]}... ({len(seq)} aa)")
-                    if chain == "B" and "X" not in seq:
-                        designs.append({
-                            "sequence": seq,
-                            "header": cif_file.stem,
-                            "source_file": cif_file.name,
-                        })
-                        break
+                if binder_sequence:
+                    designs.append({
+                        "sequence": binder_sequence,
+                        "header": cif_file.stem,
+                        "source_file": cif_file.name,
+                    })
+                    print(f"    -> Extracted binder: {binder_sequence[:40]}...")
             except Exception as e:
                 print(f"    Error parsing {cif_file.name}: {e}")
                 import traceback
@@ -435,9 +460,22 @@ def run_boltzgen(
         except (json.JSONDecodeError, KeyError):
             pass
 
-    # Add design indices
+    # Add design indices and merge metrics
     for i, design in enumerate(designs):
         design["design_idx"] = i
+        # Try to match with CSV metrics by design name
+        design_name = design.get("header", "")
+        if design_name in metrics_by_design:
+            metrics = metrics_by_design[design_name]
+            # BoltzGen uses these column names
+            try:
+                design["ipTM"] = float(metrics.get("design_to_target_iptm", 0))
+                design["pTM"] = float(metrics.get("design_ptm", 0))
+                design["pae_min"] = float(metrics.get("min_design_to_target_pae", 0))
+                design["rmsd"] = float(metrics.get("filter_rmsd", 0))
+                design["rmsd_design"] = float(metrics.get("filter_rmsd_design", 0))
+            except (ValueError, TypeError):
+                pass  # Skip if conversion fails
 
     print(f"Parsed {len(designs)} designs")
     return designs
