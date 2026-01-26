@@ -209,8 +209,8 @@ Per-candidate JSON scorecard:
   "candidate_id": "denovo_vhh_042",
   "source": "boltzgen_1XIW",
   "binding": {
-    "pdockq": 0.72,
-    "pdockq_note": "Structural confidence, NOT affinity predictor",
+    "iptm": 0.72,
+    "iptm_note": "Interface structural confidence, NOT affinity predictor",
     "interface_area": 1245.3,
     "contacts": 18,
     "passed_calibrated_threshold": true

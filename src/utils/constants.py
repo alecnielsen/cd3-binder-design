@@ -1,5 +1,7 @@
 """Constants for antibody analysis and engineering."""
 
+from typing import Optional, Tuple
+
 # Standard amino acids
 AMINO_ACIDS = "ACDEFGHIKLMNPQRSTVWY"
 
@@ -117,7 +119,7 @@ SCFV_LINKER_PATTERNS = [
 ]
 
 
-def _find_linker_by_heuristic(sequence: str) -> tuple[int, int] | None:
+def _find_linker_by_heuristic(sequence: str) -> Optional[Tuple[int, int]]:
     """Find a potential linker region using heuristics.
 
     Looks for glycine/serine-rich regions that could be linkers.
@@ -188,7 +190,7 @@ def _score_scfv_split(vh_len: int, vl_len: int, linker_len: int) -> float:
     return vh_score + vl_score + linker_score
 
 
-def parse_scfv(sequence: str, linker: str = None) -> tuple[str, str] | None:
+def parse_scfv(sequence: str, linker: str = None) -> Optional[Tuple[str, str]]:
     """Parse an scFv sequence into VH and VL components.
 
     Finds all occurrences of linker patterns and returns the split that

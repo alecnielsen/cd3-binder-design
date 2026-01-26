@@ -127,7 +127,8 @@ STRUCTURE PREDICTION
 └── Boltz-2 (complex with CD3ε)
 
 CALIBRATION (run first!)
-└── Set filter thresholds using known binders
+└── Set filter thresholds using known binder scFvs
+    (see docs/reference/calibration-methodology.md)
 
 FILTERING CASCADE
 ├── Binding quality (pDockQ, interface area, contacts)
@@ -166,7 +167,7 @@ All tools have permissive licenses suitable for commercial use:
 
 ### Prerequisites
 
-- Python 3.10+
+- Python 3.9+ (tested with 3.9.6, 3.10, 3.11)
 - Modal account: https://modal.com
 
 ### Installation

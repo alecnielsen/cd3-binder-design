@@ -11,6 +11,7 @@ Run locally:
 """
 
 import json
+import shutil
 import subprocess
 from pathlib import Path
 from typing import Optional
@@ -83,6 +84,85 @@ def build_yaml(sequences: dict[str, str], use_msa: bool = False) -> str:
     return "\n".join(lines)
 
 
+def parse_mmcif_atoms(cif_content: str) -> list[dict]:
+    """Parse ATOM records from mmCIF format.
+
+    Returns list of dicts with keys: chain, res_num, x, y, z
+    """
+    atoms = []
+    lines = cif_content.split("\n")
+
+    # Find the _atom_site loop header
+    in_atom_site = False
+    column_names = []
+
+    for i, line in enumerate(lines):
+        line = line.strip()
+
+        # Look for start of atom_site loop
+        if line.startswith("loop_"):
+            in_atom_site = False
+            column_names = []
+            continue
+
+        if line.startswith("_atom_site."):
+            in_atom_site = True
+            col_name = line.split(".")[1].split()[0]
+            column_names.append(col_name)
+            continue
+
+        # If we were reading column headers and hit data, process it
+        if in_atom_site and column_names and not line.startswith("_"):
+            if not line or line.startswith("#"):
+                break
+
+            # Get column indices we need
+            try:
+                chain_idx = column_names.index("label_asym_id")
+            except ValueError:
+                chain_idx = column_names.index("auth_asym_id") if "auth_asym_id" in column_names else None
+
+            try:
+                seq_idx = column_names.index("label_seq_id")
+            except ValueError:
+                seq_idx = column_names.index("auth_seq_id") if "auth_seq_id" in column_names else None
+
+            x_idx = column_names.index("Cartn_x") if "Cartn_x" in column_names else None
+            y_idx = column_names.index("Cartn_y") if "Cartn_y" in column_names else None
+            z_idx = column_names.index("Cartn_z") if "Cartn_z" in column_names else None
+            group_idx = column_names.index("group_PDB") if "group_PDB" in column_names else None
+
+            if None in [chain_idx, seq_idx, x_idx, y_idx, z_idx]:
+                break
+
+            # Now parse this line and remaining ATOM lines
+            for data_line in lines[i:]:
+                data_line = data_line.strip()
+                if not data_line or data_line.startswith("#") or data_line.startswith("_") or data_line.startswith("loop_"):
+                    break
+
+                parts = data_line.split()
+                if len(parts) <= max(chain_idx, seq_idx, x_idx, y_idx, z_idx):
+                    continue
+
+                # Only process ATOM records (not HETATM)
+                if group_idx is not None and parts[group_idx] != "ATOM":
+                    continue
+
+                try:
+                    chain = parts[chain_idx]
+                    res_num = int(parts[seq_idx]) if parts[seq_idx] != "." else 0
+                    x = float(parts[x_idx])
+                    y = float(parts[y_idx])
+                    z = float(parts[z_idx])
+                    atoms.append({"chain": chain, "res_num": res_num, "x": x, "y": y, "z": z})
+                except (ValueError, IndexError):
+                    continue
+            break
+
+    return atoms
+
+
 def calculate_interface_metrics(
     cif_or_pdb: str,
     binder_chain: str = "B",
@@ -95,29 +175,34 @@ def calculate_interface_metrics(
     binder_residues = set()
     target_residues = set()
 
-    for line in cif_or_pdb.split("\n"):
-        # Handle both PDB and basic mmCIF ATOM lines
-        if not line.startswith("ATOM"):
-            continue
-
-        # Try PDB format first
-        if len(line) >= 54 and line[30:38].strip().replace(".", "").replace("-", "").isdigit():
-            chain = line[21]
-            try:
-                x = float(line[30:38])
-                y = float(line[38:46])
-                z = float(line[46:54])
-                res_num = int(line[22:26])
-            except (ValueError, IndexError):
+    # Try mmCIF format first (Boltz-2 outputs mmCIF)
+    if "_atom_site." in cif_or_pdb:
+        atoms = parse_mmcif_atoms(cif_or_pdb)
+        for atom in atoms:
+            if atom["chain"] == binder_chain:
+                binder_atoms.append((atom["res_num"], atom["x"], atom["y"], atom["z"]))
+            elif atom["chain"] == target_chain:
+                target_atoms.append((atom["res_num"], atom["x"], atom["y"], atom["z"]))
+    else:
+        # Fall back to PDB format
+        for line in cif_or_pdb.split("\n"):
+            if not line.startswith("ATOM"):
                 continue
-        else:
-            # Skip mmCIF for now - would need proper parsing
-            continue
 
-        if chain == binder_chain:
-            binder_atoms.append((res_num, x, y, z))
-        elif chain == target_chain:
-            target_atoms.append((res_num, x, y, z))
+            if len(line) >= 54 and line[30:38].strip().replace(".", "").replace("-", "").isdigit():
+                chain = line[21]
+                try:
+                    x = float(line[30:38])
+                    y = float(line[38:46])
+                    z = float(line[46:54])
+                    res_num = int(line[22:26])
+                except (ValueError, IndexError):
+                    continue
+
+                if chain == binder_chain:
+                    binder_atoms.append((res_num, x, y, z))
+                elif chain == target_chain:
+                    target_atoms.append((res_num, x, y, z))
 
     # Find contacts - count unique residue pairs
     contact_pairs = set()
@@ -182,6 +267,10 @@ def predict_complex(
     Returns:
         Dictionary with prediction results.
     """
+    # Clean up old results directories to avoid reading stale outputs
+    for old_dir in Path(".").glob("boltz_results_*"):
+        shutil.rmtree(old_dir, ignore_errors=True)
+
     # Build YAML input - target is chain A, binder is chain B
     yaml_content = build_yaml({"A": target_sequence, "B": binder_sequence}, use_msa=use_msa)
 
@@ -192,6 +281,7 @@ def predict_complex(
         "boltz", "predict", str(input_path),
         "--cache", str(models_dir),
         "--accelerator", "gpu",
+        "--seed", str(seed),
     ]
     if use_msa:
         cmd.append("--use_msa_server")
@@ -203,8 +293,11 @@ def predict_complex(
         print(f"STDERR: {result.stderr}")
         raise RuntimeError(f"Boltz-2 prediction failed: {result.stderr}")
 
-    # Find outputs
-    results_dir = list(Path(".").glob("boltz_results_*"))[0]
+    # Find outputs - should only be one directory now after cleanup
+    results_dirs = list(Path(".").glob("boltz_results_*"))
+    if not results_dirs:
+        raise RuntimeError("No boltz_results directory found after prediction")
+    results_dir = results_dirs[0]
     pred_dir = list((results_dir / "predictions").iterdir())[0]
 
     cif_file = list(pred_dir.glob("*_model_0.cif"))[0]
@@ -213,7 +306,7 @@ def predict_complex(
     cif_content = cif_file.read_text()
     confidence = json.loads(conf_file.read_text())
 
-    # Calculate interface metrics (note: mmCIF parsing is limited)
+    # Calculate interface metrics
     interface = calculate_interface_metrics(cif_content, binder_chain="B", target_chain="A")
 
     return {

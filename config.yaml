@@ -1,91 +1,73 @@
-# CD3 Binder Design Pipeline Configuration
-# See README.md for full documentation
-
 design:
-  denovo:
-    num_vhh_designs: 5
-    num_scfv_designs: 5
-    target_structures:
-      - data/targets/1XIW.pdb
-      - data/targets/1SY6.pdb
-
-  optimization:
-    starting_sequences:
-      - teplizumab
-      - sp34
-      - ucht1
-    affinity_variants:
-      - wild_type
-      - 10x_weaker
-      - 100x_weaker
-
+  num_vhh_designs: 5
+  num_scfv_designs: 5
+  target_structures:
+  - data/targets/1XIW.pdb
+  - data/targets/1SY6.pdb
+  starting_sequences:
+  - teplizumab
+  - sp34
+  - ucht1
+  affinity_variants:
+  - wild_type
+  - 10x_weaker
+  - 100x_weaker
 calibration:
   positive_controls:
-    - teplizumab
-    - sp34
-    - ucht1
-  calibration_margin:
-    pdockq: 0.05
-    interface_area: 100
-    contacts: 2
-
-calibrated_thresholds:
-  min_pdockq: 0.0
-  min_interface_area: 0.0
-  min_contacts: 0
-
+  - teplizumab
+  - sp34
+  - ucht1
+  pdockq_margin: 0.05
+  interface_area_margin: 100
+  contacts_margin: 2
 filtering:
-  binding:
-    min_pdockq: 0.5
-    min_interface_area: 800
-    min_contacts: 10
-    use_calibrated: true
-
-  humanness:
-    min_oasis_score: 0.8
-    generate_back_mutations: true
-
-  liabilities:
-    allow_deamidation_cdr: false
-    allow_isomerization_cdr: false
-    allow_glycosylation_cdr: false
-    max_oxidation_sites: 2
-
-  developability:
-    cdr_h3_length_range: [8, 20]
-    net_charge_range: [-2, 4]
-    pi_range: [6.0, 9.0]
-    max_hydrophobic_patches: 2
-
-  fallback:
-    min_candidates: 10
-    relax_soft_filters_first: true
-    max_threshold_relaxation: 0.1
-
+  min_pdockq: 0.5
+  min_interface_area: 800
+  min_contacts: 10
+  use_calibrated: true
+  min_oasis_score: 0.8
+  generate_back_mutations: true
+  allow_deamidation_cdr: false
+  allow_isomerization_cdr: false
+  allow_glycosylation_cdr: false
+  max_oxidation_sites: 2
+  cdr_h3_length_range:
+  - 8
+  - 20
+  net_charge_range:
+  - -2
+  - 4
+  pi_range:
+  - 6.0
+  - 9.0
+  max_hydrophobic_patches: 2
+  min_candidates: 10
+  relax_soft_filters_first: true
+  max_threshold_relaxation: 0.1
 formatting:
   tumor_target: trastuzumab
   formats:
-    - crossmab
-    - fab_scfv
-    - fab_vhh
-    - igg_scfv
-    - igg_vhh
-
-  linkers:
-    scfv: "GGGGSGGGGSGGGGS"
-    fc_fusion: "GGGGSGGGGS"
-
+  - crossmab
+  - fab_scfv
+  - fab_vhh
+  - igg_scfv
+  - igg_vhh
+  scfv_linker: GGGGSGGGGSGGGGS
+  fc_fusion_linker: GGGGSGGGGS
 output:
   num_final_candidates: 10
   include_structures: true
   generate_report: true
   include_provenance: true
   output_dir: data/outputs
-
 reproducibility:
   boltzgen_seed: 42
   sampling_seed: 12345
   clustering_seed: 0
-
-epitope_annotation:
+epitope:
+  okt3_epitope_residues: null
   overlap_threshold: 0.5
+calibrated_thresholds:
+  min_pdockq: 0.0
+  min_interface_area: 2060.0
+  min_contacts: 28
