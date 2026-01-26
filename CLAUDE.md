@@ -2,7 +2,7 @@
 
 ## Overview
 
-Computational pipeline for designing CD3-binding domains (VHH/scFv) for bispecific antibody therapeutics. See README.md for full documentation.
+Computational pipeline for designing CD3-binding domains (VHH/Fab) for bispecific antibody therapeutics. See README.md for full documentation.
 
 **Goal**: Design ~10 CD3 binders for experimental testing.
 
@@ -12,20 +12,17 @@ Computational pipeline for designing CD3-binding domains (VHH/scFv) for bispecif
 - **Affinity**: ~50 nM Kd hypothesis (balance efficacy with CRS risk). Cannot be computationally enforced.
 - **Compute**: Modal required for GPU (BoltzGen/Boltz-2 need CUDA).
 
+## Design Types
+
+| Type | Method | Output | Status |
+|------|--------|--------|--------|
+| **VHH** | BoltzGen `nanobody-anything` | Single-domain ~120 aa | Working |
+| **Fab** | BoltzGen `antibody-anything` CDR redesign | VH ~120 aa + VL ~107 aa | Working |
+| **scFv from known Ab** | Optimization track | VH-linker-VL | Working |
+
+The Fab CDR redesign uses human antibody scaffolds (adalimumab, belimumab, etc.) and redesigns only the CDR loops, maintaining proper VH/VL structure.
+
 ## Notes for Claude
-
-### CRITICAL BUG: De Novo scFv Design is Broken
-
-The current `boltzgen_runner.py` uses `binder_length=250` with `nanobody-anything` protocol for scFv. **This produces a ~250 aa single-domain blob, NOT a proper VH-linker-VL scFv.**
-
-**Fix**: Use BoltzGen Fab CDR redesign with proven human scaffolds (adalimumab, etc.). See `HANDOFF.md` for details and YAML format.
-
-**What works now:**
-- VHH de novo design (nanobody-anything, 120 aa) ✅
-- scFv from known antibodies (optimization track) ✅
-- De novo scFv (binder_length=250) ❌ BROKEN
-
----
 
 Critical implementation details:
 
@@ -59,6 +56,7 @@ Critical implementation details:
 
 ### Running the Pipeline
 ```bash
+python scripts/setup_fab_scaffolds.py   # Download Fab scaffolds (once)
 python scripts/00_run_calibration.py    # Run first!
 python scripts/run_full_pipeline.py --config config.yaml
 ```
@@ -67,7 +65,20 @@ python scripts/run_full_pipeline.py --config config.yaml
 - `src/` - Core library modules
 - `modal/` - GPU compute deployments
 - `scripts/` - Pipeline execution (00-07)
+- `data/fab_scaffolds/` - Human Fab scaffold files (CIF + YAML)
 - `docs/reference/` - Detailed implementation docs
+
+### Fab Scaffolds Available
+14 proven human antibody scaffolds: adalimumab, belimumab, crenezumab, dupilumab, golimumab, guselkumab, mab1, necitumumab, nirsevimab, sarilumab, secukinumab, tezepelumab, tralokinumab, ustekinumab
+
+Configure in `config.yaml`:
+```yaml
+design:
+  fab_scaffolds:
+    - adalimumab
+    - belimumab
+    - dupilumab
+```
 
 ### Future: Affinity Prediction Tools (Not Yet Integrated)
 - **Boltz-2 IC50** - Enable with `--sampling_steps_affinity 200` (MIT, not antibody-validated)

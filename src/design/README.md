@@ -1,7 +1,7 @@
 # Design Module - Scientific Context
 
 This module handles:
-- De novo binder design using BoltzGen
+- De novo binder design using BoltzGen (VHH nanobodies and Fab CDR redesign)
 - Optimization of existing binders (teplizumab, SP34, UCHT1)
 - Generation of affinity-attenuated variants
 
@@ -9,9 +9,22 @@ This module handles:
 
 ### Track 1: De Novo Design (BoltzGen)
 
-BoltzGen is an open-source (MIT license) generative model for protein binder design. It can design:
-- VHH nanobodies (~120 amino acids, single domain)
-- scFvs (~250 amino acids, VH-linker-VL)
+BoltzGen is an open-source (MIT license) generative model for protein binder design. It supports two design modes:
+
+| Mode | Protocol | Output | Description |
+|------|----------|--------|-------------|
+| **VHH** | `nanobody-anything` | Single-domain ~120 aa | De novo nanobody design |
+| **Fab** | `antibody-anything` | VH ~120 aa + VL ~107 aa | CDR redesign on human scaffolds |
+
+#### VHH Design
+Generates novel single-domain nanobodies directly from the target structure.
+
+#### Fab CDR Redesign
+Uses proven human antibody scaffolds (adalimumab, belimumab, etc.) and redesigns only the CDR loops:
+- **Maintains human frameworks** - lower immunogenicity risk
+- **Proper VH/VL structure** - correct antibody architecture
+- **Variable CDR lengths** - especially H-CDR3 (3-21 aa)
+- **14 scaffolds available** - adalimumab, belimumab, crenezumab, dupilumab, golimumab, guselkumab, mab1, necitumumab, nirsevimab, sarilumab, secukinumab, tezepelumab, tralokinumab, ustekinumab
 
 **Approach:**
 1. Provide CD3 epsilon structure as target (from 1XIW and 1SY6)
@@ -61,23 +74,42 @@ De Novo (BoltzGen)              Optimization Track
 
 ```yaml
 design:
-  denovo:
-    num_vhh_designs: 200          # VHH candidates from BoltzGen
-    num_scfv_designs: 200         # scFv candidates from BoltzGen
-    target_structures:
-      - data/targets/cd3_epsilon_delta_1XIW.pdb
-      - data/targets/cd3_epsilon_gamma_1SY6.pdb
+  # De novo design counts
+  num_vhh_designs: 200          # VHH nanobodies via nanobody-anything
+  num_fab_designs: 200          # Fab CDR redesign via antibody-anything
 
-  optimization:
-    starting_sequences:
-      - teplizumab                # Primary optimization target
-      - sp34                      # Cynomolgus cross-reactive
-      - ucht1                     # Alternative epitope
-    affinity_variants:
-      - wild_type
-      - 10x_weaker
-      - 100x_weaker
+  # Target structures
+  target_structures:
+    - data/targets/1XIW.pdb     # CD3εδ heterodimer
+    - data/targets/1SY6.pdb     # CD3εγ heterodimer
+
+  # Human Fab scaffolds for CDR redesign
+  fab_scaffolds:
+    - adalimumab                # TNF-alpha, well-characterized
+    - belimumab                 # BLyS, human framework
+    - dupilumab                 # IL-4R, modern design
+  fab_scaffold_dir: data/fab_scaffolds
+
+  # Optimization track
+  starting_sequences:
+    - teplizumab                # Primary optimization target
+    - sp34                      # Cynomolgus cross-reactive
+    - ucht1                     # Alternative epitope
+  affinity_variants:
+    - wild_type
+    - 10x_weaker
+    - 100x_weaker
 ```
+
+### Setup Fab Scaffolds
+
+Before running Fab design, download scaffold files:
+
+```bash
+python scripts/setup_fab_scaffolds.py
+```
+
+This downloads 14 CIF files from RCSB PDB and creates YAML specifications with CDR definitions.
 
 ## Critical Assumptions
 

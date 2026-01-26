@@ -22,7 +22,12 @@ Modal (https://modal.com) provides on-demand GPU compute for:
 
 ### boltzgen_app.py
 
-De novo binder design using BoltzGen.
+De novo binder design using BoltzGen. Supports two design modes:
+
+| Mode | Protocol | Output | Use Case |
+|------|----------|--------|----------|
+| **VHH** | `nanobody-anything` | Single-domain ~120 aa | De novo nanobody |
+| **Fab** | `antibody-anything` | VH ~120 aa + VL ~107 aa | CDR redesign on human scaffolds |
 
 ```bash
 # Download model weights (first time only)
@@ -31,8 +36,12 @@ modal run modal/boltzgen_app.py --download
 # Deploy
 modal deploy modal/boltzgen_app.py
 
-# Run design
-modal run modal/boltzgen_app.py --target-pdb data/targets/1XIW.pdb --target-chain A --num-designs 10
+# VHH design (default)
+modal run modal/boltzgen_app.py --target-pdb data/targets/1XIW.pdb --design-type vhh --num-designs 10
+
+# Fab CDR redesign (requires scaffold files)
+python scripts/setup_fab_scaffolds.py  # Run once to download scaffolds
+modal run modal/boltzgen_app.py --target-pdb data/targets/1XIW.pdb --design-type fab --scaffolds adalimumab,belimumab --num-designs 10
 ```
 
 #### Critical: Target Chain Extraction
@@ -76,12 +85,14 @@ binding_types:
 **Important**: Do NOT use `sequence: XXX...` placeholders or `design: true` keys - these are not valid BoltzGen format.
 
 **Functions:**
-- `run_boltzgen()`: Generate designs for a single target (extracts chain first)
+- `run_boltzgen()`: VHH design for a single target (extracts chain first)
+- `run_boltzgen_fab()`: Fab CDR redesign using human antibody scaffolds
 - `run_boltzgen_batch()`: Generate designs for multiple targets
 - `extract_chain_from_pdb_content()`: Extract single chain from multi-chain PDB
-- `build_design_spec_yaml()`: Generate correct YAML format
+- `build_design_spec_yaml()`: Generate correct YAML format for VHH
+- `build_fab_target_yaml()`: Generate YAML format for Fab CDR redesign
 
-**Parameters:**
+**Parameters for `run_boltzgen()` (VHH):**
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `target_pdb_content` | str | required | PDB file content (can be multi-chain) |
@@ -91,6 +102,25 @@ binding_types:
 | `hotspot_residues` | list[int] | None | Optional target residues for binding |
 | `protocol` | str | "nanobody-anything" | BoltzGen protocol |
 | `seed` | int | 42 | Random seed |
+
+**Parameters for `run_boltzgen_fab()` (Fab CDR redesign):**
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `target_pdb_content` | str | required | PDB file content (can be multi-chain) |
+| `target_chain` | str | "A" | Chain ID to extract for design |
+| `scaffold_names` | list[str] | required | Scaffold names (e.g., ["adalimumab"]) |
+| `scaffold_yaml_contents` | dict | required | {scaffold_name: yaml_content} |
+| `scaffold_cif_contents` | dict | required | {scaffold_name: cif_content} |
+| `num_designs` | int | 100 | Number of designs to generate |
+| `seed` | int | 42 | Random seed |
+
+**Fab CDR Redesign Output:**
+| Field | Description |
+|-------|-------------|
+| `vh_sequence` | VH chain sequence (~120 aa) |
+| `vl_sequence` | VL chain sequence (~107 aa) |
+| `pTM` | Predicted TM-score for Fab structure |
+| `ipTM` | Interface predicted TM-score (binding quality) |
 
 **Output Metrics:**
 | Metric | Description |
@@ -220,13 +250,13 @@ def predict_complex(binder_seq: str, target_pdb: str, use_modal: bool = True):
 
 | Operation | GPU Time | Estimated Cost |
 |-----------|----------|----------------|
-| BoltzGen (100 VHH) | ~20 min | $3-5 |
-| BoltzGen (100 scFv) | ~30 min | $5-8 |
+| BoltzGen VHH (100 designs) | ~20 min | $3-5 |
+| BoltzGen Fab CDR redesign (100 designs) | ~30 min | $5-8 |
 | Boltz-2 (1 complex) | ~2 min | $0.05 |
 | Boltz-2 (100 complexes) | ~3 hours | $15-20 |
 | Calibration (3 binders) | ~10 min | $1-2 |
 
-**Full pipeline estimate**: $20-50 for 400 designs + structure predictions.
+**Full pipeline estimate**: $20-50 for 400 designs (200 VHH + 200 Fab) + structure predictions.
 
 ## Reproducibility
 

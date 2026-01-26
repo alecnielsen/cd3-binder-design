@@ -2,15 +2,26 @@
 
 This directory contains the execution scripts for the CD3 binder design pipeline. Each script corresponds to a specific step in the pipeline and can be run individually or orchestrated via `run_full_pipeline.py`.
 
+## Prerequisites
+
+Before running the pipeline, set up Fab scaffolds:
+
+```bash
+python scripts/setup_fab_scaffolds.py
+```
+
+This downloads 14 human antibody scaffold structures from RCSB PDB and creates BoltzGen YAML specifications.
+
 ## Pipeline Order
 
 The scripts are numbered to indicate their execution order:
 
 | Step | Script | Description |
 |------|--------|-------------|
+| - | `setup_fab_scaffolds.py` | Download Fab scaffolds from PDB (run once) |
 | 0 | `00_run_calibration.py` | Calibrate filter thresholds using known binders |
 | 1 | `01_setup_targets.py` | Download and prepare CD3 target structures |
-| 2 | `02_run_denovo_design.py` | Run BoltzGen de novo design on Modal |
+| 2 | `02_run_denovo_design.py` | Run BoltzGen VHH + Fab design on Modal |
 | 3 | `03_run_optimization.py` | Generate optimized variants of existing binders |
 | 4 | `04_predict_structures.py` | Run Boltz-2 complex structure prediction |
 | 5 | `05_filter_candidates.py` | Apply filtering cascade (binding, humanness, liabilities) |
@@ -22,6 +33,9 @@ The scripts are numbered to indicate their execution order:
 ### Full Pipeline
 
 ```bash
+# Setup (once)
+python scripts/setup_fab_scaffolds.py
+
 # Run all steps
 python scripts/run_full_pipeline.py --config config.yaml
 
@@ -38,13 +52,16 @@ python scripts/run_full_pipeline.py --config config.yaml --start-from 3
 ### Individual Steps
 
 ```bash
+# Prerequisites: Setup scaffolds (run once)
+python scripts/setup_fab_scaffolds.py
+
 # Step 0: Calibration (RUN FIRST)
 python scripts/00_run_calibration.py --config config.yaml
 
 # Step 1: Setup targets (does not require config)
 python scripts/01_setup_targets.py --output-dir data/targets
 
-# Step 2: De novo design (requires Modal)
+# Step 2: De novo design - VHH + Fab (requires Modal)
 python scripts/02_run_denovo_design.py --config config.yaml
 
 # etc.
@@ -74,12 +91,22 @@ python scripts/02_run_denovo_design.py --config config.yaml
 
 ### De Novo Design (Step 2)
 
-**Assumption**: BoltzGen can generate VHH/scFv sequences that bind CD3 epsilon.
+**Assumption**: BoltzGen can generate VHH/Fab sequences that bind CD3 epsilon.
+
+Generates two types of binders:
+
+| Type | Protocol | Output | Description |
+|------|----------|--------|-------------|
+| **VHH** | `nanobody-anything` | ~120 aa single-domain | De novo nanobody |
+| **Fab** | `antibody-anything` | VH + VL (~227 aa total) | CDR redesign on human scaffolds |
+
+**Fab CDR redesign** uses 14 proven human scaffolds (adalimumab, belimumab, etc.) and redesigns only the CDR loops, maintaining human frameworks for lower immunogenicity.
 
 - Runs on Modal with A100 GPU
-- Generates configurable number of designs (default: 200 VHH + 200 scFv)
+- Generates configurable number of designs (default: 200 VHH + 200 Fab)
 - Uses random seeds for reproducibility
 - Target structures from step 1 guide design generation
+- Fab design requires scaffold files (run `setup_fab_scaffolds.py` first)
 
 **Limitation**: BoltzGen hit rate is unknown for CD3. May require 500-1000 designs for sufficient diversity.
 

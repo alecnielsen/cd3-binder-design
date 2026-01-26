@@ -88,7 +88,20 @@ All starting sequences are from expired patents or public domain publications:
 
 ### Track 1: De Novo Design (BoltzGen)
 
-BoltzGen generates VHH nanobodies (~120 aa) and scFvs (~250 aa) targeting CD3ε from 1XIW and 1SY6 structures.
+BoltzGen generates two types of binders targeting CD3ε from 1XIW and 1SY6 structures:
+
+| Binder Type | Method | Output | Description |
+|-------------|--------|--------|-------------|
+| **VHH** | `nanobody-anything` | Single-domain ~120 aa | De novo nanobody design |
+| **Fab** | `antibody-anything` CDR redesign | VH ~120 aa + VL ~107 aa | Human scaffold with redesigned CDRs |
+
+**Fab CDR Redesign** uses proven human antibody scaffolds (adalimumab, belimumab, etc.) and redesigns only the CDR loops. This approach:
+- Maintains proper VH/VL antibody structure
+- Uses human frameworks for lower immunogenicity
+- Supports variable CDR lengths (especially CDR-H3)
+- Outputs separate VH and VL sequences for downstream formatting
+
+**14 available scaffolds**: adalimumab, belimumab, crenezumab, dupilumab, golimumab, guselkumab, mab1, necitumumab, nirsevimab, sarilumab, secukinumab, tezepelumab, tralokinumab, ustekinumab
 
 **Limitations:**
 - Cannot design full-length IgG directly
@@ -118,7 +131,9 @@ INPUT PREPARATION
 
 DESIGN GENERATION
 ├── De Novo (BoltzGen on Modal GPU)
-│   └── VHH + scFv designs (100+ each)
+│   ├── VHH nanobodies (100+) - nanobody-anything protocol
+│   └── Fab CDR redesign (100+) - antibody-anything protocol
+│       └── Uses human scaffolds (adalimumab, etc.)
 └── Optimization Track
     └── Humanize + generate affinity variants
 
@@ -187,7 +202,10 @@ modal deploy modal/boltz2_app.py
 ### Running the Pipeline
 
 ```bash
-# Step 0: Calibration (RUN FIRST)
+# Step 0: Setup Fab scaffolds (once)
+python scripts/setup_fab_scaffolds.py
+
+# Step 1: Calibration (RUN FIRST)
 python scripts/00_run_calibration.py
 
 # Full pipeline
@@ -195,7 +213,7 @@ python scripts/run_full_pipeline.py --config config.yaml
 
 # Or step-by-step
 python scripts/01_setup_targets.py      # Download structures
-python scripts/02_run_denovo_design.py  # BoltzGen (Modal)
+python scripts/02_run_denovo_design.py  # BoltzGen VHH + Fab (Modal)
 python scripts/03_run_optimization.py   # Humanization
 python scripts/04_predict_structures.py # Boltz-2 (Modal)
 python scripts/05_filter_candidates.py  # Apply filters

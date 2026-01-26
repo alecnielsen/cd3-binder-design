@@ -26,7 +26,11 @@ class DeNovoDesignConfig:
 
     # Design parameters
     num_vhh_designs: int = 200
-    num_scfv_designs: int = 200
+    num_fab_designs: int = 200  # Fab CDR redesign (replaces broken scFv)
+
+    # Fab scaffold configuration
+    fab_scaffolds: list[str] = field(default_factory=lambda: ["adalimumab", "belimumab", "dupilumab"])
+    fab_scaffold_dir: str = "data/fab_scaffolds"
 
     # Sampling
     seed: int = 42
@@ -48,7 +52,7 @@ class DeNovoDesignResult:
     """Result from a de novo design campaign."""
 
     vhh_designs: list[BoltzGenDesign]
-    scfv_designs: list[BoltzGenDesign]
+    fab_designs: list[BoltzGenDesign]  # Fab CDR redesign (replaces scfv_designs)
     config: DeNovoDesignConfig
     timestamp: str
     target_structures: list[str]
@@ -56,17 +60,18 @@ class DeNovoDesignResult:
     @property
     def total_designs(self) -> int:
         """Total number of designs generated."""
-        return len(self.vhh_designs) + len(self.scfv_designs)
+        return len(self.vhh_designs) + len(self.fab_designs)
 
     def to_dict(self) -> dict:
         """Convert to dictionary for serialization."""
         return {
             "vhh_designs": [d.to_dict() for d in self.vhh_designs],
-            "scfv_designs": [d.to_dict() for d in self.scfv_designs],
+            "fab_designs": [d.to_dict() for d in self.fab_designs],
             "config": {
                 "target_structures": self.config.target_structures,
                 "num_vhh_designs": self.config.num_vhh_designs,
-                "num_scfv_designs": self.config.num_scfv_designs,
+                "num_fab_designs": self.config.num_fab_designs,
+                "fab_scaffolds": self.config.fab_scaffolds,
                 "seed": self.config.seed,
                 "temperature": self.config.temperature,
                 "hotspot_residues": self.config.hotspot_residues,
@@ -172,11 +177,14 @@ class DeNovoDesigner:
 
         return all_designs
 
-    def run_scfv_design(self) -> list[BoltzGenDesign]:
-        """Run scFv design on all targets.
+    def run_fab_design(self) -> list[BoltzGenDesign]:
+        """Run Fab CDR redesign on all targets.
+
+        Uses human antibody scaffolds with CDR redesign for proper
+        VH/VL antibody structure.
 
         Returns:
-            List of scFv designs from all targets.
+            List of Fab designs from all targets.
         """
         all_designs = []
         num_targets = len(self.config.target_structures)
@@ -185,8 +193,8 @@ class DeNovoDesigner:
             return all_designs
 
         # Distribute designs evenly with remainder going to first targets
-        base_per_target = self.config.num_scfv_designs // num_targets
-        remainder = self.config.num_scfv_designs % num_targets
+        base_per_target = self.config.num_fab_designs // num_targets
+        remainder = self.config.num_fab_designs % num_targets
 
         for i, target in enumerate(self.config.target_structures):
             # First 'remainder' targets get one extra design
@@ -196,11 +204,13 @@ class DeNovoDesigner:
                 continue
 
             config = BoltzGenConfig(
-                binder_type="scfv",
+                binder_type="fab",
                 num_designs=num_designs,
                 target_pdb_path=target,
+                scaffold_names=self.config.fab_scaffolds,
+                scaffold_dir=self.config.fab_scaffold_dir,
                 hotspot_residues=self.config.hotspot_residues,
-                seed=self.config.seed + 1000 + i,  # Different seed space for scFv
+                seed=self.config.seed + 1000 + i,  # Different seed space for Fab
                 temperature=self.config.temperature,
                 output_dir=self.config.output_dir,
             )
@@ -211,7 +221,7 @@ class DeNovoDesigner:
             # Update design IDs to include target info
             target_name = Path(target).stem
             for j, design in enumerate(designs):
-                design.design_id = f"scfv_{target_name}_{j:04d}"
+                design.design_id = f"fab_{target_name}_{j:04d}"
 
             all_designs.extend(designs)
 
@@ -238,14 +248,15 @@ class DeNovoDesigner:
         vhh_designs = self.run_vhh_design()
         print(f"  Generated {len(vhh_designs)} VHH designs")
 
-        # Run scFv design
-        print(f"Running scFv design ({self.config.num_scfv_designs} designs)...")
-        scfv_designs = self.run_scfv_design()
-        print(f"  Generated {len(scfv_designs)} scFv designs")
+        # Run Fab CDR redesign
+        print(f"Running Fab design ({self.config.num_fab_designs} designs)...")
+        print(f"  Scaffolds: {self.config.fab_scaffolds}")
+        fab_designs = self.run_fab_design()
+        print(f"  Generated {len(fab_designs)} Fab designs")
 
         result = DeNovoDesignResult(
             vhh_designs=vhh_designs,
-            scfv_designs=scfv_designs,
+            fab_designs=fab_designs,
             config=self.config,
             timestamp=timestamp,
             target_structures=self.config.target_structures,
@@ -259,7 +270,9 @@ class DeNovoDesigner:
 def run_denovo_design(
     target_structures: list[str],
     num_vhh: int = 200,
-    num_scfv: int = 200,
+    num_fab: int = 200,
+    fab_scaffolds: Optional[list[str]] = None,
+    fab_scaffold_dir: str = "data/fab_scaffolds",
     seed: int = 42,
     hotspot_residues: Optional[list[int]] = None,
     output_dir: str = "data/outputs/denovo",
@@ -270,7 +283,9 @@ def run_denovo_design(
     Args:
         target_structures: Paths to target PDB files.
         num_vhh: Number of VHH designs to generate.
-        num_scfv: Number of scFv designs to generate.
+        num_fab: Number of Fab CDR redesign designs to generate.
+        fab_scaffolds: Scaffold names for Fab design (default: adalimumab, belimumab, dupilumab).
+        fab_scaffold_dir: Directory containing Fab scaffold files.
         seed: Random seed for reproducibility.
         hotspot_residues: Optional CD3ε residues to guide binding.
         output_dir: Directory for output files.
@@ -282,7 +297,9 @@ def run_denovo_design(
     config = DeNovoDesignConfig(
         target_structures=target_structures,
         num_vhh_designs=num_vhh,
-        num_scfv_designs=num_scfv,
+        num_fab_designs=num_fab,
+        fab_scaffolds=fab_scaffolds or ["adalimumab", "belimumab", "dupilumab"],
+        fab_scaffold_dir=fab_scaffold_dir,
         seed=seed,
         hotspot_residues=hotspot_residues or [],
         output_dir=output_dir,

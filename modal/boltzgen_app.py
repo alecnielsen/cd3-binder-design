@@ -481,6 +481,326 @@ def run_boltzgen(
     return designs
 
 
+# Available Fab scaffolds for CDR redesign
+# Each scaffold must have corresponding CIF and YAML files in data/fab_scaffolds/
+AVAILABLE_FAB_SCAFFOLDS = [
+    "adalimumab",
+    "belimumab",
+    "crenezumab",
+    "dupilumab",
+    "golimumab",
+    "guselkumab",
+    "mab1",
+    "necitumumab",
+    "nirsevimab",
+    "sarilumab",
+    "secukinumab",
+    "tezepelumab",
+    "tralokinumab",
+    "ustekinumab",
+]
+
+
+def build_fab_target_yaml(
+    target_cif_path: str,
+    target_chain: str,
+    scaffold_yaml_paths: list[str],
+) -> str:
+    """Build BoltzGen target YAML for Fab CDR redesign.
+
+    This creates a YAML spec that references:
+    - The target structure (CD3)
+    - Multiple scaffold YAML files (each defines a Fab with CDR design regions)
+
+    Args:
+        target_cif_path: Path to target CIF/PDB file.
+        target_chain: Chain ID of target to use.
+        scaffold_yaml_paths: List of paths to scaffold YAML files.
+
+    Returns:
+        YAML string for BoltzGen target spec.
+    """
+    lines = ["entities:"]
+
+    # Target from file
+    lines.append("  - file:")
+    lines.append(f"      path: {target_cif_path}")
+    lines.append("      include:")
+    lines.append("        - chain:")
+    lines.append(f"            id: {target_chain}")
+
+    # Scaffold files (each defines a Fab)
+    lines.append("  - file:")
+    lines.append("      path:")
+    for scaffold_path in scaffold_yaml_paths:
+        lines.append(f"        - {scaffold_path}")
+
+    return "\n".join(lines)
+
+
+@app.function(
+    image=boltzgen_image,
+    volumes={models_dir: boltzgen_model_volume},
+    timeout=90 * MINUTES,
+    gpu="A100",
+)
+def run_boltzgen_fab(
+    target_pdb_content: str,
+    target_chain: str = "A",
+    scaffold_names: list[str] | None = None,
+    scaffold_yaml_contents: dict[str, str] | None = None,
+    scaffold_cif_contents: dict[str, str] | None = None,
+    num_designs: int = 100,
+    seed: int = 42,
+) -> list[dict]:
+    """Run BoltzGen Fab CDR redesign.
+
+    Designs Fab binders by redesigning CDR loops while maintaining
+    human framework regions from proven therapeutic antibodies.
+
+    Args:
+        target_pdb_content: PDB file content as string (can be multi-chain).
+        target_chain: Chain ID of target in PDB (will be extracted).
+        scaffold_names: Names of scaffolds to use (e.g., ["adalimumab"]).
+        scaffold_yaml_contents: Dict mapping scaffold names to YAML content.
+        scaffold_cif_contents: Dict mapping scaffold names to CIF content.
+        num_designs: Number of designs to generate per scaffold.
+        seed: Random seed for reproducibility.
+
+    Returns:
+        List of design dictionaries with VH/VL sequences and scores.
+
+    Raises:
+        ValueError: If target_chain is not found or scaffolds are missing.
+    """
+    # CRITICAL: Extract only the target chain to avoid design bias
+    extracted_pdb = extract_chain_from_pdb_content(target_pdb_content, target_chain)
+
+    # Get target sequence for logging
+    target_sequence = parse_pdb_sequence(extracted_pdb, target_chain)
+    print(f"Target sequence ({len(target_sequence)} aa): {target_sequence[:50]}...")
+
+    # Write target PDB to file
+    target_pdb_path = Path("target.pdb")
+    target_pdb_path.write_text(extracted_pdb)
+    print(f"Wrote extracted target chain {target_chain} to {target_pdb_path}")
+
+    # Create scaffold directory and write files
+    scaffold_dir = Path("fab_scaffolds")
+    scaffold_dir.mkdir(exist_ok=True)
+
+    if not scaffold_names:
+        scaffold_names = ["adalimumab"]  # Default to adalimumab
+
+    scaffold_yaml_paths = []
+    for name in scaffold_names:
+        if scaffold_yaml_contents and name in scaffold_yaml_contents:
+            yaml_content = scaffold_yaml_contents[name]
+        else:
+            raise ValueError(f"Missing YAML content for scaffold: {name}")
+
+        if scaffold_cif_contents and name in scaffold_cif_contents:
+            cif_content = scaffold_cif_contents[name]
+        else:
+            raise ValueError(f"Missing CIF content for scaffold: {name}")
+
+        # Find CIF filename from YAML (first line with 'path:')
+        cif_filename = None
+        for line in yaml_content.split("\n"):
+            if line.strip().startswith("path:") and ".cif" in line:
+                cif_filename = line.split(":")[-1].strip()
+                break
+
+        if not cif_filename:
+            cif_filename = f"{name}.cif"
+
+        # Write CIF file
+        cif_path = scaffold_dir / cif_filename
+        cif_path.write_text(cif_content)
+        print(f"Wrote scaffold CIF: {cif_path}")
+
+        # Write YAML file (update path to be relative)
+        yaml_path = scaffold_dir / f"{name}.yaml"
+        # Update the path in YAML to point to local CIF
+        updated_yaml = yaml_content.replace(f"path: {cif_filename}", f"path: {cif_path}")
+        yaml_path.write_text(updated_yaml)
+        print(f"Wrote scaffold YAML: {yaml_path}")
+
+        scaffold_yaml_paths.append(str(yaml_path))
+
+    # Build target spec YAML
+    target_yaml = build_fab_target_yaml(
+        target_cif_path="target.pdb",
+        target_chain=target_chain,
+        scaffold_yaml_paths=scaffold_yaml_paths,
+    )
+
+    spec_path = Path("fab_design_spec.yaml")
+    spec_path.write_text(target_yaml)
+    print(f"Design spec:\n{target_yaml}")
+
+    output_dir = Path("boltzgen_fab_output")
+    output_dir.mkdir(exist_ok=True)
+
+    # Run BoltzGen CLI with antibody-anything protocol
+    cmd = [
+        "boltzgen", "run", str(spec_path),
+        "--protocol", "antibody-anything",
+        "--output", str(output_dir),
+        "--num_designs", str(num_designs),
+        "--cache", str(models_dir),
+    ]
+
+    print(f"Running: {' '.join(cmd)}")
+    result = subprocess.run(cmd, capture_output=True, text=True)
+
+    print(f"STDOUT: {result.stdout}")
+    if result.returncode != 0:
+        print(f"STDERR: {result.stderr}")
+        # Check if intermediate designs exist despite failure
+        ifold_dir = output_dir / "intermediate_designs_inverse_folded"
+        if ifold_dir.exists():
+            print(f"Pipeline failed but intermediate designs found at {ifold_dir}")
+        else:
+            raise RuntimeError(f"BoltzGen Fab failed: {result.stderr}")
+
+    # Parse outputs - look for Fab designs with VH/VL chains
+    designs = []
+
+    # Look for output files
+    search_dirs = [
+        output_dir / "final_ranked_designs",
+        output_dir / "intermediate_designs_inverse_folded",
+        output_dir / "intermediate_designs",
+    ]
+
+    fasta_files = []
+    cif_files = []
+    csv_files = []
+
+    for search_dir in search_dirs:
+        if search_dir.exists():
+            fasta_files.extend(list(search_dir.glob("**/*.fasta")))
+            fasta_files.extend(list(search_dir.glob("**/*.fa")))
+            cif_files.extend(list(search_dir.glob("**/*.cif")))
+            csv_files.extend(list(search_dir.glob("**/*.csv")))
+
+    print(f"Found {len(fasta_files)} FASTA, {len(cif_files)} CIF, {len(csv_files)} CSV files")
+
+    # Parse metrics from CSV
+    metrics_by_design = {}
+    csv_files_sorted = sorted(csv_files, key=lambda f: "metrics" in f.name, reverse=True)
+    for csv_file in csv_files_sorted:
+        try:
+            content = csv_file.read_text()
+            csv_lines = content.strip().split("\n")
+            if len(csv_lines) < 2:
+                continue
+            headers = csv_lines[0].split(",")
+            print(f"  CSV {csv_file.name}: {headers[:8]}...")
+            for row in csv_lines[1:]:
+                values = row.split(",")
+                if len(values) >= len(headers):
+                    row_dict = dict(zip(headers, values))
+                    design_id = row_dict.get("id", row_dict.get("file_name", ""))
+                    if design_id and design_id not in metrics_by_design:
+                        metrics_by_design[design_id] = row_dict
+        except Exception as e:
+            print(f"  Error parsing CSV {csv_file}: {e}")
+
+    # Parse CIF files to extract VH/VL sequences
+    # For Fab designs, we expect two chains: VH and VL
+    ifold_cifs = [
+        f for f in cif_files
+        if "inverse_folded" in str(f.parent) and "refold_cif" not in str(f)
+    ]
+    if not ifold_cifs:
+        ifold_cifs = cif_files
+
+    print(f"Processing {len(ifold_cifs)} CIF files for VH/VL extraction...")
+
+    for cif_file in ifold_cifs:
+        if cif_file.name == "fab_design_spec.cif":
+            continue
+
+        print(f"  Processing {cif_file}...")
+        try:
+            content = cif_file.read_text()
+            lines = content.split("\n")
+
+            # Parse _entity_poly for sequences
+            # For Fab: Entity 1 = VH, Entity 2 = VL, Entity 3 = target
+            in_entity_poly = False
+            entity_poly_cols = []
+            sequences_by_entity = {}
+
+            for line in lines:
+                line_stripped = line.strip()
+                if line_stripped.startswith("_entity_poly."):
+                    in_entity_poly = True
+                    col_name = line_stripped.split(".")[1]
+                    entity_poly_cols.append(col_name)
+                elif in_entity_poly:
+                    if line_stripped.startswith("_") or line_stripped.startswith("#") or line_stripped == "":
+                        in_entity_poly = False
+                        continue
+                    if line_stripped.startswith("loop_"):
+                        continue
+                    parts = line_stripped.split()
+                    if len(parts) >= 2:
+                        entity_id = parts[0]
+                        # Sequence is typically the last column
+                        sequence = parts[-1] if len(parts) > 3 else ""
+                        if sequence and "X" not in sequence:
+                            sequences_by_entity[entity_id] = sequence
+                            print(f"    Entity {entity_id}: {sequence[:40]}... ({len(sequence)} aa)")
+
+            # Entity 1 should be VH (~120 aa), Entity 2 should be VL (~107 aa)
+            # Entity 3 is the target
+            vh_sequence = sequences_by_entity.get("1", "")
+            vl_sequence = sequences_by_entity.get("2", "")
+
+            # Validate lengths (VH ~115-125, VL ~105-115)
+            if vh_sequence and vl_sequence:
+                vh_len = len(vh_sequence)
+                vl_len = len(vl_sequence)
+
+                # Check if entity assignment seems correct
+                if 100 <= vh_len <= 140 and 90 <= vl_len <= 120:
+                    design = {
+                        "vh_sequence": vh_sequence,
+                        "vl_sequence": vl_sequence,
+                        "sequence": vh_sequence,  # For compatibility
+                        "header": cif_file.stem,
+                        "source_file": cif_file.name,
+                        "binder_type": "fab",
+                    }
+                    designs.append(design)
+                    print(f"    -> Extracted VH ({vh_len} aa) + VL ({vl_len} aa)")
+                else:
+                    print(f"    -> Unexpected lengths: VH={vh_len}, VL={vl_len}")
+
+        except Exception as e:
+            print(f"    Error parsing {cif_file.name}: {e}")
+            import traceback
+            traceback.print_exc()
+
+    # Add metrics to designs
+    for i, design in enumerate(designs):
+        design["design_idx"] = i
+        design_name = design.get("header", "")
+        if design_name in metrics_by_design:
+            metrics = metrics_by_design[design_name]
+            try:
+                design["ipTM"] = float(metrics.get("design_to_target_iptm", 0))
+                design["pTM"] = float(metrics.get("design_ptm", 0))
+            except (ValueError, TypeError):
+                pass
+
+    print(f"Parsed {len(designs)} Fab designs")
+    return designs
+
+
 @app.function(
     image=boltzgen_image,
     volumes={models_dir: boltzgen_model_volume},
@@ -539,6 +859,9 @@ def main(
     num_designs: int = 10,
     binder_length: int = 120,
     protocol: str = "nanobody-anything",
+    design_type: str = "vhh",
+    scaffold_dir: str = "data/fab_scaffolds",
+    scaffolds: str = "adalimumab",
     seed: int = 42,
     download: bool = False,
 ):
@@ -550,6 +873,9 @@ def main(
         num_designs: Number of designs.
         binder_length: Length of binder (120 for VHH).
         protocol: BoltzGen protocol.
+        design_type: Type of design: "vhh" or "fab".
+        scaffold_dir: Directory containing Fab scaffold files.
+        scaffolds: Comma-separated list of scaffold names for Fab design.
         seed: Random seed.
         download: If True, download model weights and exit.
     """
@@ -564,8 +890,17 @@ def main(
         print("   or: modal run modal/boltzgen_app.py --download")
         print("\nOptions:")
         print("  --num-designs N      Number of designs to generate (default: 10)")
-        print("  --binder-length N    Binder length in aa (default: 120 for VHH)")
-        print("  --protocol NAME      Protocol: nanobody-anything, protein-anything")
+        print("  --design-type TYPE   Design type: vhh or fab (default: vhh)")
+        print("  --binder-length N    Binder length in aa (default: 120, VHH only)")
+        print("  --protocol NAME      Protocol: nanobody-anything, antibody-anything")
+        print("  --scaffold-dir DIR   Directory with Fab scaffold files (fab only)")
+        print("  --scaffolds NAMES    Comma-separated scaffold names (fab only)")
+        print("\nExamples:")
+        print("  # VHH design:")
+        print("  modal run modal/boltzgen_app.py --target-pdb data/targets/1XIW.pdb --design-type vhh")
+        print("")
+        print("  # Fab CDR redesign:")
+        print("  modal run modal/boltzgen_app.py --target-pdb data/targets/1XIW.pdb --design-type fab --scaffolds adalimumab,belimumab")
         return
 
     # Read target PDB
@@ -574,26 +909,76 @@ def main(
 
     print(f"Running BoltzGen on {target_pdb}")
     print(f"  Target chain: {target_chain}")
-    print(f"  Protocol: {protocol}")
-    print(f"  Binder length: {binder_length} aa")
+    print(f"  Design type: {design_type}")
     print(f"  Num designs: {num_designs}")
     print(f"  Seed: {seed}")
 
-    # Run on Modal
-    designs = run_boltzgen.remote(
-        target_pdb_content=target_content,
-        target_chain=target_chain,
-        num_designs=num_designs,
-        binder_length=binder_length,
-        protocol=protocol,
-        seed=seed,
-    )
+    if design_type == "fab":
+        # Fab CDR redesign
+        scaffold_names = [s.strip() for s in scaffolds.split(",")]
+        print(f"  Scaffolds: {scaffold_names}")
 
-    print(f"\nGenerated {len(designs)} designs:")
-    for i, d in enumerate(designs[:5]):
-        seq = d.get("sequence", "N/A")
-        conf = d.get("confidence", "N/A")
-        print(f"  {i+1}. Conf: {conf}, Seq: {seq[:40]}...")
+        # Load scaffold files
+        scaffold_yaml_contents = {}
+        scaffold_cif_contents = {}
+        scaffold_path = Path(scaffold_dir)
+
+        for name in scaffold_names:
+            # Find YAML file
+            yaml_files = list(scaffold_path.glob(f"{name}*.yaml"))
+            if not yaml_files:
+                print(f"ERROR: No YAML file found for scaffold '{name}' in {scaffold_dir}")
+                return
+            yaml_file = yaml_files[0]
+
+            # Find CIF file
+            cif_files = list(scaffold_path.glob(f"{name}*.cif"))
+            if not cif_files:
+                print(f"ERROR: No CIF file found for scaffold '{name}' in {scaffold_dir}")
+                return
+            cif_file = cif_files[0]
+
+            scaffold_yaml_contents[name] = yaml_file.read_text()
+            scaffold_cif_contents[name] = cif_file.read_text()
+            print(f"  Loaded scaffold: {name} ({yaml_file.name}, {cif_file.name})")
+
+        # Run Fab design on Modal
+        designs = run_boltzgen_fab.remote(
+            target_pdb_content=target_content,
+            target_chain=target_chain,
+            scaffold_names=scaffold_names,
+            scaffold_yaml_contents=scaffold_yaml_contents,
+            scaffold_cif_contents=scaffold_cif_contents,
+            num_designs=num_designs,
+            seed=seed,
+        )
+
+        print(f"\nGenerated {len(designs)} Fab designs:")
+        for i, d in enumerate(designs[:5]):
+            vh = d.get("vh_sequence", "N/A")
+            vl = d.get("vl_sequence", "N/A")
+            print(f"  {i+1}. VH: {vh[:30]}... ({len(vh)} aa)")
+            print(f"      VL: {vl[:30]}... ({len(vl)} aa)")
+
+    else:
+        # VHH design (existing code)
+        print(f"  Protocol: {protocol}")
+        print(f"  Binder length: {binder_length} aa")
+
+        designs = run_boltzgen.remote(
+            target_pdb_content=target_content,
+            target_chain=target_chain,
+            num_designs=num_designs,
+            binder_length=binder_length,
+            protocol=protocol,
+            seed=seed,
+        )
+
+        print(f"\nGenerated {len(designs)} designs:")
+        for i, d in enumerate(designs[:5]):
+            seq = d.get("sequence", "N/A")
+            conf = d.get("confidence", "N/A")
+            print(f"  {i+1}. Conf: {conf}, Seq: {seq[:40]}...")
 
     if len(designs) > 5:
         print(f"  ... and {len(designs) - 5} more")

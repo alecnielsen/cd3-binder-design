@@ -14,6 +14,13 @@ cd3-binder-design/
 │   │   ├── 1SY6.pdb                     # CD3εγ + OKT3 complex
 │   │   └── README.md                    # Structure preparation notes
 │   │
+│   ├── fab_scaffolds/                   # Human Fab scaffolds for CDR redesign
+│   │   ├── adalimumab.6cr1.cif          # Structure files from RCSB PDB
+│   │   ├── adalimumab.6cr1.yaml         # BoltzGen scaffold specifications
+│   │   ├── belimumab.5y9k.cif           # (14 scaffolds total)
+│   │   ├── belimumab.5y9k.yaml
+│   │   └── ...                          # Run setup_fab_scaffolds.py to populate
+│   │
 │   ├── starting_sequences/
 │   │   ├── teplizumab.yaml              # hOKT3γ1(Ala-Ala) VH/VL
 │   │   ├── sp34.yaml                    # SP34 VH/VL
@@ -28,7 +35,7 @@ cd3-binder-design/
 │   │   └── placeholder_targets.yaml     # Trastuzumab (HER2) sequences
 │   │
 │   └── outputs/                         # Generated during pipeline runs
-│       ├── denovo/                      # BoltzGen designs
+│       ├── denovo/                      # BoltzGen VHH + Fab designs
 │       ├── optimized/                   # Optimized existing binders
 │       ├── structures/                  # Predicted structures
 │       ├── filtered/                    # Post-filtering candidates
@@ -85,9 +92,10 @@ cd3-binder-design/
 │   └── abodybuilder_app.py              # ABodyBuilder2 Modal deployment
 │
 ├── scripts/
+│   ├── setup_fab_scaffolds.py           # Download Fab scaffolds from PDB (run once)
 │   ├── 00_run_calibration.py            # Calibrate thresholds
 │   ├── 01_setup_targets.py              # Download structures
-│   ├── 02_run_denovo_design.py          # Run BoltzGen on Modal
+│   ├── 02_run_denovo_design.py          # Run BoltzGen VHH + Fab on Modal
 │   ├── 03_run_optimization.py           # Generate optimized variants
 │   ├── 04_predict_structures.py         # Run structure prediction
 │   ├── 05_filter_candidates.py          # Apply filtering cascade
@@ -113,7 +121,7 @@ cd3-binder-design/
 Sequence analysis tools: liability detection (deamidation, glycosylation), ANARCI numbering, BioPhi humanness scoring, developability assessment.
 
 ### src/design/
-Design generation: BoltzGen runner for de novo design, optimization of existing binders, affinity variant generation.
+Design generation: BoltzGen runner for de novo VHH design and Fab CDR redesign, optimization of existing binders, affinity variant generation. Fab design uses human antibody scaffolds (adalimumab, belimumab, etc.) with CDR-only redesign for proper antibody structure.
 
 ### src/formatting/
 Bispecific assembly: 5 formats (CrossMab, Fab+scFv, Fab+VHH, IgG-scFv, IgG-VHH) with linker insertion and constant region grafting.

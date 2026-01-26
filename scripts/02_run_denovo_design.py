@@ -1,10 +1,17 @@
 #!/usr/bin/env python3
 """Step 2: Run de novo design generation.
 
-Runs BoltzGen on Modal to generate VHH and scFv binders.
+Runs BoltzGen on Modal to generate VHH and Fab binders.
+
+VHH: De novo nanobody design (~120 aa)
+Fab: CDR redesign using human antibody scaffolds (VH ~120 aa + VL ~107 aa)
 
 Usage:
     python scripts/02_run_denovo_design.py [--config config.yaml] [--no-modal]
+
+Prerequisites:
+    1. Run scripts/setup_fab_scaffolds.py to download scaffold files
+    2. Deploy Modal app: modal deploy modal/boltzgen_app.py
 """
 
 import argparse
@@ -38,8 +45,18 @@ def main():
 
     print(f"\nTarget structures: {config.design.target_structures}")
     print(f"VHH designs: {config.design.num_vhh_designs}")
-    print(f"scFv designs: {config.design.num_scfv_designs}")
+    print(f"Fab designs: {config.design.num_fab_designs}")
+    print(f"Fab scaffolds: {config.design.fab_scaffolds}")
     print(f"Seed: {config.reproducibility.boltzgen_seed}")
+
+    # Check scaffold files exist
+    scaffold_dir = Path(config.design.fab_scaffold_dir)
+    if config.design.num_fab_designs > 0:
+        if not scaffold_dir.exists():
+            print(f"\nWARNING: Scaffold directory not found: {scaffold_dir}")
+            print("Run 'python scripts/setup_fab_scaffolds.py' first.")
+            if not args.no_modal:
+                return 1
 
     # Run design
     use_modal = not args.no_modal
@@ -48,7 +65,9 @@ def main():
     result = run_denovo_design(
         target_structures=config.design.target_structures,
         num_vhh=config.design.num_vhh_designs,
-        num_scfv=config.design.num_scfv_designs,
+        num_fab=config.design.num_fab_designs,
+        fab_scaffolds=config.design.fab_scaffolds,
+        fab_scaffold_dir=config.design.fab_scaffold_dir,
         seed=config.reproducibility.boltzgen_seed,
         output_dir=args.output,
         use_modal=use_modal,
@@ -56,7 +75,7 @@ def main():
 
     print(f"\nGenerated {result.total_designs} designs")
     print(f"  VHH: {len(result.vhh_designs)}")
-    print(f"  scFv: {len(result.scfv_designs)}")
+    print(f"  Fab: {len(result.fab_designs)}")
 
     # Save results
     output_path = result.save()

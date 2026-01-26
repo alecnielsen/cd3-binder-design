@@ -15,8 +15,12 @@ class DesignConfig:
 
     # De novo design
     num_vhh_designs: int = 200
-    num_scfv_designs: int = 200
+    num_fab_designs: int = 200  # Fab CDR redesign (replaces broken scFv)
     target_structures: list[str] = field(default_factory=list)
+
+    # Fab scaffold configuration
+    fab_scaffolds: list[str] = field(default_factory=lambda: ["adalimumab", "belimumab", "dupilumab"])
+    fab_scaffold_dir: str = "data/fab_scaffolds"
 
     # Optimization
     starting_sequences: list[str] = field(default_factory=lambda: ["teplizumab", "sp34", "ucht1"])
@@ -132,8 +136,10 @@ class PipelineConfig:
         return {
             "design": {
                 "num_vhh_designs": self.design.num_vhh_designs,
-                "num_scfv_designs": self.design.num_scfv_designs,
+                "num_fab_designs": self.design.num_fab_designs,
                 "target_structures": self.design.target_structures,
+                "fab_scaffolds": self.design.fab_scaffolds,
+                "fab_scaffold_dir": self.design.fab_scaffold_dir,
                 "starting_sequences": self.design.starting_sequences,
                 "affinity_variants": self.design.affinity_variants,
             },
@@ -250,8 +256,12 @@ class PipelineConfig:
             optimization = d.get("optimization", {})
 
             config.design.num_vhh_designs = denovo.get("num_vhh_designs", d.get("num_vhh_designs", 200))
-            config.design.num_scfv_designs = denovo.get("num_scfv_designs", d.get("num_scfv_designs", 200))
+            # Support both old (num_scfv_designs) and new (num_fab_designs) keys
+            config.design.num_fab_designs = denovo.get("num_fab_designs", d.get("num_fab_designs",
+                denovo.get("num_scfv_designs", d.get("num_scfv_designs", 200))))
             config.design.target_structures = denovo.get("target_structures", d.get("target_structures", []))
+            config.design.fab_scaffolds = d.get("fab_scaffolds", ["adalimumab", "belimumab", "dupilumab"])
+            config.design.fab_scaffold_dir = d.get("fab_scaffold_dir", "data/fab_scaffolds")
             config.design.starting_sequences = optimization.get("starting_sequences", d.get("starting_sequences", ["teplizumab", "sp34", "ucht1"]))
             config.design.affinity_variants = optimization.get("affinity_variants", d.get("affinity_variants", ["wild_type", "10x_weaker", "100x_weaker"]))
 

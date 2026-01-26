@@ -1,9 +1,14 @@
 design:
   num_vhh_designs: 5
-  num_scfv_designs: 5
+  num_fab_designs: 5
   target_structures:
   - data/targets/1XIW.pdb
   - data/targets/1SY6.pdb
+  fab_scaffolds:
+  - adalimumab
+  - belimumab
+  - dupilumab
+  fab_scaffold_dir: data/fab_scaffolds
   starting_sequences:
   - teplizumab
   - sp34

@@ -8,22 +8,28 @@ Pipeline behavior is controlled by `config.yaml`:
 
 ```yaml
 design:
-  denovo:
-    num_vhh_designs: 200
-    num_scfv_designs: 200
-    target_structures:
-      - data/targets/cd3_epsilon_delta_1XIW.pdb
-      - data/targets/cd3_epsilon_gamma_1SY6.pdb
+  num_vhh_designs: 200          # VHH nanobodies via nanobody-anything
+  num_fab_designs: 200          # Fab CDR redesign via antibody-anything
+  target_structures:
+    - data/targets/1XIW.pdb     # CD3εδ heterodimer
+    - data/targets/1SY6.pdb     # CD3εγ heterodimer
 
-  optimization:
-    starting_sequences:
-      - teplizumab
-      - sp34
-      - ucht1
-    affinity_variants:
-      - wild_type
-      - 10x_weaker
-      - 100x_weaker
+  # Human Fab scaffolds for CDR redesign
+  fab_scaffolds:
+    - adalimumab                # 6cr1
+    - belimumab                 # 5y9k
+    - dupilumab                 # 6wgb
+  fab_scaffold_dir: data/fab_scaffolds
+
+  # Optimization track (existing binders)
+  starting_sequences:
+    - teplizumab
+    - sp34
+    - ucht1
+  affinity_variants:
+    - wild_type
+    - 10x_weaker
+    - 100x_weaker
 
 calibration:
   positive_controls:
@@ -158,46 +164,76 @@ def assemble_crossmab(
     }
 ```
 
+## BoltzGen Fab Scaffold Format
+
+Fab CDR redesign uses YAML scaffold specifications that define which regions to redesign:
+
+```yaml
+# data/fab_scaffolds/adalimumab.6cr1.yaml
+path: adalimumab.6cr1.cif
+
+include:
+  - chain:
+      id: B                     # VH chain
+      res_index: 1..121
+  - chain:
+      id: A                     # VL chain
+      res_index: 1..107
+
+design:                         # CDR regions to redesign
+  - chain:
+      id: B
+      res_index: 26..32,52..57,99..110  # H-CDR1, H-CDR2, H-CDR3
+  - chain:
+      id: A
+      res_index: 24..34,50..56,89..97   # L-CDR1, L-CDR2, L-CDR3
+
+design_insertions:              # Variable CDR lengths
+  - insertion:
+      id: B
+      res_index: 99
+      num_residues: 3..21       # H-CDR3 can vary 3-21 aa
+  - insertion:
+      id: A
+      res_index: 89
+      num_residues: 3..12       # L-CDR3 can vary 3-12 aa
+```
+
+Setup scaffolds with:
+```bash
+python scripts/setup_fab_scaffolds.py
+```
+
 ## Modal Deployment for BoltzGen
 
 ```python
-# modal/boltzgen_app.py
-import modal
-
-app = modal.App("boltzgen-cd3")
-
-image = modal.Image.debian_slim().pip_install(
-    "boltzgen",
-    "torch",
-    "biopython",
-)
-
-@app.function(
-    image=image,
-    gpu="A100",
-    timeout=3600,
-)
+# modal/boltzgen_app.py - VHH design
+@app.function(gpu="A100", timeout=3600)
 def run_boltzgen(
-    target_pdb_path: str,
-    output_type: str = "vhh",
+    target_pdb_content: str,
+    target_chain: str = "A",
+    num_designs: int = 100,
+    binder_length: int = 120,
+    protocol: str = "nanobody-anything",
+    seed: int = 42,
+) -> list[dict]:
+    """Run BoltzGen VHH design."""
+    ...
+
+# modal/boltzgen_app.py - Fab CDR redesign
+@app.function(gpu="A100", timeout=5400)
+def run_boltzgen_fab(
+    target_pdb_content: str,
+    target_chain: str = "A",
+    scaffold_names: list[str],        # ["adalimumab", "belimumab"]
+    scaffold_yaml_contents: dict,      # {name: yaml_content}
+    scaffold_cif_contents: dict,       # {name: cif_content}
     num_designs: int = 100,
     seed: int = 42,
 ) -> list[dict]:
-    """Run BoltzGen to design binders."""
-    from boltzgen import BoltzGen
-
-    model = BoltzGen.load()
-    designs = model.design(
-        target_structure=target_pdb_path,
-        binder_type=output_type,
-        num_samples=num_designs,
-        seed=seed,
-    )
-
-    return [
-        {"sequence": d.sequence, "confidence": d.confidence}
-        for d in designs
-    ]
+    """Run BoltzGen Fab CDR redesign with human scaffolds."""
+    # Returns list with vh_sequence, vl_sequence, pTM, ipTM
+    ...
 ```
 
 ## Expected Output Format

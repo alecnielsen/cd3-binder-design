@@ -2,15 +2,16 @@
 
 ## Current Status (2026-01-26)
 
-### Pipeline: WORKING (with caveats)
+### Pipeline: WORKING
 
-All pipeline steps run successfully, but there's a **critical issue with de novo scFv design** (see below).
+All pipeline steps run successfully with both VHH and Fab design tracks.
 
 ```bash
 export PYTHONPATH=/Users/alec/kernel/cd3-binder-design
 
+python3 scripts/setup_fab_scaffolds.py             # Download Fab scaffolds (once)
 python3 scripts/00_run_calibration.py              # ✅ Working
-python3 scripts/02_run_denovo_design.py --config config.yaml  # ⚠️ VHH only (scFv broken)
+python3 scripts/02_run_denovo_design.py --config config.yaml  # ✅ Working (VHH + Fab)
 python3 scripts/03_run_optimization.py --config config.yaml   # ✅ Working
 python3 scripts/04_predict_structures.py --config config.yaml # ✅ Working
 python3 scripts/05_filter_candidates.py --config config.yaml  # ✅ Working
@@ -20,56 +21,30 @@ python3 scripts/07_generate_report.py --config config.yaml    # ✅ Working
 
 ---
 
-## CRITICAL: De Novo scFv Design is Broken
+## Design Types
 
-### The Problem
+| Type | Method | Output | Status |
+|------|--------|--------|--------|
+| **VHH** | BoltzGen `nanobody-anything` | Single-domain ~120 aa | ✅ Working |
+| **Fab** | BoltzGen `antibody-anything` CDR redesign | VH ~120 aa + VL ~107 aa | ✅ Working |
+| **scFv from known Ab** | Optimization track | VH-linker-VL | ✅ Working |
 
-The current code sets `binder_length=250` with `nanobody-anything` protocol for scFv:
+### Fab CDR Redesign
 
-```python
-# src/design/boltzgen_runner.py lines 236-241
-if self.config.binder_type == "vhh":
-    protocol = "nanobody-anything"
-    binder_length = 120
-else:  # scfv
-    protocol = "nanobody-anything"  # WRONG - same protocol
-    binder_length = 250  # Just makes longer single-domain blob
-```
-
-**This does NOT produce a proper scFv (VH-linker-VL).** It produces a ~250 aa single-domain protein.
-
-### The Solution: BoltzGen Fab CDR Redesign
-
-BoltzGen v0.2.0 supports **Fab (VH+VL) CDR redesign** using proven human scaffolds:
-
-```yaml
-# Example: adalimumab Fab scaffold
-path: adalimumab.6cr1.cif
-include:
-  - chain:
-      id: B  # VH (residues 1-121)
-      res_index: 1..121
-  - chain:
-      id: A  # VL (residues 1-107)
-      res_index: 1..107
-
-design:  # Only CDRs are redesigned
-  - chain:
-      id: B
-      res_index: 26..32,52..57,99..110  # H-CDR1, H-CDR2, H-CDR3
-  - chain:
-      id: A
-      res_index: 24..34,50..56,89..97   # L-CDR1, L-CDR2, L-CDR3
-```
+The Fab design uses BoltzGen's `antibody-anything` protocol with human antibody scaffolds. Only the CDR loops are redesigned while the human framework regions are preserved (lower immunogenicity).
 
 **14 proven human Fab scaffolds available:**
-adalimumab, belimumab, dupilumab, golimumab, guselkumab, nirsevimab, sarilumab, secukinumab, tezepelumab, tralokinumab, ustekinumab, mab1, necitumumab, crenezumab
+adalimumab, belimumab, crenezumab, dupilumab, golimumab, guselkumab, mab1, necitumumab, nirsevimab, sarilumab, secukinumab, tezepelumab, tralokinumab, ustekinumab
 
-### Recommended Fix
-
-1. **VHH de novo**: Keep using `nanobody-anything` (works correctly)
-2. **Fab/scFv design**: Implement BoltzGen Fab CDR redesign with human scaffolds
-3. **Remove broken scFv option**: Don't pretend `binder_length=250` makes scFv
+Configure scaffolds in `config.yaml`:
+```yaml
+design:
+  num_fab_designs: 5
+  fab_scaffolds:
+    - adalimumab
+    - belimumab
+    - dupilumab
+```
 
 ---
 
@@ -99,33 +74,17 @@ adalimumab, belimumab, dupilumab, golimumab, guselkumab, nirsevimab, sarilumab, 
 
 ---
 
-## What Actually Works
+## Next Steps
 
-| Design Type | Method | Status |
-|-------------|--------|--------|
-| **VHH de novo** | BoltzGen `nanobody-anything` | ✅ Works |
-| **scFv de novo** | BoltzGen `binder_length=250` | ❌ Broken (makes single-domain blob) |
-| **Fab CDR redesign** | BoltzGen Fab scaffolds | 🔧 Not implemented (but supported) |
-| **scFv from known Ab** | Optimization track | ✅ Works |
-
----
-
-## Next Steps (Priority Order)
-
-### 1. Fix Fab/scFv Design (HIGH)
-- Implement BoltzGen Fab CDR redesign using human scaffolds
-- See `example/fab_scaffolds/` and `example/fab_targets/` in BoltzGen repo
-- Target CD3ε with proven Fab scaffolds
-
-### 2. Affinity Prediction (MEDIUM)
-- Enable Boltz-2 IC50 prediction (already available)
-- Consider adding AttABseq (MIT) for sequence-based ΔΔG
-- Consider Graphinity (BSD-3) for structure-based ΔΔG
-
-### 3. Production Run (AFTER FIXES)
+### 1. Production Run
 - Increase design counts to 100-200
 - Run full pipeline
 - Review candidates
+
+### 2. Affinity Prediction (Future Enhancement)
+- Enable Boltz-2 IC50 prediction (already available)
+- Consider adding AttABseq (MIT) for sequence-based ΔΔG
+- Consider Graphinity (BSD-3) for structure-based ΔΔG
 
 ---
 
@@ -152,21 +111,33 @@ data/outputs/
 
 ---
 
-## BoltzGen Fab Scaffold Reference
+## BoltzGen Fab Implementation Details
 
-From `github.com/HannesStark/boltzgen/blob/main/example/fab_scaffolds/`:
+### Scaffold Files
+
+Located in `data/fab_scaffolds/`:
+- `*.cif` - Structure files downloaded from RCSB PDB
+- `*.yaml` - BoltzGen scaffold specs with CDR definitions
+
+Generate with:
+```bash
+python scripts/setup_fab_scaffolds.py
+```
+
+### Scaffold YAML Format
 
 ```yaml
-# Structure of a Fab scaffold file
-path: <antibody>.cif
+# Example: adalimumab.6cr1.yaml
+path: adalimumab.6cr1.cif
 include:
   - chain: { id: B, res_index: 1..121 }  # VH
   - chain: { id: A, res_index: 1..107 }  # VL
 design:  # CDR regions only
-  - chain: { id: B, res_index: <H-CDR1>,<H-CDR2>,<H-CDR3> }
-  - chain: { id: A, res_index: <L-CDR1>,<L-CDR2>,<L-CDR3> }
+  - chain: { id: B, res_index: 26..32,52..57,99..110 }  # H-CDRs
+  - chain: { id: A, res_index: 24..34,50..56,89..97 }   # L-CDRs
 design_insertions:  # Variable CDR lengths
   - insertion: { id: B, res_index: 99, num_residues: 3..21 }  # H-CDR3
+  - insertion: { id: A, res_index: 89, num_residues: 3..12 }  # L-CDR3
 ```
 
 This approach:
@@ -174,3 +145,4 @@ This approach:
 - Redesigns only CDRs (proper antibody structure)
 - Supports variable CDR lengths
 - Maintains VH/VL pairing
+- Outputs separate VH and VL sequences (downstream formatting joins with linker)
