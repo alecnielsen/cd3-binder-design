@@ -14,6 +14,19 @@ Computational pipeline for designing CD3-binding domains (VHH/scFv) for bispecif
 
 ## Notes for Claude
 
+### CRITICAL BUG: De Novo scFv Design is Broken
+
+The current `boltzgen_runner.py` uses `binder_length=250` with `nanobody-anything` protocol for scFv. **This produces a ~250 aa single-domain blob, NOT a proper VH-linker-VL scFv.**
+
+**Fix**: Use BoltzGen Fab CDR redesign with proven human scaffolds (adalimumab, etc.). See `HANDOFF.md` for details and YAML format.
+
+**What works now:**
+- VHH de novo design (nanobody-anything, 120 aa) ✅
+- scFv from known antibodies (optimization track) ✅
+- De novo scFv (binder_length=250) ❌ BROKEN
+
+---
+
 Critical implementation details:
 
 1. **All tools must be permissively licensed** - never suggest IgFold or NetMHCIIpan
