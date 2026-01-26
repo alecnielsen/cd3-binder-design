@@ -99,3 +99,45 @@ Key settings in `config.yaml`:
 2. **Install optional packages** - `pip install anarci biophi` for humanness scoring
 3. **Capture BoltzGen metrics** - Update boltzgen_runner.py to extract ipTM/pTM from output
 4. **Review candidates** - Check generated reports in `data/outputs/reports/`
+
+## Future Enhancements: Affinity Prediction
+
+Currently, the pipeline uses **structural confidence metrics** (pTM, ipTM, contacts) which do NOT predict binding affinity. The following open-source tools could be integrated:
+
+### Recommended Tools (All Permissively Licensed)
+
+| Tool | License | Input | Predicts | Priority |
+|------|---------|-------|----------|----------|
+| **Boltz-2 IC50** | MIT | Structure | log10(IC50) | High - already available |
+| **AttABseq** | MIT | Sequences | ΔΔG (mutation effects) | Medium |
+| **Graphinity** | BSD-3 | Structures | ΔΔG (mutation effects) | Medium |
+| **ANTIPASTI** | CC BY 4.0 | Structure | Binding affinity | Low |
+
+### Implementation Notes
+
+1. **Boltz-2 IC50** (lowest effort):
+   - Add `--sampling_steps_affinity 200` to boltz command
+   - Add `properties: { affinity: { ligand: B } }` to YAML
+   - Parse `affinity_output.json` from results
+   - NOT validated for antibodies - use with caution
+
+2. **AttABseq** (sequence-only ΔΔG):
+   - GitHub: https://github.com/ruofanjin/AttABseq
+   - Useful for comparing affinity variants (WT vs 10x weaker)
+   - No structure needed
+   - `pip install` not available - requires cloning repo
+
+3. **Graphinity** (structure-based ΔΔG):
+   - GitHub: https://github.com/oxpig/Graphinity
+   - From Oxford Protein Informatics Group
+   - Requires both WT and mutant structures
+   - Pearson r=0.87 on benchmarks
+
+### Critical Caveat
+
+**None of these reliably predict absolute Kd.** They predict:
+- Structural confidence (current pipeline)
+- Relative affinity change (ΔΔG) from mutations
+- IC50 estimates (assay-dependent, not intrinsic Kd)
+
+**Experimental validation with SPR/BLI remains essential.**

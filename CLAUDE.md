@@ -55,3 +55,9 @@ python scripts/run_full_pipeline.py --config config.yaml
 - `modal/` - GPU compute deployments
 - `scripts/` - Pipeline execution (00-07)
 - `docs/reference/` - Detailed implementation docs
+
+### Future: Affinity Prediction Tools (Not Yet Integrated)
+- **Boltz-2 IC50** - Enable with `--sampling_steps_affinity 200` (MIT, not antibody-validated)
+- **AttABseq** - Sequence-based ΔΔG prediction (MIT, https://github.com/ruofanjin/AttABseq)
+- **Graphinity** - Structure-based ΔΔG prediction (BSD-3, https://github.com/oxpig/Graphinity)
+- See HANDOFF.md "Future Enhancements" section for details
