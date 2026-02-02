@@ -1,20 +1,20 @@
 # Handoff Notes - CD3 Binder Design Pipeline
 
-## Current Status (2026-01-26)
+## Current Status (2026-02-02)
 
-### Pipeline: WORKING
+### Pipeline: NEEDS FIXES BEFORE PRODUCTION
 
-All pipeline steps run successfully with both VHH and Fab design tracks.
+Trial run completed but revealed issues that must be resolved before scaling up.
 
 ```bash
 export PYTHONPATH=/Users/alec/kernel/cd3-binder-design
 
 python3 scripts/setup_fab_scaffolds.py             # Download Fab scaffolds (once)
 python3 scripts/00_run_calibration.py              # ✅ Working
-python3 scripts/02_run_denovo_design.py --config config.yaml  # ✅ Working (VHH + Fab)
-python3 scripts/03_run_optimization.py --config config.yaml   # ✅ Working
+python3 scripts/02_run_denovo_design.py --config config.yaml  # ⚠️ VHH works, Fab produced 0 output
+python3 scripts/03_run_optimization.py --config config.yaml   # ✅ Working (but NOT new designs)
 python3 scripts/04_predict_structures.py --config config.yaml # ✅ Working
-python3 scripts/05_filter_candidates.py --config config.yaml  # ✅ Working
+python3 scripts/05_filter_candidates.py --config config.yaml  # ⚠️ Bug: empty sequence candidate
 python3 scripts/06_format_bispecifics.py --config config.yaml # ✅ Working
 python3 scripts/07_generate_report.py --config config.yaml    # ✅ Working
 ```
@@ -23,11 +23,13 @@ python3 scripts/07_generate_report.py --config config.yaml    # ✅ Working
 
 ## Design Types
 
-| Type | Method | Output | Status |
-|------|--------|--------|--------|
-| **VHH** | BoltzGen `nanobody-anything` | Single-domain ~120 aa | ✅ Working |
-| **Fab** | BoltzGen `antibody-anything` CDR redesign | VH ~120 aa + VL ~107 aa | ✅ Working |
-| **scFv from known Ab** | Optimization track | VH-linker-VL | ✅ Working |
+| Type | Method | Output | Trial Run Status |
+|------|--------|--------|------------------|
+| **VHH** | BoltzGen `nanobody-anything` | Single-domain ~120 aa | ⚠️ 2 designs (expected 5) |
+| **Fab** | BoltzGen `antibody-anything` CDR redesign | VH ~120 aa + VL ~107 aa | ❌ 0 designs |
+| **scFv from known Ab** | Optimization track | VH-linker-VL | ✅ 9 variants |
+
+**IMPORTANT**: The optimization track does NOT generate new designs. It reformats known antibody sequences (teplizumab, SP34, UCHT1) from `data/starting_sequences/*.yaml` as scFv for structure prediction. The only tracks producing novel binders are VHH and Fab de novo design.
 
 ### Fab CDR Redesign
 
@@ -74,15 +76,75 @@ design:
 
 ---
 
-## Next Steps
+## Trial Run Analysis (2026-02-02)
 
-### 1. Production Run
-- Increase design counts to 100-200
-- Run full pipeline
-- Review candidates
+### What Worked
 
-### 2. Affinity Prediction (Future Enhancement)
-- Enable Boltz-2 IC50 prediction (already available)
+| Component | Evidence |
+|-----------|----------|
+| Calibration | All 3 known binders predicted with good pTM (0.75-0.94), contacts (30-42) |
+| Structure prediction | Boltz-2 producing valid mmCIF outputs |
+| Filtering cascade | 11 input → 7 first pass → 10 with fallback |
+| Bispecific formatting | All 5 formats generated |
+| Report generation | Scorecards created |
+
+### Issues Found
+
+| Issue | Severity | Details |
+|-------|----------|---------|
+| **Fab design: no output** | 🔴 High | Config had `num_fab_designs: 5` but 0 Fab designs were generated |
+| **Empty sequence bug** | 🔴 High | Rank 1 candidate has `sequence: ""` - data flow issue |
+| **Humanness scores null** | ⚠️ Medium | All `oasis_score_vh/vl` are null - BioPhi not returning data |
+| **CDR-H3 length null** | ⚠️ Medium | ANARCI numbering may not be running |
+| **VHH undercount** | ⚠️ Low | Got 2 VHH designs when config requested 5 |
+
+---
+
+## Recommendations Before Production Run
+
+### 1. Fix Fab Design Track (BLOCKING)
+
+The main de novo design approach (Fab CDR redesign) produced zero output. Must diagnose:
+
+```bash
+# Test Fab design directly on Modal
+modal run modal/boltzgen_app.py --target-pdb data/targets/1XIW.pdb \
+  --design-type fab --scaffolds adalimumab --num-designs 3
+```
+
+Check:
+- Are scaffold files being loaded correctly?
+- Is `run_boltzgen_fab()` being called in `02_run_denovo_design.py`?
+- Are there errors in Modal logs?
+
+### 2. Fix Empty Sequence Bug (BLOCKING)
+
+The rank 1 candidate `"unknown"` has an empty sequence. Trace data flow in:
+- `02_run_denovo_design.py` - is design output being parsed correctly?
+- `05_filter_candidates.py` - is there a fallback creating empty candidates?
+
+### 3. Fix Humanness Scoring (Important)
+
+All OASis scores are null. Check:
+- Is BioPhi installed and importable?
+- `src/analysis/humanness.py` - is `score_humanness_pair()` being called?
+
+### 4. Run Medium-Scale Test
+
+Before 100+ designs, run with 10-20 designs to validate fixes:
+
+```yaml
+design:
+  num_vhh_designs: 10
+  num_fab_designs: 10
+  fab_scaffolds:
+    - adalimumab
+    - belimumab
+```
+
+### 5. Future Enhancements (Non-blocking)
+
+- Enable Boltz-2 IC50 prediction (already available, not antibody-validated)
 - Consider adding AttABseq (MIT) for sequence-based ΔΔG
 - Consider Graphinity (BSD-3) for structure-based ΔΔG
 
