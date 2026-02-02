@@ -1,7 +1,10 @@
-"""Humanness scoring for antibody sequences using BioPhi.
+"""Humanness scoring for antibody sequences.
 
 Evaluates how "human-like" an antibody sequence is, which correlates
 with reduced immunogenicity risk.
+
+Uses Sapiens (neural network model) as the primary scoring method.
+Sapiens works standalone without ANARCI dependency.
 """
 
 from dataclasses import dataclass
@@ -16,22 +19,31 @@ class HumannessReport:
     sequence: str
     chain_type: str
     oasis_score: Optional[float]  # 0-1, higher is more human; None if scoring unavailable
+    sapiens_score: Optional[float] = None  # Sapiens neural network score
     oasis_percentile: Optional[float] = None
     closest_human_germline: Optional[str] = None
     germline_identity: Optional[float] = None
     humanization_suggestions: Optional[list[dict]] = None
 
     @property
+    def humanness_score(self) -> Optional[float]:
+        """Get best available humanness score (Sapiens preferred)."""
+        return self.sapiens_score or self.oasis_score
+
+    @property
     def is_human_like(self) -> bool:
         """Check if sequence passes typical humanness threshold."""
-        if self.oasis_score is None:
+        score = self.humanness_score
+        if score is None:
             return False  # Can't assess without score
-        return self.oasis_score >= 0.8
+        return score >= 0.8
 
     def to_dict(self) -> dict:
         """Convert to dictionary for serialization."""
         return {
             "oasis_score": self.oasis_score,
+            "sapiens_score": self.sapiens_score,
+            "humanness_score": self.humanness_score,
             "oasis_percentile": self.oasis_percentile,
             "closest_human_germline": self.closest_human_germline,
             "germline_identity": self.germline_identity,
@@ -72,64 +84,82 @@ def score_humanness(
     sequence: str,
     chain_type: str = "H",
 ) -> HumannessReport:
-    """Score humanness of an antibody sequence using BioPhi OASis.
+    """Score humanness of an antibody sequence.
+
+    Uses Sapiens (neural network) as the primary scoring method.
+    Falls back to OASis if available (requires ANARCI).
 
     Args:
         sequence: Amino acid sequence (VH or VL).
         chain_type: 'H' for heavy chain, 'L' for light chain.
 
     Returns:
-        HumannessReport with OASis score and related metrics.
+        HumannessReport with humanness scores.
     """
+    chain_type_norm = "H" if chain_type.upper() in ["H", "VH"] else "L"
+    sapiens_score = None
+    oasis_score = None
+    closest_germline = None
+    germline_identity = None
+
+    # Try Sapiens first (works without ANARCI)
     try:
-        from biophi.humanization.methods.sapiens import Sapiens
-        from biophi.humanization.methods.oasis import OASis
+        from sapiens import predict_scores
+        import numpy as np
 
-        # Initialize OASis scorer
-        oasis = OASis()
-        chain_type_oasis = "H" if chain_type.upper() in ["H", "VH"] else "L"
+        scores_df = predict_scores([sequence], chain_type=chain_type_norm)
 
-        # Get OASis humanness score
-        score = oasis.score_humanness(sequence, chain_type=chain_type_oasis)
+        # Calculate humanness as average probability of actual residue
+        position_scores = []
+        for i, aa in enumerate(sequence):
+            if i < len(scores_df) and aa in scores_df.columns:
+                position_scores.append(float(scores_df.iloc[i][aa]))
 
-        # Get closest germline
-        try:
-            germline_info = oasis.get_closest_germline(
-                sequence, chain_type=chain_type_oasis
-            )
-            closest_germline = germline_info.get("germline")
-            germline_identity = germline_info.get("identity")
-        except Exception:
-            closest_germline = None
-            germline_identity = None
-
-        return HumannessReport(
-            sequence=sequence,
-            chain_type=chain_type,
-            oasis_score=score,
-            closest_human_germline=closest_germline,
-            germline_identity=germline_identity,
-        )
+        if position_scores:
+            sapiens_score = float(np.mean(position_scores))
 
     except ImportError:
-        warnings.warn(
-            "BioPhi not installed. Install with: pip install biophi. "
-            "Humanness scoring will be skipped (soft-fail)."
-        )
-        # Return None for oasis_score to trigger soft-fail in filter cascade
-        # This allows the pipeline to continue without BioPhi installed
-        return HumannessReport(
-            sequence=sequence,
-            chain_type=chain_type,
-            oasis_score=None,  # None triggers soft-fail, not hard-fail
-        )
+        pass  # Sapiens not installed
     except Exception as e:
-        warnings.warn(f"Humanness scoring failed: {e}. Will soft-fail.")
-        return HumannessReport(
-            sequence=sequence,
-            chain_type=chain_type,
-            oasis_score=None,  # None triggers soft-fail
+        warnings.warn(f"Sapiens scoring failed: {e}")
+
+    # Try OASis if Sapiens didn't work (requires ANARCI)
+    if sapiens_score is None:
+        try:
+            from biophi.humanization.methods.oasis import OASis
+
+            oasis = OASis()
+            oasis_score = oasis.score_humanness(sequence, chain_type=chain_type_norm)
+
+            try:
+                germline_info = oasis.get_closest_germline(
+                    sequence, chain_type=chain_type_norm
+                )
+                closest_germline = germline_info.get("germline")
+                germline_identity = germline_info.get("identity")
+            except Exception:
+                pass
+
+        except ImportError:
+            pass  # OASis/ANARCI not installed
+        except Exception as e:
+            warnings.warn(f"OASis scoring failed: {e}")
+
+    # If neither worked, warn and return None scores
+    if sapiens_score is None and oasis_score is None:
+        warnings.warn(
+            "Humanness scoring unavailable. Install sapiens (pip install sapiens) "
+            "or full BioPhi with ANARCI. Scoring will soft-fail."
         )
+
+    return HumannessReport(
+        sequence=sequence,
+        chain_type=chain_type,
+        oasis_score=oasis_score,
+        sapiens_score=sapiens_score,
+        closest_human_germline=closest_germline,
+        germline_identity=germline_identity,
+    )
 
 
 def score_humanness_pair(
@@ -149,18 +179,20 @@ def score_humanness_pair(
 
     if vl_sequence:
         vl_report = score_humanness(vl_sequence, chain_type="L")
-        # Handle None scores (BioPhi unavailable)
-        if vh_report.oasis_score is not None and vl_report.oasis_score is not None:
-            mean_score = (vh_report.oasis_score + vl_report.oasis_score) / 2
-        elif vh_report.oasis_score is not None:
-            mean_score = vh_report.oasis_score
-        elif vl_report.oasis_score is not None:
-            mean_score = vl_report.oasis_score
+        # Use humanness_score property (prefers Sapiens over OASis)
+        vh_score = vh_report.humanness_score
+        vl_score = vl_report.humanness_score
+        if vh_score is not None and vl_score is not None:
+            mean_score = (vh_score + vl_score) / 2
+        elif vh_score is not None:
+            mean_score = vh_score
+        elif vl_score is not None:
+            mean_score = vl_score
         else:
             mean_score = None
     else:
         vl_report = None
-        mean_score = vh_report.oasis_score  # May be None
+        mean_score = vh_report.humanness_score  # May be None
 
     return PairedHumannessReport(
         vh_report=vh_report,
@@ -221,7 +253,7 @@ def filter_by_humanness(
     Args:
         sequences: List of sequences to filter.
         chain_type: Chain type for all sequences.
-        min_score: Minimum OASis score to pass filter.
+        min_score: Minimum humanness score to pass filter.
 
     Returns:
         List of (sequence, report) tuples that pass the filter.
@@ -230,8 +262,9 @@ def filter_by_humanness(
 
     for seq in sequences:
         report = score_humanness(seq, chain_type)
-        # Guard against None score (BioPhi unavailable) - skip sequence (soft-fail)
-        if report.oasis_score is not None and report.oasis_score >= min_score:
+        # Use humanness_score property (Sapiens or OASis)
+        score = report.humanness_score
+        if score is not None and score >= min_score:
             results.append((seq, report))
 
     return results
