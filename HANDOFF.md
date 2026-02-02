@@ -90,21 +90,28 @@ The denovo output has `{"vhh_designs": [...], "fab_designs": [...]}` structure, 
 
 **Fix**: Added handler for `vhh_designs`/`fab_designs` keys in the candidate loading logic.
 
-### 3. Humanness Scoring - FIXED ✅
-**Root cause**: BioPhi OASis requires ANARCI, which requires conda or complex source build.
-
-**Fix**: Updated humanness module to use **Sapiens** (neural network) as primary scoring method.
-- Sapiens works standalone without ANARCI
-- Installed via: `pip install git+https://github.com/Merck/BioPhi.git` (pulls sapiens dependency)
-- OASis is now optional fallback (requires ANARCI + conda)
+### 3. Humanness Scoring + ANARCI - FIXED ✅
+**Solution**: Created conda environment with all dependencies.
 
 ```bash
-# Installed packages:
-pip3 install git+https://github.com/Merck/BioPhi.git  # ✅ Done
-brew install hmmer                                      # ✅ Done (for ANARCI if needed later)
+# Conda environment created:
+conda create -n cd3-binder python=3.9
+conda activate cd3-binder
+conda install -c bioconda anarci
+pip install sapiens biopython tqdm pyyaml requests
 ```
 
-**ANARCI** (for CDR numbering) still requires conda. CDR-H3 length analysis will soft-fail without it.
+**All analysis tools now working:**
+- ✅ **Sapiens**: Neural network humanness scoring
+- ✅ **ANARCI**: CDR numbering and CDR-H3 length analysis
+- ✅ **BioPhi OASis**: Optional (requires ANARCI)
+
+**Run pipeline with:**
+```bash
+conda activate cd3-binder
+export PYTHONPATH=/Users/alec/kernel/cd3-binder-design
+python scripts/00_run_calibration.py
+```
 
 ---
 
@@ -127,7 +134,7 @@ brew install hmmer                                      # ✅ Done (for ANARCI i
 | **Fab design: no output** | 🔴 High | Config had `num_fab_designs: 5` but 0 Fab designs were generated |
 | **Empty sequence bug** | 🔴 High | Rank 1 candidate has `sequence: ""` - data flow issue |
 | ~~**Humanness scores null**~~ | ✅ Fixed | Now using Sapiens (neural network) - works without ANARCI |
-| **CDR-H3 length null** | ⚠️ Medium | ANARCI requires conda - optional, soft-fails gracefully |
+| ~~**CDR-H3 length null**~~ | ✅ Fixed | ANARCI installed via conda - CDR numbering works |
 | **VHH undercount** | ⚠️ Low | Got 2 VHH designs when config requested 5 |
 
 ---
@@ -141,8 +148,9 @@ Scaffold files are now downloaded. Ready for Fab CDR redesign.
 Structure prediction script now correctly extracts designs from denovo output.
 
 ### 3. ~~Install BioPhi/ANARCI~~ - FIXED ✅
-- **BioPhi + Sapiens**: Installed and working for humanness scoring
-- **ANARCI**: Optional (requires conda) - CDR-H3 length will be null without it
+- **Conda environment created**: `cd3-binder` with Python 3.9
+- **ANARCI**: Installed via bioconda - CDR numbering works
+- **Sapiens**: Installed - humanness scoring works
 
 ### 4. Run Validation Test
 Before production (100+ designs), validate fixes with medium-scale test:

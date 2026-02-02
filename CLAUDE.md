@@ -55,9 +55,10 @@ Critical implementation details:
 25. **Structural metrics ≠ affinity** - High pTM/pLDDT/contacts does NOT mean high affinity. These are structural confidence scores. Affinity must be validated experimentally with SPR/BLI.
 26. **Fab scaffolds must be downloaded** - Run `python scripts/setup_fab_scaffolds.py` before Fab CDR redesign. Downloads 14 CIF+YAML files to `data/fab_scaffolds/`.
 27. **Denovo output format** - `02_run_denovo_design.py` outputs `{"vhh_designs": [...], "fab_designs": [...]}`. The structure prediction script extracts both arrays.
-28. **Humanness scoring uses Sapiens** - Neural network model that works without ANARCI. Installed via `pip install git+https://github.com/Merck/BioPhi.git`. OASis (database-based) is optional fallback requiring ANARCI.
-29. **ANARCI requires conda** - CDR numbering and CDR-H3 length analysis need ANARCI (`conda install -c bioconda anarci`). Pipeline soft-fails without it.
-30. **Optimization track is NOT de novo** - It only reformats known antibody sequences from `data/starting_sequences/*.yaml` as scFv for comparison. It does not generate new binders.
+28. **Use conda environment** - A `cd3-binder` conda env with Python 3.9, ANARCI, and Sapiens is set up. Activate with `conda activate cd3-binder`.
+29. **Humanness scoring uses Sapiens** - Neural network model. OASis (database-based) is optional fallback.
+30. **ANARCI installed via conda** - CDR numbering and CDR-H3 length analysis work. Located at `/opt/homebrew/Caskroom/miniconda/base/envs/cd3-binder/`.
+31. **Optimization track is NOT de novo** - It only reformats known antibody sequences from `data/starting_sequences/*.yaml` as scFv for comparison. It does not generate new binders.
 
 ## Quick Reference
 
