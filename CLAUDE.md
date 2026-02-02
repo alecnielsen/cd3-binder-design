@@ -16,11 +16,13 @@ Computational pipeline for designing CD3-binding domains (VHH/Fab) for bispecifi
 
 | Type | Method | Output | Status |
 |------|--------|--------|--------|
-| **VHH** | BoltzGen `nanobody-anything` | Single-domain ~120 aa | Working |
-| **Fab** | BoltzGen `antibody-anything` CDR redesign | VH ~120 aa + VL ~107 aa | Working |
-| **scFv from known Ab** | Optimization track | VH-linker-VL | Working |
+| **VHH** | BoltzGen `nanobody-anything` | Single-domain ~120 aa | ✅ Working |
+| **Fab** | BoltzGen `antibody-anything` CDR redesign | VH ~120 aa + VL ~107 aa | ✅ Working |
+| **scFv from known Ab** | Optimization track | VH-linker-VL | ✅ Working |
 
 The Fab CDR redesign uses human antibody scaffolds (adalimumab, belimumab, etc.) and redesigns only the CDR loops, maintaining proper VH/VL structure.
+
+**IMPORTANT**: The optimization track does NOT generate new designs - it reformats known antibody sequences (teplizumab, SP34, UCHT1) for structure prediction and comparison. Only VHH and Fab tracks produce **novel** binders.
 
 ## Notes for Claude
 
@@ -51,6 +53,10 @@ Critical implementation details:
 23. **Boltz-2 has affinity prediction (IC50)** - Can be enabled with `--sampling_steps_affinity 200` and YAML `properties: { affinity: { ligand: B } }`. NOT validated for antibodies, not currently used.
 24. **Calibration uses scFv-derived constructs** - "teplizumab", "sp34", "ucht1" in code are VH-linker-VL scFvs, NOT full IgG antibodies. See `docs/reference/calibration-methodology.md`.
 25. **Structural metrics ≠ affinity** - High pTM/pLDDT/contacts does NOT mean high affinity. These are structural confidence scores. Affinity must be validated experimentally with SPR/BLI.
+26. **Fab scaffolds must be downloaded** - Run `python scripts/setup_fab_scaffolds.py` before Fab CDR redesign. Downloads 14 CIF+YAML files to `data/fab_scaffolds/`.
+27. **Denovo output format** - `02_run_denovo_design.py` outputs `{"vhh_designs": [...], "fab_designs": [...]}`. The structure prediction script extracts both arrays.
+28. **BioPhi/ANARCI are optional** - Pipeline soft-fails without them (humanness scores will be null). Install with `conda install -c bioconda anarci` and `pip install biophi`.
+29. **Optimization track is NOT de novo** - It only reformats known antibody sequences from `data/starting_sequences/*.yaml` as scFv for comparison. It does not generate new binders.
 
 ## Quick Reference
 

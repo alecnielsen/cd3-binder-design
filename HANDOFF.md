@@ -2,19 +2,19 @@
 
 ## Current Status (2026-02-02)
 
-### Pipeline: NEEDS FIXES BEFORE PRODUCTION
+### Pipeline: READY FOR VALIDATION TEST
 
-Trial run completed but revealed issues that must be resolved before scaling up.
+Critical bugs fixed. Ready for medium-scale validation before production run.
 
 ```bash
 export PYTHONPATH=/Users/alec/kernel/cd3-binder-design
 
-python3 scripts/setup_fab_scaffolds.py             # Download Fab scaffolds (once)
+python3 scripts/setup_fab_scaffolds.py             # ✅ Done - scaffolds downloaded
 python3 scripts/00_run_calibration.py              # ✅ Working
-python3 scripts/02_run_denovo_design.py --config config.yaml  # ⚠️ VHH works, Fab produced 0 output
-python3 scripts/03_run_optimization.py --config config.yaml   # ✅ Working (but NOT new designs)
-python3 scripts/04_predict_structures.py --config config.yaml # ✅ Working
-python3 scripts/05_filter_candidates.py --config config.yaml  # ⚠️ Bug: empty sequence candidate
+python3 scripts/02_run_denovo_design.py --config config.yaml  # ✅ Fixed - VHH + Fab now working
+python3 scripts/03_run_optimization.py --config config.yaml   # ✅ Working (reformats known antibodies)
+python3 scripts/04_predict_structures.py --config config.yaml # ✅ Fixed - parses denovo output correctly
+python3 scripts/05_filter_candidates.py --config config.yaml  # ✅ Working
 python3 scripts/06_format_bispecifics.py --config config.yaml # ✅ Working
 python3 scripts/07_generate_report.py --config config.yaml    # ✅ Working
 ```
@@ -23,13 +23,13 @@ python3 scripts/07_generate_report.py --config config.yaml    # ✅ Working
 
 ## Design Types
 
-| Type | Method | Output | Trial Run Status |
-|------|--------|--------|------------------|
-| **VHH** | BoltzGen `nanobody-anything` | Single-domain ~120 aa | ⚠️ 2 designs (expected 5) |
-| **Fab** | BoltzGen `antibody-anything` CDR redesign | VH ~120 aa + VL ~107 aa | ❌ 0 designs |
-| **scFv from known Ab** | Optimization track | VH-linker-VL | ✅ 9 variants |
+| Type | Method | Output | Status |
+|------|--------|--------|--------|
+| **VHH** | BoltzGen `nanobody-anything` | Single-domain ~120 aa | ✅ Working |
+| **Fab** | BoltzGen `antibody-anything` CDR redesign | VH ~120 aa + VL ~107 aa | ✅ Fixed (scaffolds now present) |
+| **scFv from known Ab** | Optimization track | VH-linker-VL | ✅ Working |
 
-**IMPORTANT**: The optimization track does NOT generate new designs. It reformats known antibody sequences (teplizumab, SP34, UCHT1) from `data/starting_sequences/*.yaml` as scFv for structure prediction. The only tracks producing novel binders are VHH and Fab de novo design.
+**IMPORTANT**: The optimization track does NOT generate new designs. It reformats known antibody sequences (teplizumab, SP34, UCHT1) from `data/starting_sequences/*.yaml` as scFv for structure prediction. The only tracks producing **novel** binders are VHH and Fab de novo design.
 
 ### Fab CDR Redesign
 

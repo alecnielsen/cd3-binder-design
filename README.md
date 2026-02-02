@@ -28,10 +28,12 @@ Design ~10 CD3-binding protein sequences with favorable developability propertie
 
 ### Approach
 
-1. **De novo design** using BoltzGen to generate novel VHH and scFv binders against CD3ε
-2. **Optimization of existing binders** starting from known anti-CD3 antibodies (teplizumab/OKT3, SP34, UCHT1)
+1. **De novo design** using BoltzGen to generate novel VHH nanobodies and Fab CDR redesigns against CD3ε
+2. **Optimization of existing binders** - reformat known anti-CD3 antibodies (teplizumab/OKT3, SP34, UCHT1) as scFv for structure prediction and comparison
 3. **Computational filtering** for developability, humanness, and sequence liabilities
 4. **Format conversion** into multiple bispecific antibody architectures
+
+> **Note**: The optimization track does NOT generate new designs - it uses published sequences. Only de novo VHH and Fab tracks produce novel binders.
 
 ### Key Constraints
 
@@ -192,33 +194,41 @@ git clone https://github.com/alecnielsen/cd3-binder-design.git
 cd cd3-binder-design
 pip install -e .
 
-# Modal setup
+# Modal setup (required for GPU compute)
 pip install modal
 modal setup
 modal deploy modal/boltzgen_app.py
 modal deploy modal/boltz2_app.py
+
+# Optional: Humanness scoring and CDR analysis
+conda install -c bioconda anarci  # For CDR numbering
+pip install biophi                 # For OASis humanness scoring
 ```
+
+> **Note**: BioPhi and ANARCI are optional. The pipeline soft-fails gracefully without them (humanness scores will be null), but they are recommended for full analysis.
 
 ### Running the Pipeline
 
 ```bash
-# Step 0: Setup Fab scaffolds (once)
+# Step 0: Setup Fab scaffolds (REQUIRED for Fab CDR redesign)
+# Downloads 14 human antibody structures from RCSB PDB
 python scripts/setup_fab_scaffolds.py
 
 # Step 1: Calibration (RUN FIRST)
+# Sets filter thresholds using known binders (teplizumab, SP34, UCHT1)
 python scripts/00_run_calibration.py
 
 # Full pipeline
 python scripts/run_full_pipeline.py --config config.yaml
 
 # Or step-by-step
-python scripts/01_setup_targets.py      # Download structures
-python scripts/02_run_denovo_design.py  # BoltzGen VHH + Fab (Modal)
-python scripts/03_run_optimization.py   # Humanization
-python scripts/04_predict_structures.py # Boltz-2 (Modal)
-python scripts/05_filter_candidates.py  # Apply filters
-python scripts/06_format_bispecifics.py # Generate formats
-python scripts/07_generate_report.py    # Final report
+python scripts/01_setup_targets.py      # Download CD3 structures (1XIW, 1SY6)
+python scripts/02_run_denovo_design.py  # BoltzGen VHH + Fab CDR redesign (Modal GPU)
+python scripts/03_run_optimization.py   # Reformat known antibodies as scFv
+python scripts/04_predict_structures.py # Boltz-2 complex prediction (Modal GPU)
+python scripts/05_filter_candidates.py  # Apply filtering cascade
+python scripts/06_format_bispecifics.py # Generate 5 bispecific formats
+python scripts/07_generate_report.py    # Final report with scorecards
 ```
 
 ---
