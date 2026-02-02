@@ -184,28 +184,31 @@ All tools have permissive licenses suitable for commercial use:
 
 ### Prerequisites
 
-- Python 3.9+ (tested with 3.9.6, 3.10, 3.11)
+- Miniconda or Anaconda (for ANARCI)
 - Modal account: https://modal.com
 
 ### Installation
 
 ```bash
+# Clone repository
 git clone https://github.com/alecnielsen/cd3-binder-design.git
 cd cd3-binder-design
+
+# Create conda environment (recommended)
+conda create -n cd3-binder python=3.9 -y
+conda activate cd3-binder
+conda install -c bioconda anarci -y  # CDR numbering
 pip install -e .
+pip install sapiens                   # Humanness scoring
 
 # Modal setup (required for GPU compute)
 pip install modal
 modal setup
 modal deploy modal/boltzgen_app.py
 modal deploy modal/boltz2_app.py
-
-# Optional: Humanness scoring and CDR analysis
-conda install -c bioconda anarci  # For CDR numbering
-pip install biophi                 # For OASis humanness scoring
 ```
 
-> **Note**: BioPhi and ANARCI are optional. The pipeline soft-fails gracefully without them (humanness scores will be null), but they are recommended for full analysis.
+> **Note**: The conda environment provides full functionality including humanness scoring (Sapiens) and CDR analysis (ANARCI). Without conda/ANARCI, the pipeline soft-fails gracefully (scores will be null).
 
 ### Running the Pipeline
 
