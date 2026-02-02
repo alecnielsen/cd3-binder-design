@@ -76,6 +76,37 @@ design:
 
 ---
 
+## Fixes Applied (2026-02-02)
+
+### 1. Fab Scaffold Files - FIXED ✅
+**Root cause**: `data/fab_scaffolds/` was empty (only `.gitkeep`).
+
+**Fix**: Ran `python scripts/setup_fab_scaffolds.py` - downloaded 14 scaffold CIF + YAML files.
+
+### 2. Empty Sequence Bug - FIXED ✅
+**Root cause**: `04_predict_structures.py` didn't handle denovo results format.
+
+The denovo output has `{"vhh_designs": [...], "fab_designs": [...]}` structure, but the script only checked for `designs` or `variants` keys. It fell through to treating the entire object as one candidate.
+
+**Fix**: Added handler for `vhh_designs`/`fab_designs` keys in the candidate loading logic.
+
+### 3. Missing Dependencies - NOT INSTALLED
+BioPhi and ANARCI are in `requirements.txt` but not installed locally:
+- **BioPhi**: Required for humanness scoring (OASis)
+- **ANARCI**: Required for CDR numbering and CDR-H3 length
+
+These cause soft-fails (null scores) but don't break the pipeline. Install with:
+```bash
+# ANARCI requires conda or source build
+conda install -c bioconda anarci
+
+# BioPhi
+pip install biophi
+# or from source: pip install git+https://github.com/Merck/BioPhi.git
+```
+
+---
+
 ## Trial Run Analysis (2026-02-02)
 
 ### What Worked
@@ -102,45 +133,36 @@ design:
 
 ## Recommendations Before Production Run
 
-### 1. Fix Fab Design Track (BLOCKING)
+### 1. ~~Fix Fab Design Track~~ - FIXED ✅
+Scaffold files are now downloaded. Ready for Fab CDR redesign.
 
-The main de novo design approach (Fab CDR redesign) produced zero output. Must diagnose:
+### 2. ~~Fix Empty Sequence Bug~~ - FIXED ✅
+Structure prediction script now correctly extracts designs from denovo output.
 
+### 3. Install BioPhi/ANARCI (Optional but Recommended)
+Humanness and CDR-H3 analysis require these packages:
 ```bash
-# Test Fab design directly on Modal
-modal run modal/boltzgen_app.py --target-pdb data/targets/1XIW.pdb \
-  --design-type fab --scaffolds adalimumab --num-designs 3
+conda install -c bioconda anarci
+pip install biophi
+```
+Pipeline works without them (soft-fail) but scores will be null.
+
+### 4. Run Validation Test
+Before production (100+ designs), validate fixes with medium-scale test:
+```bash
+# Update config.yaml:
+# num_vhh_designs: 10
+# num_fab_designs: 10
+
+python scripts/02_run_denovo_design.py --config config.yaml
+python scripts/04_predict_structures.py --config config.yaml
+python scripts/05_filter_candidates.py --config config.yaml
 ```
 
-Check:
-- Are scaffold files being loaded correctly?
-- Is `run_boltzgen_fab()` being called in `02_run_denovo_design.py`?
-- Are there errors in Modal logs?
-
-### 2. Fix Empty Sequence Bug (BLOCKING)
-
-The rank 1 candidate `"unknown"` has an empty sequence. Trace data flow in:
-- `02_run_denovo_design.py` - is design output being parsed correctly?
-- `05_filter_candidates.py` - is there a fallback creating empty candidates?
-
-### 3. Fix Humanness Scoring (Important)
-
-All OASis scores are null. Check:
-- Is BioPhi installed and importable?
-- `src/analysis/humanness.py` - is `score_humanness_pair()` being called?
-
-### 4. Run Medium-Scale Test
-
-Before 100+ designs, run with 10-20 designs to validate fixes:
-
-```yaml
-design:
-  num_vhh_designs: 10
-  num_fab_designs: 10
-  fab_scaffolds:
-    - adalimumab
-    - belimumab
-```
+Verify:
+- Fab designs are generated (check `data/outputs/denovo/` for `fab_designs` array)
+- No empty sequences in filtered output
+- Structure predictions complete for all candidates
 
 ### 5. Future Enhancements (Non-blocking)
 

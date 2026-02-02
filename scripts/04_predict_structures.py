@@ -62,6 +62,11 @@ def main():
             file_candidates = data["designs"]
         elif "variants" in data:
             file_candidates = data["variants"]
+        elif "vhh_designs" in data or "fab_designs" in data:
+            # De novo design output: extract individual designs from both tracks
+            file_candidates = []
+            file_candidates.extend(data.get("vhh_designs", []))
+            file_candidates.extend(data.get("fab_designs", []))
         else:
             file_candidates = data if isinstance(data, list) else [data]
 

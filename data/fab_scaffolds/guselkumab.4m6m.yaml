@@ -1,0 +1,31 @@
+# BoltzGen Fab scaffold: guselkumab
+# PDB: 4M6M
+# Human antibody framework with CDR redesign regions
+
+path: guselkumab.4m6m.cif
+
+include:
+  - chain:
+      id: H
+      res_index: 1..121
+  - chain:
+      id: L
+      res_index: 1..107
+
+design:
+  - chain:
+      id: H
+      res_index: 26..32,52..57,99..110
+  - chain:
+      id: L
+      res_index: 24..34,50..56,89..97
+
+design_insertions:
+  - insertion:
+      id: H
+      res_index: 99
+      num_residues: 3..21
+  - insertion:
+      id: L
+      res_index: 89
+      num_residues: 3..12
