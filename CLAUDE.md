@@ -16,8 +16,8 @@ Computational pipeline for designing CD3-binding domains (VHH/Fab) for bispecifi
 
 | Type | Method | Output | Status |
 |------|--------|--------|--------|
-| **VHH** | BoltzGen `nanobody-anything` | Single-domain ~120 aa | ✅ Working |
-| **Fab** | BoltzGen `antibody-anything` CDR redesign | VH ~120 aa + VL ~107 aa | ✅ Working |
+| **VHH** | BoltzGen `nanobody-anything` | Single-domain ~120 aa | ✅ Validated |
+| **Fab** | BoltzGen `antibody-anything` CDR redesign | VH ~120 aa + VL ~107 aa | ⚠️ Blocked (scaffold chain IDs) |
 | **scFv from known Ab** | Optimization track | VH-linker-VL | ✅ Working |
 
 The Fab CDR redesign uses human antibody scaffolds (adalimumab, belimumab, etc.) and redesigns only the CDR loops, maintaining proper VH/VL structure.
@@ -59,12 +59,24 @@ Critical implementation details:
 29. **Humanness scoring uses Sapiens** - Neural network model. OASis (database-based) is optional fallback.
 30. **ANARCI installed via conda** - CDR numbering and CDR-H3 length analysis work. Located at `/opt/homebrew/Caskroom/miniconda/base/envs/cd3-binder/`.
 31. **Optimization track is NOT de novo** - It only reformats known antibody sequences from `data/starting_sequences/*.yaml` as scFv for comparison. It does not generate new binders.
+32. **CRITICAL: Fab scaffold chain IDs are often wrong** - `setup_fab_scaffolds.py` defines chain IDs (H/L) that don't match actual CIF files from RCSB. Only adalimumab (B/A chains) is verified correct. Check PDB structure before using other scaffolds.
+33. **Modal must be deployed before running** - Run `modal deploy modal/boltzgen_app.py` and `modal run modal/boltzgen_app.py --download` to set up BoltzGen on Modal.
+34. **Modal package required in conda env** - Run `pip install modal` in the cd3-binder conda environment.
+35. **Validation test passed (VHH)** - 10 VHH designs generated, predicted, filtered, formatted into 29 bispecific constructs. De novo VHH scores competitively with known antibody scFvs.
 
 ## Quick Reference
 
 ### Running the Pipeline
 ```bash
-python scripts/setup_fab_scaffolds.py   # Download Fab scaffolds (once)
+conda activate cd3-binder
+export PYTHONPATH=/Users/alec/kernel/cd3-binder-design
+
+# One-time setup
+modal deploy modal/boltzgen_app.py      # Deploy BoltzGen to Modal
+modal run modal/boltzgen_app.py --download  # Download model weights
+python scripts/setup_fab_scaffolds.py   # Download Fab scaffolds
+
+# Run pipeline
 python scripts/00_run_calibration.py    # Run first!
 python scripts/run_full_pipeline.py --config config.yaml
 ```

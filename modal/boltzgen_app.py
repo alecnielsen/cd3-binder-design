@@ -619,10 +619,10 @@ def run_boltzgen_fab(
         cif_path.write_text(cif_content)
         print(f"Wrote scaffold CIF: {cif_path}")
 
-        # Write YAML file (update path to be relative)
+        # Write YAML file (path stays as cif_filename since YAML and CIF are in same dir)
         yaml_path = scaffold_dir / f"{name}.yaml"
-        # Update the path in YAML to point to local CIF
-        updated_yaml = yaml_content.replace(f"path: {cif_filename}", f"path: {cif_path}")
+        # Keep relative path - YAML and CIF are in the same directory
+        updated_yaml = yaml_content  # No path update needed - already relative
         yaml_path.write_text(updated_yaml)
         print(f"Wrote scaffold YAML: {yaml_path}")
 
