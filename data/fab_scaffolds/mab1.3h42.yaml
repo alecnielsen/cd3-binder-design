@@ -6,26 +6,26 @@ path: mab1.3h42.cif
 
 include:
   - chain:
-      id: H
+      id: D
       res_index: 1..119
   - chain:
-      id: L
+      id: C
       res_index: 1..107
 
 design:
   - chain:
-      id: H
+      id: D
       res_index: 26..32,52..57,99..107
   - chain:
-      id: L
+      id: C
       res_index: 24..34,50..56,89..97
 
 design_insertions:
   - insertion:
-      id: H
+      id: D
       res_index: 99
       num_residues: 3..21
   - insertion:
-      id: L
+      id: C
       res_index: 89
       num_residues: 3..12

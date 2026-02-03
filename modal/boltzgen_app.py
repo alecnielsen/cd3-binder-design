@@ -755,30 +755,56 @@ def run_boltzgen_fab(
                             sequences_by_entity[entity_id] = sequence
                             print(f"    Entity {entity_id}: {sequence[:40]}... ({len(sequence)} aa)")
 
-            # Entity 1 should be VH (~120 aa), Entity 2 should be VL (~107 aa)
-            # Entity 3 is the target
-            vh_sequence = sequences_by_entity.get("1", "")
-            vl_sequence = sequences_by_entity.get("2", "")
+            # Identify VH and VL by sequence characteristics
+            # VH: starts with EVQL/QVQL/DVQL (heavy chain), length 115-140
+            # VL: starts with DIQ/DIV/DTV/EIV (light chain kappa/lambda), length 100-120
+            # Target: anything else (usually shorter, different sequence patterns)
+            vh_sequence = ""
+            vl_sequence = ""
 
-            # Validate lengths (VH ~115-125, VL ~105-115)
+            vh_patterns = ("EVQL", "QVQL", "DVQL", "EVKL", "QVKL", "EVLL")
+            vl_patterns = ("DIQ", "DIV", "DTV", "EIV", "AIQ", "SIV", "DIQM", "DIQLT", "EIVL", "EIVMT")
+
+            for entity_id, seq in sequences_by_entity.items():
+                seq_len = len(seq)
+                seq_prefix = seq[:5].upper()
+
+                # Check VH patterns first (heavy chain variable region)
+                if 115 <= seq_len <= 145 and any(seq.upper().startswith(p) for p in vh_patterns):
+                    if not vh_sequence or seq_len > len(vh_sequence):
+                        vh_sequence = seq
+                        print(f"    -> Entity {entity_id} identified as VH ({seq_len} aa)")
+                # Check VL patterns (light chain variable region)
+                elif 95 <= seq_len <= 125 and any(seq.upper().startswith(p) for p in vl_patterns):
+                    if not vl_sequence or seq_len > len(vl_sequence):
+                        vl_sequence = seq
+                        print(f"    -> Entity {entity_id} identified as VL ({seq_len} aa)")
+
+            # If pattern matching didn't work, fall back to length heuristics
+            if not vh_sequence or not vl_sequence:
+                candidates = sorted(sequences_by_entity.items(), key=lambda x: len(x[1]), reverse=True)
+                for entity_id, seq in candidates:
+                    seq_len = len(seq)
+                    if not vh_sequence and 115 <= seq_len <= 145:
+                        vh_sequence = seq
+                        print(f"    -> Entity {entity_id} assigned as VH by length ({seq_len} aa)")
+                    elif not vl_sequence and 95 <= seq_len <= 125 and seq != vh_sequence:
+                        vl_sequence = seq
+                        print(f"    -> Entity {entity_id} assigned as VL by length ({seq_len} aa)")
+
             if vh_sequence and vl_sequence:
-                vh_len = len(vh_sequence)
-                vl_len = len(vl_sequence)
-
-                # Check if entity assignment seems correct
-                if 100 <= vh_len <= 140 and 90 <= vl_len <= 120:
-                    design = {
-                        "vh_sequence": vh_sequence,
-                        "vl_sequence": vl_sequence,
-                        "sequence": vh_sequence,  # For compatibility
-                        "header": cif_file.stem,
-                        "source_file": cif_file.name,
-                        "binder_type": "fab",
-                    }
-                    designs.append(design)
-                    print(f"    -> Extracted VH ({vh_len} aa) + VL ({vl_len} aa)")
-                else:
-                    print(f"    -> Unexpected lengths: VH={vh_len}, VL={vl_len}")
+                design = {
+                    "vh_sequence": vh_sequence,
+                    "vl_sequence": vl_sequence,
+                    "sequence": vh_sequence,  # For compatibility
+                    "header": cif_file.stem,
+                    "source_file": cif_file.name,
+                    "binder_type": "fab",
+                }
+                designs.append(design)
+                print(f"    -> Extracted VH ({len(vh_sequence)} aa) + VL ({len(vl_sequence)} aa)")
+            else:
+                print(f"    -> Could not identify VH/VL (VH={len(vh_sequence) if vh_sequence else 0}, VL={len(vl_sequence) if vl_sequence else 0})")
 
         except Exception as e:
             print(f"    Error parsing {cif_file.name}: {e}")

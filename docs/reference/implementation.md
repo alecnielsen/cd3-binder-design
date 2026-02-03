@@ -164,6 +164,72 @@ def assemble_crossmab(
     }
 ```
 
+## Understanding CIF Chain IDs
+
+**Critical for Fab scaffolds**: BoltzGen uses CIF chain identifiers (`struct_asym.id`) which differ from PDB author chain IDs.
+
+### CIF vs PDB Chain Identifiers
+
+| Identifier | Source | Example | Meaning |
+|------------|--------|---------|---------|
+| `struct_asym.id` | CIF format, BoltzGen | A, B, C, D | Sequential IDs for each polymer entity |
+| `pdbx_strand_id` | RCSB API, PDB format | H, L | Author-assigned labels (H=heavy, L=light) |
+
+**Key point**: A, B, C, D are just sequential identifiers assigned to each entity in order of appearance. They do NOT inherently mean "heavy" or "light" chain.
+
+### How CIF Chain IDs Are Assigned
+
+```
+PDB Structure Deposited:
+  Entity 1: Light chain      → struct_asym.id = A
+  Entity 2: Heavy chain      → struct_asym.id = B
+  Entity 3: Antigen (target) → struct_asym.id = C
+  Entity 4: Ligand           → struct_asym.id = D
+```
+
+### Example: Adalimumab (6CR1)
+
+```
+Entity 1: Light chain (VL domain) → Chain A in CIF
+Entity 2: Heavy chain (VH domain) → Chain B in CIF
+```
+
+So the YAML scaffold uses: `vh_chain: "B"`, `vl_chain: "A"`
+
+### Verifying Chain IDs in CIF Files
+
+```bash
+# Check struct_asym section (maps chain ID to entity)
+grep "_struct_asym" scaffold.cif -A 10 | grep -E "^[A-Z]"
+# Output: A N N 1 ?   <- Chain A = Entity 1
+#         B N N 2 ?   <- Chain B = Entity 2
+
+# Check entity descriptions
+grep -A 200 "^_entity_poly.entity_id" scaffold.cif | head -30
+# Look for "heavy chain" or "light chain" in descriptions
+```
+
+### All Verified Scaffold Chain Mappings
+
+| Scaffold | PDB | VH | VL | Notes |
+|----------|-----|----|----|-------|
+| adalimumab | 6cr1 | B | A | VL=entity1, VH=entity2 |
+| belimumab | 5y9k | B | A | VL=entity1, VH=entity2 |
+| crenezumab | 5vzy | A | B | VH=entity1, VL=entity2 |
+| dupilumab | 6wgb | A | B | VH=entity1, VL=entity2 |
+| golimumab | 5yoy | G | D | TNF=entity1, VL=entity2, VH=entity3 |
+| guselkumab | 4m6m | B | A | VL=entity1, VH=entity2 |
+| mab1 | 3h42 | D | C | target=entities1-2, VL=entity3, VH=entity4 |
+| necitumumab | 6b3s | B | C | EGFR=entity1, VH=entity2, VL=entity3 |
+| nirsevimab | 5udc | A | B | VH=entity1, VL=entity2 |
+| sarilumab | 8iow | D | C | IL6R=entity1, VL=entity2, VH=entity3 |
+| secukinumab | 6wio | A | B | VH=entity1, VL=entity2 |
+| tezepelumab | 5j13 | C | B | TSLP=entity1, VL=entity2, VH=entity3 |
+| tralokinumab | 5l6y | B | C | IL13=entity1, VH=entity2, VL=entity3 |
+| ustekinumab | 3hmw | B | A | VL=entity1, VH=entity2 |
+
+---
+
 ## BoltzGen Fab Scaffold Format
 
 Fab CDR redesign uses YAML scaffold specifications that define which regions to redesign:
@@ -174,10 +240,10 @@ path: adalimumab.6cr1.cif
 
 include:
   - chain:
-      id: B                     # VH chain
+      id: B                     # VH chain (entity 2 in this CIF)
       res_index: 1..121
   - chain:
-      id: A                     # VL chain
+      id: A                     # VL chain (entity 1 in this CIF)
       res_index: 1..107
 
 design:                         # CDR regions to redesign
@@ -202,6 +268,11 @@ design_insertions:              # Variable CDR lengths
 Setup scaffolds with:
 ```bash
 python scripts/setup_fab_scaffolds.py
+```
+
+Verify chain IDs with:
+```bash
+python scripts/verify_fab_chains.py
 ```
 
 ## Modal Deployment for BoltzGen
