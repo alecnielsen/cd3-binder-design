@@ -30,10 +30,12 @@ MINUTES = 60
 
 app = modal.App("boltzgen-cd3")
 
-# Container with BoltzGen
+# Container with BoltzGen - install from GitHub main for latest fixes
+# (PyPI 0.2.0 is from Dec 10, but refolding fix landed Dec 17)
 boltzgen_image = (
     modal.Image.debian_slim(python_version="3.11")
-    .pip_install("boltzgen")
+    .apt_install("git")
+    .pip_install("boltzgen @ git+https://github.com/HannesStark/boltzgen.git@main")
 )
 
 # Persistent volume for model weights
@@ -291,8 +293,8 @@ def run_boltzgen(
     print(f"STDOUT: {result.stdout}")
     if result.returncode != 0:
         print(f"STDERR: {result.stderr}")
-        # Check if intermediate designs exist despite failure
-        # BoltzGen v0.2.0 has a bug in confidence module that crashes folding
+        # Fallback: check if intermediate designs exist despite failure
+        # (kept for robustness even though Dec 17 refolding fix should resolve this)
         ifold_dir = output_dir / "intermediate_designs_inverse_folded"
         if ifold_dir.exists():
             print(f"Pipeline failed but intermediate designs found at {ifold_dir}")
@@ -657,7 +659,8 @@ def run_boltzgen_fab(
     print(f"STDOUT: {result.stdout}")
     if result.returncode != 0:
         print(f"STDERR: {result.stderr}")
-        # Check if intermediate designs exist despite failure
+        # Fallback: check if intermediate designs exist despite failure
+        # (kept for robustness even though Dec 17 refolding fix should resolve this)
         ifold_dir = output_dir / "intermediate_designs_inverse_folded"
         if ifold_dir.exists():
             print(f"Pipeline failed but intermediate designs found at {ifold_dir}")

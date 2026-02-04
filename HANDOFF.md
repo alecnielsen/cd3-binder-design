@@ -1,10 +1,10 @@
 # Handoff Notes - CD3 Binder Design Pipeline
 
-## Current Status (2026-02-03)
+## Current Status (2026-02-04)
 
-### Pipeline: BOTH TRACKS VALIDATED
+### Pipeline: BOTH TRACKS FULLY WORKING
 
-VHH de novo design validated. Fab CDR redesign track now working after chain ID fix.
+VHH de novo design validated. Fab CDR redesign now runs full BoltzGen pipeline (all 5 steps) after upgrading to GitHub main branch with Dec 17 refolding fix.
 
 ```bash
 conda activate cd3-binder
@@ -134,16 +134,24 @@ Or use the verification script: `python scripts/verify_fab_chains.py`
 ### Key Observations
 
 1. **VHH design reliably produces 10 designs** - Confirmed across 4 consecutive runs
-2. **Fab design working** - Produces VH+VL sequences with correct CDR redesign
-3. **pDockQ shows 0.000** - This is expected; pDockQ is NOT a native Boltz-2 metric (it's AlphaFold-Multimer specific). Use pTM/ipTM instead.
-4. **Fallback filtering works** - 0 candidates passed strict thresholds, 10 passed after relaxation
-5. **De novo VHH designs score competitively** - Within range of known antibody scFvs
+2. **Fab design fully working** - All 5 BoltzGen steps complete (design → inverse_folding → folding → analysis → filtering)
+3. **Fab RMSD filter is strict** - Designs may fail 2.5 Å threshold; this is legitimate quality filtering (designed sequence doesn't fold as intended)
+4. **pDockQ shows 0.000** - This is expected; pDockQ is NOT a native Boltz-2 metric (it's AlphaFold-Multimer specific). Use pTM/ipTM instead.
+5. **Fallback filtering works** - 0 candidates passed strict thresholds, 10 passed after relaxation
+6. **De novo VHH designs score competitively** - Within range of known antibody scFvs
 
 ---
 
 ## Fixes Applied
 
-### Session 2026-02-03 (Latest)
+### Session 2026-02-04 (Latest)
+
+1. **BoltzGen refolding fix** - Upgraded from PyPI v0.2.0 to GitHub main branch which includes Dec 17, 2025 refolding fix
+2. **Modal image updated** - Now uses `git+https://github.com/HannesStark/boltzgen.git@main` instead of PyPI package
+3. **Full pipeline now works** - All 5 BoltzGen steps (design, inverse_folding, folding, analysis, filtering) complete successfully
+4. **RMSD filtering active** - Fab designs are now properly validated; strict 2.5 Å threshold may reject some designs (this is legitimate quality filtering)
+
+### Session 2026-02-03
 
 1. **Fab scaffold chain IDs fixed** - Updated all 14 scaffolds with correct CIF chain labels
 2. **VH/VL parsing fixed** - Modal app now identifies chains by sequence patterns (EVQL... for VH, DIQM... for VL) instead of assuming entity order

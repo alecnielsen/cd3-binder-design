@@ -63,7 +63,9 @@ Critical implementation details:
 33. **Modal must be deployed before running** - Run `modal deploy modal/boltzgen_app.py` and `modal run modal/boltzgen_app.py --download` to set up BoltzGen on Modal.
 34. **Modal package required in conda env** - Run `pip install modal` in the cd3-binder conda environment.
 35. **Validation test passed (VHH)** - 10 VHH designs generated, predicted, filtered, formatted into 29 bispecific constructs. De novo VHH scores competitively with known antibody scFvs.
-36. **Fab CDR redesign working** - VH/VL parsing fixed to identify chains by sequence patterns (EVQL... for VH, DIQM... for VL) rather than entity order. BoltzGen's RMSD filter may reject designs but sequences are extracted from intermediate CIF files.
+36. **Fab CDR redesign working** - VH/VL parsing fixed to identify chains by sequence patterns (EVQL... for VH, DIQM... for VL) rather than entity order.
+37. **BoltzGen installed from GitHub main** - PyPI v0.2.0 (Dec 10) had a refolding bug; GitHub main has Dec 17 fix. Modal image uses `git+https://github.com/HannesStark/boltzgen.git@main`.
+38. **BoltzGen RMSD filter is strict** - Fab CDR redesigns often fail the 2.5 Å RMSD threshold (designed vs refolded structure). This is legitimate quality filtering, not a bug. Run more designs or try different scaffolds to get passing candidates.
 
 ## Quick Reference
 
