@@ -823,10 +823,16 @@ def run_boltzgen_fab(
             try:
                 design["ipTM"] = float(metrics.get("design_to_target_iptm", 0))
                 design["pTM"] = float(metrics.get("design_ptm", 0))
+                design["rmsd"] = float(metrics.get("filter_rmsd", 0))
+                design["rmsd_design"] = float(metrics.get("filter_rmsd_design", 0))
             except (ValueError, TypeError):
                 pass
 
     print(f"Parsed {len(designs)} Fab designs")
+    # Print RMSD summary
+    rmsds = [d.get("rmsd", 0) for d in designs if d.get("rmsd")]
+    if rmsds:
+        print(f"RMSD range: {min(rmsds):.2f} - {max(rmsds):.2f} Å (threshold: 2.5 Å)")
     return designs
 
 

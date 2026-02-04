@@ -65,7 +65,8 @@ Critical implementation details:
 35. **Validation test passed (VHH)** - 10 VHH designs generated, predicted, filtered, formatted into 29 bispecific constructs. De novo VHH scores competitively with known antibody scFvs.
 36. **Fab CDR redesign working** - VH/VL parsing fixed to identify chains by sequence patterns (EVQL... for VH, DIQM... for VL) rather than entity order.
 37. **BoltzGen installed from GitHub main** - PyPI v0.2.0 (Dec 10) had a refolding bug; GitHub main has Dec 17 fix. Modal image uses `git+https://github.com/HannesStark/boltzgen.git@main`.
-38. **BoltzGen RMSD filter is strict** - Fab CDR redesigns often fail the 2.5 Å RMSD threshold (designed vs refolded structure). This is legitimate quality filtering, not a bug. Run more designs or try different scaffolds to get passing candidates.
+38. **BoltzGen RMSD filter is strict** - Fab CDR redesigns may fail the 2.5 Å RMSD threshold. With correct scaffold YAML format, ~25% of designs pass. Run 20+ designs to get passing candidates.
+39. **Scaffold YAML format is critical** - Must include `structure_groups`, `exclude`, `design_insertions` (all 6 CDRs), and `reset_res_index` sections. Official YAMLs from BoltzGen repo are now used.
 
 ## Quick Reference
 

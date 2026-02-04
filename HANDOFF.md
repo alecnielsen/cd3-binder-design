@@ -149,7 +149,8 @@ Or use the verification script: `python scripts/verify_fab_chains.py`
 1. **BoltzGen refolding fix** - Upgraded from PyPI v0.2.0 to GitHub main branch which includes Dec 17, 2025 refolding fix
 2. **Modal image updated** - Now uses `git+https://github.com/HannesStark/boltzgen.git@main` instead of PyPI package
 3. **Full pipeline now works** - All 5 BoltzGen steps (design, inverse_folding, folding, analysis, filtering) complete successfully
-4. **RMSD filtering active** - Fab designs are now properly validated; strict 2.5 Å threshold may reject some designs (this is legitimate quality filtering)
+4. **Scaffold YAML format fixed** - Updated all 14 scaffolds to official BoltzGen format with `structure_groups`, `exclude`, `design_insertions` (all 6 CDRs), and `reset_res_index` sections
+5. **Fab RMSD now passing** - With correct YAML format: 5/20 designs pass 2.5 Å threshold (~25% pass rate). Before fix: 0/20 passed (18-22 Å RMSD)
 
 ### Session 2026-02-03
 
