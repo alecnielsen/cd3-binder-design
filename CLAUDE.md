@@ -67,6 +67,9 @@ Critical implementation details:
 37. **BoltzGen installed from GitHub main** - PyPI v0.2.0 (Dec 10) had a refolding bug; GitHub main has Dec 17 fix. Modal image uses `git+https://github.com/HannesStark/boltzgen.git@main`.
 38. **BoltzGen RMSD filter is strict** - Fab CDR redesigns may fail the 2.5 Å RMSD threshold. With correct scaffold YAML format, ~25% of designs pass. Run 20+ designs to get passing candidates.
 39. **Scaffold YAML format is critical** - Must include `structure_groups`, `exclude`, `design_insertions` (all 6 CDRs), and `reset_res_index` sections. Official YAMLs from BoltzGen repo are now used.
+40. **ipTM interpretation** - For de novo designs, ipTM 0.2-0.4 is typical. Values at high end (~0.35-0.40) indicate good structural confidence. ipTM is NOT an affinity predictor.
+41. **Step 04 extracts interface metrics** - BoltzGen outputs ipTM/pTM, but filtering needs interface_area, num_contacts, and epitope residues. Step 04 re-runs Boltz-2 to extract these.
+42. **Fab track validated** - Feb 5 run: 9/10 Fab designs generated with ipTM up to 0.368. One design typically fails BoltzGen's internal RMSD filter.
 
 ## Quick Reference
 

@@ -1,10 +1,10 @@
 # Handoff Notes - CD3 Binder Design Pipeline
 
-## Current Status (2026-02-04)
+## Current Status (2026-02-05)
 
 ### Pipeline: BOTH TRACKS FULLY WORKING
 
-VHH de novo design validated. Fab CDR redesign now runs full BoltzGen pipeline (all 5 steps) after upgrading to GitHub main branch with Dec 17 refolding fix.
+VHH and Fab de novo design both validated. Latest run (Feb 5): **10 VHH + 9 Fab designs** generated successfully.
 
 ```bash
 conda activate cd3-binder
@@ -100,7 +100,58 @@ Or use the verification script: `python scripts/verify_fab_chains.py`
 
 ---
 
-## Validation Test Results (2026-02-03)
+## Understanding ipTM Scores
+
+**ipTM (interface predicted Template Modeling)** is the primary quality metric from BoltzGen/Boltz-2 for de novo designs.
+
+| ipTM Range | Interpretation |
+|------------|----------------|
+| < 0.2 | Low confidence - interface may not form as predicted |
+| **0.2 - 0.4** | **Typical for de novo designs** - reasonable confidence |
+| > 0.4 | High confidence - unusual for de novo, common for known complexes |
+
+**Critical caveat**: ipTM is a structural confidence score, NOT an affinity predictor. A design with ipTM 0.25 could have better actual affinity than one with 0.35. Experimental validation (SPR/BLI) is required.
+
+---
+
+## Latest Run (2026-02-05)
+
+### De Novo Design Results
+
+| Type | Requested | Generated | Best ipTM | Design ID |
+|------|-----------|-----------|-----------|-----------|
+| **VHH** | 10 | 10 | 0.368 | vhh_1SY6_0000 |
+| **Fab** | 10 | 9 | 0.368 | fab_1SY6_0002 |
+
+Top designs by ipTM:
+- fab_1SY6_0002: 0.368 (pTM 0.697)
+- vhh_1SY6_0000: 0.368
+- vhh_1XIW_0001: 0.361
+- vhh_1SY6_0003: 0.317
+- vhh_1XIW_0003: 0.305
+
+### Key Observations
+
+1. **Fab track now working** - 9/10 Fab designs generated (1 failed RMSD filter)
+2. **ipTM scores competitive** - Best designs at 0.368 (high end of typical range)
+3. **VHH and Fab comparable** - Both tracks producing similar quality designs
+
+---
+
+## Pipeline Architecture Note
+
+**Why does step 04 (predict_structures) exist if BoltzGen already does structure prediction?**
+
+BoltzGen outputs ipTM/pTM during design, but the filtering step requires additional metrics:
+- `interface_area` - buried surface area at interface
+- `num_contacts` - residue-level contact count
+- `interface_residues_target` - for epitope classification
+
+Step 04 re-runs Boltz-2 to extract these interface metrics. It also processes the optimization track (known antibody scFvs) which weren't designed via BoltzGen.
+
+---
+
+## Earlier Validation Results (2026-02-03)
 
 ### VHH Pipeline Run Summary
 
@@ -112,33 +163,13 @@ Or use the verification script: `python scripts/verify_fab_chains.py`
 | Bispecific formatting | ✅ | 29 constructs across 5 formats |
 | Report generation | ✅ | 12 report files |
 
-### Fab Test Results
-
-| Step | Status | Output |
-|------|--------|--------|
-| De novo design | ✅ | 2 Fab designs (adalimumab scaffold) |
-| VH extraction | ✅ | 124-131 aa sequences |
-| VL extraction | ✅ | 115-117 aa sequences |
-| ipTM scores | ✅ | 0.251-0.259 |
-
-### Top Candidates (VHH run)
-
-| Rank | Candidate | Score | Type |
-|------|-----------|-------|------|
-| 1 | sp34_original | 0.382 | Known Ab (scFv) |
-| 2 | sp34_original_WT | 0.382 | Known Ab (scFv) |
-| 3 | sp34_humanized | 0.382 | Known Ab (scFv) |
-| 4 | vhh_1XIW_0002 | 0.354 | **De novo VHH** |
-| 5 | vhh_1SY6_0003 | 0.353 | **De novo VHH** |
-
-### Key Observations
+### Key Observations (Feb 3)
 
 1. **VHH design reliably produces 10 designs** - Confirmed across 4 consecutive runs
-2. **Fab design fully working** - All 5 BoltzGen steps complete (design → inverse_folding → folding → analysis → filtering)
-3. **Fab RMSD filter is strict** - Designs may fail 2.5 Å threshold; this is legitimate quality filtering (designed sequence doesn't fold as intended)
-4. **pDockQ shows 0.000** - This is expected; pDockQ is NOT a native Boltz-2 metric (it's AlphaFold-Multimer specific). Use pTM/ipTM instead.
-5. **Fallback filtering works** - 0 candidates passed strict thresholds, 10 passed after relaxation
-6. **De novo VHH designs score competitively** - Within range of known antibody scFvs
+2. **Fab RMSD filter is strict** - Designs may fail 2.5 Å threshold; this is legitimate quality filtering
+3. **pDockQ shows 0.000** - Expected; pDockQ is NOT a native Boltz-2 metric. Use pTM/ipTM instead.
+4. **Fallback filtering works** - 0 candidates passed strict thresholds, 10 passed after relaxation
+5. **De novo VHH designs score competitively** - Within range of known antibody scFvs
 
 ---
 
