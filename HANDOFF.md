@@ -27,7 +27,7 @@ python3 scripts/07_generate_report.py --config config.yaml    # ✅ Working
 | Type | Method | Output | Status |
 |------|--------|--------|--------|
 | **VHH** | BoltzGen `nanobody-anything` | Single-domain ~120 aa | ✅ Validated |
-| **Fab** | BoltzGen `antibody-anything` CDR redesign | VH ~120 aa + VL ~107 aa | ✅ Working |
+| **Fab** | BoltzGen `antibody-anything` CDR redesign | VH ~120 aa + VL ~107 aa | ✅ Working (12 fully-human scaffolds) |
 | **scFv from known Ab** | Optimization track | VH-linker-VL | ✅ Working |
 
 **IMPORTANT**: The optimization track does NOT generate new designs. It reformats known antibody sequences (teplizumab, SP34, UCHT1) from `data/starting_sequences/*.yaml` as scFv for structure prediction. The only tracks producing **novel** binders are VHH and Fab de novo design.
@@ -66,15 +66,15 @@ So for adalimumab: `vh_chain: "B"`, `vl_chain: "A"`
 
 ### All Scaffold Chain Mappings (Verified)
 
+12 fully-human scaffolds (crenezumab and mab1 excluded - see Scaffold Selection Rationale):
+
 | Scaffold | PDB | VH Chain | VL Chain | Notes |
 |----------|-----|----------|----------|-------|
 | adalimumab | 6cr1 | B | A | VL=entity1, VH=entity2 |
 | belimumab | 5y9k | B | A | VL=entity1, VH=entity2 |
-| crenezumab | 5vzy | A | B | VH=entity1, VL=entity2 |
 | dupilumab | 6wgb | A | B | VH=entity1, VL=entity2 |
 | golimumab | 5yoy | G | D | VL=entity2 (D,E,F), VH=entity3 (G,H,I); TNF=entity1 |
 | guselkumab | 4m6m | B | A | VL=entity1, VH=entity2 |
-| mab1 | 3h42 | D | C | PCSK9=entities1-2, VL=entity3, VH=entity4 |
 | necitumumab | 6b3s | B | C | EGFR=entity1, VH=entity2, VL=entity3 |
 | nirsevimab | 5udc | A | B | VH=entity1, VL=entity2 |
 | sarilumab | 8iow | D | C | IL6R=entity1, VL=entity2, VH=entity3 |
@@ -185,8 +185,27 @@ design:
     - adalimumab
     - belimumab
     - dupilumab
-    # All 14 scaffolds now have correct chain IDs
+    - golimumab
+    - guselkumab
+    - necitumumab
+    - nirsevimab
+    - sarilumab
+    - secukinumab
+    - tezepelumab
+    - tralokinumab
+    - ustekinumab
 ```
+
+### Scaffold Selection Rationale
+
+**12 fully-human scaffolds** are used. Two were excluded:
+- **crenezumab**: Humanized (not fully human) - contains murine back-mutation residues in framework regions
+- **mab1 (3H42)**: Unclear provenance - PDB structure lacks documentation of human/humanized status
+
+**Why fully-human matters**:
+- BoltzGen replaces CDRs but keeps framework regions
+- Humanized frameworks retain ~5-10% murine residues (back-mutations for CDR conformation)
+- Fully-human frameworks = 100% human germline = lower immunogenicity risk
 
 ### Experimental Validation
 

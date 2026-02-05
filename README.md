@@ -103,7 +103,9 @@ BoltzGen generates two types of binders targeting CD3ε from 1XIW and 1SY6 struc
 - Supports variable CDR lengths (especially CDR-H3)
 - Outputs separate VH and VL sequences for downstream formatting
 
-**14 available scaffolds**: adalimumab, belimumab, crenezumab, dupilumab, golimumab, guselkumab, mab1, necitumumab, nirsevimab, sarilumab, secukinumab, tezepelumab, tralokinumab, ustekinumab
+**12 fully-human scaffolds**: adalimumab, belimumab, dupilumab, golimumab, guselkumab, necitumumab, nirsevimab, sarilumab, secukinumab, tezepelumab, tralokinumab, ustekinumab
+
+> **Note**: Crenezumab (humanized, contains murine framework back-mutations) and mab1 (unclear provenance) were excluded to ensure all scaffolds have 100% human framework regions.
 
 **Limitations:**
 - Cannot design full-length IgG directly

@@ -6,6 +6,17 @@ design:
   - data/targets/1SY6.pdb
   fab_scaffolds:
   - adalimumab
+  - belimumab
+  - dupilumab
+  - golimumab
+  - guselkumab
+  - necitumumab
+  - nirsevimab
+  - sarilumab
+  - secukinumab
+  - tezepelumab
+  - tralokinumab
+  - ustekinumab
   fab_scaffold_dir: data/fab_scaffolds
   starting_sequences:
   - teplizumab

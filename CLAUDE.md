@@ -53,13 +53,13 @@ Critical implementation details:
 23. **Boltz-2 has affinity prediction (IC50)** - Can be enabled with `--sampling_steps_affinity 200` and YAML `properties: { affinity: { ligand: B } }`. NOT validated for antibodies, not currently used.
 24. **Calibration uses scFv-derived constructs** - "teplizumab", "sp34", "ucht1" in code are VH-linker-VL scFvs, NOT full IgG antibodies. See `docs/reference/calibration-methodology.md`.
 25. **Structural metrics ≠ affinity** - High pTM/pLDDT/contacts does NOT mean high affinity. These are structural confidence scores. Affinity must be validated experimentally with SPR/BLI.
-26. **Fab scaffolds must be downloaded** - Run `python scripts/setup_fab_scaffolds.py` before Fab CDR redesign. Downloads 14 CIF+YAML files to `data/fab_scaffolds/`.
+26. **Fab scaffolds must be downloaded** - Run `python scripts/setup_fab_scaffolds.py` before Fab CDR redesign. Downloads CIF+YAML files to `data/fab_scaffolds/`. Only 12 fully-human scaffolds are used (crenezumab and mab1 excluded).
 27. **Denovo output format** - `02_run_denovo_design.py` outputs `{"vhh_designs": [...], "fab_designs": [...]}`. The structure prediction script extracts both arrays.
 28. **Use conda environment** - A `cd3-binder` conda env with Python 3.9, ANARCI, and Sapiens is set up. Activate with `conda activate cd3-binder`.
 29. **Humanness scoring uses Sapiens** - Neural network model. OASis (database-based) is optional fallback.
 30. **ANARCI installed via conda** - CDR numbering and CDR-H3 length analysis work. Located at `/opt/homebrew/Caskroom/miniconda/base/envs/cd3-binder/`.
 31. **Optimization track is NOT de novo** - It only reformats known antibody sequences from `data/starting_sequences/*.yaml` as scFv for comparison. It does not generate new binders.
-32. **Fab scaffold chain IDs fixed** - `setup_fab_scaffolds.py` now uses correct CIF `struct_asym.id` chain labels (not PDB author chain IDs). All 14 scaffolds verified: adalimumab (B/A), belimumab (B/A), crenezumab (A/B), dupilumab (A/B), golimumab (G/D), guselkumab (B/A), mab1 (D/C), necitumumab (B/C), nirsevimab (A/B), sarilumab (D/C), secukinumab (A/B), tezepelumab (C/B), tralokinumab (B/C), ustekinumab (B/A).
+32. **Fab scaffold chain IDs fixed** - `setup_fab_scaffolds.py` now uses correct CIF `struct_asym.id` chain labels (not PDB author chain IDs). 12 fully-human scaffolds verified: adalimumab (B/A), belimumab (B/A), dupilumab (A/B), golimumab (G/D), guselkumab (B/A), necitumumab (B/C), nirsevimab (A/B), sarilumab (D/C), secukinumab (A/B), tezepelumab (C/B), tralokinumab (B/C), ustekinumab (B/A).
 33. **Modal must be deployed before running** - Run `modal deploy modal/boltzgen_app.py` and `modal run modal/boltzgen_app.py --download` to set up BoltzGen on Modal.
 34. **Modal package required in conda env** - Run `pip install modal` in the cd3-binder conda environment.
 35. **Validation test passed (VHH)** - 10 VHH designs generated, predicted, filtered, formatted into 29 bispecific constructs. De novo VHH scores competitively with known antibody scFvs.
@@ -93,7 +93,9 @@ python scripts/run_full_pipeline.py --config config.yaml
 - `docs/reference/` - Detailed implementation docs
 
 ### Fab Scaffolds Available
-14 proven human antibody scaffolds: adalimumab, belimumab, crenezumab, dupilumab, golimumab, guselkumab, mab1, necitumumab, nirsevimab, sarilumab, secukinumab, tezepelumab, tralokinumab, ustekinumab
+12 fully-human antibody scaffolds: adalimumab, belimumab, dupilumab, golimumab, guselkumab, necitumumab, nirsevimab, sarilumab, secukinumab, tezepelumab, tralokinumab, ustekinumab
+
+Excluded: crenezumab (humanized, has murine framework residues), mab1 (unclear provenance)
 
 Configure in `config.yaml`:
 ```yaml
