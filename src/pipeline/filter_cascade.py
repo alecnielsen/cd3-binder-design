@@ -68,6 +68,13 @@ class CandidateScore:
     # BoltzGen's internal rank (from its decision tree ranking)
     boltzgen_rank: Optional[int] = None
 
+    # Validation scores (from step 05b)
+    proteinmpnn_ll: Optional[float] = None
+    antifold_ll: Optional[float] = None
+    protenix_iptm: Optional[float] = None
+    protenix_ptm: Optional[float] = None
+    protenix_ranking_score: Optional[float] = None
+
     # Filter results
     filter_results: dict[str, FilterResult] = field(default_factory=dict)
     risk_flags: list[str] = field(default_factory=list)
@@ -119,6 +126,13 @@ class CandidateScore:
                 "hydrophobic_patches": self.hydrophobic_patches,
             },
             "boltzgen_rank": self.boltzgen_rank,
+            "validation": {
+                "proteinmpnn_ll": self.proteinmpnn_ll,
+                "antifold_ll": self.antifold_ll,
+                "protenix_iptm": self.protenix_iptm,
+                "protenix_ptm": self.protenix_ptm,
+                "protenix_ranking_score": self.protenix_ranking_score,
+            },
             "filter_results": {k: v.value for k, v in self.filter_results.items()},
             "risk_flags": self.risk_flags,
             "composite_score": self.composite_score,

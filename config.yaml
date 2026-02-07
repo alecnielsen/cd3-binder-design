@@ -86,6 +86,16 @@ reproducibility:
 epitope:
   okt3_epitope_residues: null
   overlap_threshold: 0.5
+validation:
+  enabled: true
+  run_protenix: true
+  run_proteinmpnn: true
+  run_antifold: true
+  protenix_model: protenix_base_default_v1.0.0
+  protenix_use_msa: false
+  protenix_seeds:
+  - 101
+  iptm_disagreement_threshold: 0.1
 calibrated_thresholds:
   min_pdockq: 0.0
   min_interface_area: 2060.0

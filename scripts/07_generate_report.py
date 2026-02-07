@@ -33,12 +33,16 @@ def main():
     else:
         config = PipelineConfig()
 
-    # Find input
+    # Find input — prefer validated (step 05b) over filtered (step 05)
     if args.input:
         input_path = Path(args.input)
     else:
+        validated_path = Path("data/outputs/validated/validated_candidates.json")
         filtered_path = Path("data/outputs/filtered/filtered_candidates.json")
-        if filtered_path.exists():
+        if validated_path.exists():
+            input_path = validated_path
+            print("(Using validated candidates from step 05b)")
+        elif filtered_path.exists():
             input_path = filtered_path
         else:
             print("ERROR: No input found. Run step 05 first or specify --input")
@@ -52,6 +56,7 @@ def main():
 
     candidates_data = data.get("candidates", [])
     filter_stats = data.get("filter_stats", {})
+    validation_summary = data.get("validation_summary", {})
 
     print(f"Loaded {len(candidates_data)} candidates")
 
@@ -93,6 +98,15 @@ def main():
 
         score.risk_flags = c.get("risk_flags", [])
 
+        # Restore validation scores (from step 05b)
+        if "validation" in c:
+            v = c["validation"]
+            score.proteinmpnn_ll = v.get("proteinmpnn_ll")
+            score.antifold_ll = v.get("antifold_ll")
+            score.protenix_iptm = v.get("protenix_iptm")
+            score.protenix_ptm = v.get("protenix_ptm")
+            score.protenix_ranking_score = v.get("protenix_ranking_score")
+
         candidates.append(score)
 
     # Select final candidates
@@ -111,6 +125,7 @@ def main():
         filter_stats=filter_stats,
         output_dir=args.output,
         provenance=provenance,
+        validation_summary=validation_summary,
     )
 
     print(f"\n" + "=" * 60)

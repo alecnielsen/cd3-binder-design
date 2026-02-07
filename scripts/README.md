@@ -25,6 +25,7 @@ The scripts are numbered to indicate their execution order:
 | 3 | `03_run_optimization.py` | Generate optimized variants of existing binders |
 | 4 | `04_predict_structures.py` | Run Boltz-2 complex structure prediction |
 | 5 | `05_filter_candidates.py` | Apply filtering cascade (binding, humanness, liabilities) |
+| 5b | `05b_validate_candidates.py` | Affinity scoring (ProteinMPNN, AntiFold) + Protenix cross-validation |
 | 6 | `06_format_bispecifics.py` | Convert candidates to bispecific antibody formats |
 | 7 | `07_generate_report.py` | Generate final HTML and JSON reports |
 
@@ -146,6 +147,21 @@ Applies filters in order:
 2. Relax thresholds by up to 10%
 3. Include borderline candidates with risk flags
 
+### Candidate Validation (Step 5b)
+
+Runs after filtering on the top N candidates. **Results are informational only** — not used for filtering or ranking.
+
+Three validation analyses:
+1. **ProteinMPNN log-likelihood** (MIT): Inverse folding affinity proxy, best-validated for de novo antibodies (Spearman r=0.27-0.41). Runs locally on CPU.
+2. **AntiFold log-likelihood** (BSD-3): Antibody-specific inverse folding with nanobody support. Runs locally on CPU.
+3. **Protenix re-prediction** (Apache 2.0): Cross-validates Boltz-2 structure predictions. Runs on Modal H100.
+
+Cross-validation flags candidates where Boltz-2 and Protenix ipTM disagree by >0.1.
+
+**Output**: `data/outputs/validated/validated_candidates.json` — same as filtered_candidates.json with added `validation` section per candidate.
+
+**Prerequisite**: Deploy Protenix on Modal (`modal deploy modal/protenix_app.py`). ProteinMPNN and AntiFold are optional (`pip install proteinmpnn antifold`); missing tools produce error messages but don't fail the step.
+
 ### Bispecific Formatting (Step 6)
 
 Converts candidates into 5 bispecific formats:
@@ -189,5 +205,6 @@ The full pipeline aborts on any step failure with a clear error message.
 | 3 | `data/outputs/optimized/` |
 | 4 | `data/outputs/structures/` |
 | 5 | `data/outputs/filtered/` |
+| 5b | `data/outputs/validated/` |
 | 6 | `data/outputs/formatted/` |
 | 7 | `data/outputs/reports/` |

@@ -156,10 +156,14 @@ FILTERING CASCADE
 ├── Developability (charge, CDR-H3 length, etc.)
 └── Aggregation propensity
 
-RANKING (worst-metric-rank + diversity selection)
-├── Rank per metric: ipTM, pTM, pLDDT, interface area, contacts, humanness
-├── Quality key = worst weighted rank per candidate
+RANKING (BoltzGen native rank + diversity selection)
+├── BoltzGen decision tree: ipTM, pTM, PAE, H-bonds, salt bridges, SASA
 └── Greedy maximin diversity selection (alpha=0.001)
+
+VALIDATION (step 05b, informational only)
+├── ProteinMPNN log-likelihood (affinity proxy)
+├── AntiFold log-likelihood (antibody-specific)
+└── Protenix re-prediction (cross-validation vs Boltz-2)
 
 FORMAT CONVERSION
 └── 5 bispecific formats (CrossMab, Fab+scFv, etc.)
@@ -180,19 +184,15 @@ All tools have permissive licenses suitable for commercial use:
 | **ABodyBuilder2** | Antibody structure prediction | BSD 3-Clause |
 | **ANARCI** | Antibody numbering | BSD 3-Clause |
 | **BioPhi/Sapiens** | Humanness scoring | MIT |
-
-**Exploratory (not yet integrated):**
-
-| Tool | Purpose | License | Status |
-|------|---------|---------|--------|
-| **ANTIPASTI** | Structure-based affinity prediction | MIT | Stub |
-| **Protenix** | Ab-Ag structure prediction (outperforms AF3) | Apache 2.0 | Stub |
+| **ProteinMPNN** | Inverse folding log-likelihood (affinity proxy) | MIT |
+| **AntiFold** | Antibody-specific inverse folding (nanobody support) | BSD 3-Clause |
+| **Protenix** | Structure prediction cross-validation | Apache 2.0 |
 
 **Excluded (non-permissive):** IgFold (JHU Academic), NetMHCIIpan (DTU academic)
 
-**Excluded (poor performance or inapplicable):** PRODIGY (r=0.16 on Ab-Ag), AttABseq (requires WT reference), Boltz-2 IC50 (small molecule only)
+**Excluded (poor performance or inapplicable):** PRODIGY (r=0.16 on Ab-Ag), AttABseq (requires WT reference), Boltz-2 IC50 (small molecule only), ANTIPASTI (R dependency, no VHH support, degrades on predicted structures)
 
-**Compute:** Modal provides on-demand A100/H100 GPUs for BoltzGen and Boltz-2.
+**Compute:** Modal provides on-demand A100/H100 GPUs for BoltzGen, Boltz-2, and Protenix.
 
 ---
 
@@ -222,6 +222,11 @@ pip install modal
 modal setup
 modal deploy modal/boltzgen_app.py
 modal deploy modal/boltz2_app.py
+modal deploy modal/protenix_app.py       # For validation step
+
+# Optional: affinity scoring tools (for step 05b validation)
+pip install proteinmpnn                   # MIT, inverse folding
+pip install antifold                      # BSD-3, antibody-specific
 ```
 
 > **Note**: The conda environment provides full functionality including humanness scoring (Sapiens) and CDR analysis (ANARCI). Without conda/ANARCI, the pipeline soft-fails gracefully (scores will be null).
@@ -246,6 +251,7 @@ python scripts/02_run_denovo_design.py  # BoltzGen VHH + Fab CDR redesign (Modal
 python scripts/03_run_optimization.py   # Reformat known antibodies as scFv
 python scripts/04_predict_structures.py # Boltz-2 complex prediction (Modal GPU)
 python scripts/05_filter_candidates.py  # Apply filtering cascade
+python scripts/05b_validate_candidates.py # Affinity scoring + Protenix cross-validation
 python scripts/06_format_bispecifics.py # Generate 5 bispecific formats
 python scripts/07_generate_report.py    # Final report with scorecards
 ```
@@ -255,11 +261,18 @@ python scripts/07_generate_report.py    # Final report with scorecards
 Key sections in `config.yaml`:
 
 ```yaml
-# Ranking: worst-metric-rank replaces broken composite score
+# Ranking: BoltzGen native ranking (experimentally validated)
 ranking:
-  method: worst_metric_rank  # or "composite" for legacy behavior
+  method: boltzgen            # or "worst_metric_rank", "composite" (legacy)
   diversity_alpha: 0.001      # Greedy maximin diversity weight
   use_diversity_selection: true
+
+# Validation step (05b) - informational, not used for filtering
+validation:
+  enabled: true
+  run_protenix: true          # Cross-validate with Protenix on Modal
+  run_proteinmpnn: true       # Affinity proxy scoring (local CPU)
+  run_antifold: true          # Antibody-specific scoring (local CPU)
 
 # CIF structure export
 output:

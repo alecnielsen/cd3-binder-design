@@ -39,6 +39,7 @@ cd3-binder-design/
 │       ├── optimized/                   # Optimized existing binders
 │       ├── structures/                  # Predicted structures
 │       ├── filtered/                    # Post-filtering candidates
+│       ├── validated/                   # Candidates with affinity + Protenix scores
 │       └── formatted/                   # Final bispecific sequences
 │
 ├── src/
@@ -63,7 +64,9 @@ cd3-binder-design/
 │   │   ├── numbering.py                 # ANARCI wrapper
 │   │   ├── humanness.py                 # BioPhi/Sapiens scoring
 │   │   ├── liabilities.py               # Sequence liability detection
-│   │   └── developability.py            # Combined developability scoring
+│   │   ├── developability.py            # Combined developability scoring
+│   │   ├── affinity_scoring.py          # ProteinMPNN + AntiFold log-likelihood scoring
+│   │   └── antipasti_scoring.py         # DEPRECATED - redirects to affinity_scoring
 │   │
 │   ├── formatting/
 │   │   ├── __init__.py
@@ -90,6 +93,7 @@ cd3-binder-design/
 │   ├── __init__.py
 │   ├── boltzgen_app.py                  # BoltzGen Modal deployment
 │   ├── boltz2_app.py                    # Boltz-2 Modal deployment
+│   ├── protenix_app.py                  # Protenix Modal deployment (cross-validation)
 │   └── abodybuilder_app.py              # ABodyBuilder2 Modal deployment
 │
 ├── scripts/
@@ -100,6 +104,7 @@ cd3-binder-design/
 │   ├── 03_run_optimization.py           # Generate optimized variants
 │   ├── 04_predict_structures.py         # Run structure prediction
 │   ├── 05_filter_candidates.py          # Apply filtering cascade
+│   ├── 05b_validate_candidates.py       # Affinity scoring + Protenix cross-validation
 │   ├── 06_format_bispecifics.py         # Convert to bispecific formats
 │   ├── 07_generate_report.py            # Generate final report
 │   └── run_full_pipeline.py             # Execute all steps
@@ -119,7 +124,7 @@ cd3-binder-design/
 ## Module Summaries
 
 ### src/analysis/
-Sequence analysis tools: liability detection (deamidation, glycosylation), ANARCI numbering, BioPhi humanness scoring, developability assessment.
+Sequence analysis tools: liability detection (deamidation, glycosylation), ANARCI numbering, BioPhi humanness scoring, developability assessment, ProteinMPNN + AntiFold affinity proxy scoring.
 
 ### src/design/
 Design generation: BoltzGen runner for de novo VHH design and Fab CDR redesign, optimization of existing binders, affinity variant generation. Fab design uses human antibody scaffolds (adalimumab, belimumab, etc.) with CDR-only redesign for proper antibody structure.
@@ -134,7 +139,7 @@ Orchestration: configuration loading, multi-stage filtering cascade, BoltzGen-na
 Structure tools: PDB parsing, interface analysis, ABodyBuilder2 and Boltz-2 wrappers.
 
 ### modal/
-GPU deployments for Modal cloud compute. Required for BoltzGen and Boltz-2 (CUDA only).
+GPU deployments for Modal cloud compute. Required for BoltzGen, Boltz-2, and Protenix (CUDA only).
 
 ### scripts/
-Pipeline execution scripts numbered 00-07 for step-by-step or full pipeline runs.
+Pipeline execution scripts numbered 00-07 (including 05b validation) for step-by-step or full pipeline runs.

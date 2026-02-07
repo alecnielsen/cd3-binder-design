@@ -139,6 +139,20 @@ class EpitopeConfig:
 
 
 @dataclass
+class ValidationConfig:
+    """Configuration for candidate validation (step 05b)."""
+
+    enabled: bool = True
+    run_protenix: bool = True
+    run_proteinmpnn: bool = True
+    run_antifold: bool = True
+    protenix_model: str = "protenix_base_default_v1.0.0"
+    protenix_use_msa: bool = False
+    protenix_seeds: list[int] = field(default_factory=lambda: [101])
+    iptm_disagreement_threshold: float = 0.1
+
+
+@dataclass
 class PipelineConfig:
     """Complete pipeline configuration."""
 
@@ -150,6 +164,7 @@ class PipelineConfig:
     reproducibility: ReproducibilityConfig = field(default_factory=ReproducibilityConfig)
     epitope: EpitopeConfig = field(default_factory=EpitopeConfig)
     ranking: RankingConfig = field(default_factory=RankingConfig)
+    validation: ValidationConfig = field(default_factory=ValidationConfig)
 
     # Calibrated thresholds (set after calibration)
     calibrated_min_pdockq: Optional[float] = None
@@ -221,6 +236,16 @@ class PipelineConfig:
                 "metric_weights": self.ranking.metric_weights,
                 "use_diversity_selection": self.ranking.use_diversity_selection,
                 "diversity_alpha": self.ranking.diversity_alpha,
+            },
+            "validation": {
+                "enabled": self.validation.enabled,
+                "run_protenix": self.validation.run_protenix,
+                "run_proteinmpnn": self.validation.run_proteinmpnn,
+                "run_antifold": self.validation.run_antifold,
+                "protenix_model": self.validation.protenix_model,
+                "protenix_use_msa": self.validation.protenix_use_msa,
+                "protenix_seeds": self.validation.protenix_seeds,
+                "iptm_disagreement_threshold": self.validation.iptm_disagreement_threshold,
             },
             "calibrated_thresholds": {
                 "min_pdockq": self.calibrated_min_pdockq,
@@ -392,6 +417,18 @@ class PipelineConfig:
             config.ranking.metric_weights = r.get("metric_weights", config.ranking.metric_weights)
             config.ranking.use_diversity_selection = r.get("use_diversity_selection", True)
             config.ranking.diversity_alpha = r.get("diversity_alpha", 0.001)
+
+        # Validation
+        if "validation" in data:
+            v = data["validation"]
+            config.validation.enabled = v.get("enabled", True)
+            config.validation.run_protenix = v.get("run_protenix", True)
+            config.validation.run_proteinmpnn = v.get("run_proteinmpnn", True)
+            config.validation.run_antifold = v.get("run_antifold", True)
+            config.validation.protenix_model = v.get("protenix_model", "protenix_base_default_v1.0.0")
+            config.validation.protenix_use_msa = v.get("protenix_use_msa", False)
+            config.validation.protenix_seeds = v.get("protenix_seeds", [101])
+            config.validation.iptm_disagreement_threshold = v.get("iptm_disagreement_threshold", 0.1)
 
         # Calibrated thresholds
         if "calibrated_thresholds" in data:

@@ -87,6 +87,16 @@ ranking:
   diversity_alpha: 0.001
   use_diversity_selection: true
 
+validation:
+  enabled: true
+  run_protenix: true              # Cross-validate with Protenix on Modal GPU
+  run_proteinmpnn: true           # ProteinMPNN log-likelihood (local CPU)
+  run_antifold: true              # AntiFold log-likelihood (local CPU)
+  protenix_model: protenix_base_default_v1.0.0
+  protenix_use_msa: false
+  protenix_seeds: [101]
+  iptm_disagreement_threshold: 0.1  # Flag if Boltz-2 vs Protenix ipTM differ by >0.1
+
 output:
   num_final_candidates: 10
   include_structures: true
@@ -353,6 +363,14 @@ Per-candidate JSON scorecard:
     "hydrophobic_patches": 1
   },
   "boltzgen_rank": 5,
+  "validation": {
+    "proteinmpnn_ll": -1.45,
+    "proteinmpnn_ll_note": "Inverse folding log-likelihood (higher = better structural fit). NOT a direct affinity predictor.",
+    "antifold_ll": -2.10,
+    "protenix_iptm": 0.32,
+    "protenix_ptm": 0.48,
+    "protenix_ranking_score": 0.42
+  },
   "composite_score": 5.0,
   "composite_score_note": "BoltzGen internal rank (lower = better). Uses ipTM, pTM, PAE, H-bonds, salt bridges, buried SASA.",
   "rank": 3,
@@ -401,4 +419,6 @@ _provenance:
 | BoltzGen (400 designs) | A100 | 1-2 hours | $5-15 |
 | Boltz-2 (400 complexes) | A100 | 2-4 hours | $10-30 |
 | ABodyBuilder2 | A100 | 30 min | $2-5 |
-| **Total** | | **4-8 hours** | **$20-50** |
+| Protenix (10 candidates) | H100 | 30-60 min | $5-10 |
+| ProteinMPNN + AntiFold (10) | CPU | 5 min | Free (local) |
+| **Total** | | **5-9 hours** | **$25-60** |

@@ -8,6 +8,7 @@ This script orchestrates all pipeline steps:
 3. Optimization
 4. Structure prediction
 5. Filtering
+5b. Candidate validation (affinity scoring + Protenix cross-validation)
 6. Bispecific formatting
 7. Report generation
 
@@ -50,8 +51,8 @@ def main():
     parser.add_argument("--no-modal", action="store_true", help="Run without Modal (local/mock)")
     parser.add_argument("--skip-calibration", action="store_true", help="Skip calibration step")
     parser.add_argument("--skip-setup", action="store_true", help="Skip target setup (if already done)")
-    parser.add_argument("--start-from", type=int, default=0, help="Start from step N (0-7)")
-    parser.add_argument("--stop-after", type=int, default=7, help="Stop after step N (0-7)")
+    parser.add_argument("--start-from", type=int, default=0, help="Start from step N (0-8)")
+    parser.add_argument("--stop-after", type=int, default=8, help="Stop after step N (0-8)")
     args = parser.parse_args()
 
     print("=" * 70)
@@ -73,6 +74,7 @@ def main():
         ("03_run_optimization.py", "Optimization"),
         ("04_predict_structures.py", "Structure prediction"),
         ("05_filter_candidates.py", "Filtering"),
+        ("05b_validate_candidates.py", "Candidate validation"),
         ("06_format_bispecifics.py", "Bispecific formatting"),
         ("07_generate_report.py", "Report generation"),
     ]
@@ -121,6 +123,7 @@ def main():
     print("  - data/outputs/optimized/    : Optimized variants")
     print("  - data/outputs/structures/   : Structure predictions")
     print("  - data/outputs/filtered/     : Filtered candidates")
+    print("  - data/outputs/validated/    : Validated candidates (affinity + Protenix)")
     print("  - data/outputs/formatted/    : Bispecific sequences")
     print("  - data/outputs/reports/      : Final reports")
     print("\nNext steps:")

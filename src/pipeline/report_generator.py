@@ -126,6 +126,7 @@ class ReportGenerator:
         filter_stats: dict,
         provenance: Optional[dict] = None,
         title: str = "CD3 Binder Design Report",
+        validation_summary: Optional[dict] = None,
     ) -> str:
         """Generate HTML report.
 
@@ -317,6 +318,68 @@ class ReportGenerator:
     </table>
 """
 
+        # Validation scores section
+        has_validation = any(
+            c.proteinmpnn_ll is not None or c.antifold_ll is not None or c.protenix_iptm is not None
+            for c in candidates
+        )
+        if has_validation:
+            html += """    <h2>Validation Scores</h2>
+    <div class="info">
+        <strong>Note:</strong> Validation scores are informational only — not used for filtering or ranking.
+        ProteinMPNN/AntiFold log-likelihoods are affinity proxies (higher = better structural fit).
+        Protenix provides cross-validation vs Boltz-2.
+    </div>
+    <table>
+        <tr>
+            <th>ID</th>
+            <th>ProteinMPNN LL</th>
+            <th>AntiFold LL</th>
+            <th>Protenix ipTM</th>
+            <th>Boltz-2 ipTM</th>
+            <th>ipTM Delta</th>
+            <th>Flags</th>
+        </tr>
+"""
+            for c in candidates:
+                mpnn_str = f"{c.proteinmpnn_ll:.3f}" if c.proteinmpnn_ll is not None else "N/A"
+                af_str = f"{c.antifold_ll:.3f}" if c.antifold_ll is not None else "N/A"
+                prot_iptm_str = f"{c.protenix_iptm:.3f}" if c.protenix_iptm is not None else "N/A"
+                boltz_iptm = c.iptm
+                boltz_iptm_str = f"{boltz_iptm:.3f}" if boltz_iptm is not None else "N/A"
+
+                delta = None
+                if boltz_iptm is not None and c.protenix_iptm is not None:
+                    delta = abs(boltz_iptm - c.protenix_iptm)
+                delta_str = f"{delta:.3f}" if delta is not None else "N/A"
+                delta_class = "fail" if delta is not None and delta > 0.1 else ""
+
+                flags = []
+                if delta is not None and delta > 0.1:
+                    flags.append("ipTM disagreement")
+                flags_str = ", ".join(flags) if flags else "—"
+
+                html += f"""        <tr>
+            <td>{c.candidate_id}</td>
+            <td>{mpnn_str}</td>
+            <td>{af_str}</td>
+            <td>{prot_iptm_str}</td>
+            <td>{boltz_iptm_str}</td>
+            <td class="{delta_class}">{delta_str}</td>
+            <td>{flags_str}</td>
+        </tr>
+"""
+            html += "    </table>\n"
+
+            # Validation summary stats
+            if validation_summary:
+                html += """    <h3>Validation Summary</h3>
+    <ul>
+"""
+                for key, value in validation_summary.items():
+                    html += f"        <li><strong>{key}:</strong> {value}</li>\n"
+                html += "    </ul>\n"
+
         # Provenance
         if provenance:
             html += """    <h2>Provenance</h2>
@@ -339,6 +402,7 @@ class ReportGenerator:
         candidates: list[CandidateScore],
         filter_stats: dict,
         provenance: Optional[dict] = None,
+        validation_summary: Optional[dict] = None,
     ) -> dict:
         """Generate JSON report.
 
@@ -346,18 +410,24 @@ class ReportGenerator:
             candidates: Final candidates.
             filter_stats: Filtering statistics.
             provenance: Optional provenance metadata.
+            validation_summary: Optional validation summary stats.
 
         Returns:
             Report dictionary.
         """
         summary = self.generate_summary_stats(candidates, filter_stats)
 
-        return {
+        report = {
             "summary": summary,
             "candidates": [self.generate_scorecard(c, provenance) for c in candidates],
             "provenance": provenance,
             "generated_at": datetime.datetime.now().isoformat(),
         }
+
+        if validation_summary:
+            report["validation_summary"] = validation_summary
+
+        return report
 
     def save_report(
         self,
@@ -366,6 +436,7 @@ class ReportGenerator:
         output_dir: str,
         provenance: Optional[dict] = None,
         timestamp: Optional[str] = None,
+        validation_summary: Optional[dict] = None,
     ) -> list[str]:
         """Save reports to files.
 
@@ -375,6 +446,7 @@ class ReportGenerator:
             output_dir: Output directory.
             provenance: Optional provenance metadata.
             timestamp: Optional timestamp for filename.
+            validation_summary: Optional validation summary stats.
 
         Returns:
             List of saved file paths.
@@ -387,7 +459,7 @@ class ReportGenerator:
 
         # JSON report
         if self.config.output_format in ["json", "both"]:
-            json_report = self.generate_json_report(candidates, filter_stats, provenance)
+            json_report = self.generate_json_report(candidates, filter_stats, provenance, validation_summary)
             json_path = output_dir / f"report_{timestamp}.json"
             with open(json_path, "w") as f:
                 json.dump(json_report, f, indent=2)
@@ -395,7 +467,7 @@ class ReportGenerator:
 
         # HTML report
         if self.config.output_format in ["html", "both"]:
-            html_report = self.generate_html_report(candidates, filter_stats, provenance)
+            html_report = self.generate_html_report(candidates, filter_stats, provenance, validation_summary=validation_summary)
             html_path = output_dir / f"report_{timestamp}.html"
             with open(html_path, "w") as f:
                 f.write(html_report)
@@ -420,6 +492,7 @@ def generate_report(
     filter_stats: dict,
     output_dir: str,
     provenance: Optional[dict] = None,
+    validation_summary: Optional[dict] = None,
 ) -> list[str]:
     """Convenience function for report generation.
 
@@ -428,6 +501,7 @@ def generate_report(
         filter_stats: Filtering statistics.
         output_dir: Output directory.
         provenance: Optional provenance metadata.
+        validation_summary: Optional validation summary stats.
 
     Returns:
         List of saved file paths.
@@ -440,6 +514,7 @@ def generate_report(
         filter_stats=filter_stats,
         output_dir=output_dir,
         provenance=provenance,
+        validation_summary=validation_summary,
     )
 
     print(f"Reports saved: {len(saved)} files")

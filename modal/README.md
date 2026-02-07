@@ -7,6 +7,7 @@ This directory contains Modal apps for GPU-intensive operations in the CD3 binde
 Modal (https://modal.com) provides on-demand GPU compute for:
 - **BoltzGen**: De novo binder design
 - **Boltz-2**: Protein complex structure prediction
+- **Protenix**: Cross-validation structure prediction (step 05b)
 - **ABodyBuilder2**: Antibody structure prediction (optional)
 
 ## Why Modal?
@@ -178,6 +179,44 @@ modal run modal/boltz2_app.py --binder-seq "EVQLVESGGGLVQ..." --target-seq "QTPY
 - Timeout: 30 min (single), 2 hours (batch), 1 hour (calibration)
 - Retries: 2
 
+### protenix_app.py
+
+Cross-validation structure prediction using Protenix (Apache 2.0, ByteDance). Used in step 05b to re-predict top candidates after filtering, providing an orthogonal check against Boltz-2 predictions.
+
+```bash
+# Download model weights (first time only)
+modal run modal/protenix_app.py --download
+
+# Deploy
+modal deploy modal/protenix_app.py
+```
+
+**Functions:**
+- `predict_complex()`: Predict single binder-target complex structure
+- `batch_predict()`: Predict complexes for multiple candidates sequentially
+- `download_weights()`: Download Protenix model weights to persistent volume
+
+**Input:** Binder sequence(s) + target sequence (pure sequence, no PDB needed)
+- VHH: 2 chains (binder + target)
+- Fab/scFv: 3 chains (VH + VL + target)
+
+**Output Metrics:**
+| Metric | Description |
+|--------|-------------|
+| `iptm` | Interface predicted TM-score |
+| `ptm` | Predicted TM-score |
+| `plddt_mean` | Mean pLDDT |
+| `ranking_score` | Protenix ranking score |
+| `chain_pair_iptm` | Per-chain-pair ipTM matrix |
+| `cif_string` | Predicted structure in CIF format |
+
+**GPU Configuration:**
+- GPU: H100
+- Timeout: 30 min per prediction
+- MSA: Disabled by default (`use_msa=False`) for speed
+
+**Cross-validation:** Candidates where Boltz-2 and Protenix ipTM disagree by >0.1 are flagged in the validation report.
+
 ### abodybuilder_app.py
 
 Antibody structure prediction using ABodyBuilder2/ImmuneBuilder.
@@ -203,6 +242,7 @@ modal setup
 # Deploy all apps
 modal deploy modal/boltzgen_app.py
 modal deploy modal/boltz2_app.py
+modal deploy modal/protenix_app.py
 modal deploy modal/abodybuilder_app.py
 ```
 
@@ -254,9 +294,10 @@ def predict_complex(binder_seq: str, target_pdb: str, use_modal: bool = True):
 | BoltzGen Fab CDR redesign (100 designs) | ~30 min | $5-8 |
 | Boltz-2 (1 complex) | ~2 min | $0.05 |
 | Boltz-2 (100 complexes) | ~3 hours | $15-20 |
+| Protenix (10 candidates) | ~30-60 min | $5-10 |
 | Calibration (3 binders) | ~10 min | $1-2 |
 
-**Full pipeline estimate**: $20-50 for 400 designs (200 VHH + 200 Fab) + structure predictions.
+**Full pipeline estimate**: $25-60 for 400 designs (200 VHH + 200 Fab) + structure predictions + validation.
 
 ## Reproducibility
 
@@ -308,6 +349,7 @@ The package may not be available on PyPI yet. Check:
 All tools used have permissive licenses:
 - BoltzGen: MIT
 - Boltz-2: MIT
+- Protenix: Apache 2.0
 - ABodyBuilder2/ImmuneBuilder: BSD 3-Clause
 
 Modal itself requires an account but has no license restrictions on the tools run within it.

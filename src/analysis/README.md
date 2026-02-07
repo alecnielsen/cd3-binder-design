@@ -5,6 +5,7 @@ This module handles sequence analysis for CD3 binder candidates:
 - CDR numbering and identification (via ANARCI)
 - Humanness scoring (via BioPhi/OASis)
 - Developability assessment (charge, hydrophobicity, aggregation propensity)
+- Affinity proxy scoring (ProteinMPNN + AntiFold log-likelihoods)
 
 ## Filtering Cascade (Analysis Filters)
 
@@ -111,3 +112,43 @@ Note: The original structural Chothia definition uses H2: 52-56, but we use the 
 - Hard vs soft filters: Deamidation/isomerization/glycosylation in CDRs are hard filters (cause rejection); oxidation in CDRs is a soft filter (flags but doesn't reject)
 - Hydrophobic residues for patch detection: A, I, L, M, F, V, W (excludes Y which has Kyte-Doolittle -1.3)
 - BioPhi soft-fail: If BioPhi is not installed, humanness scoring returns `None` scores and the pipeline continues (soft-fail behavior). A real score of `0.0` is treated as a valid value (fails the threshold).
+
+## Affinity Proxy Scoring (Step 05b)
+
+`affinity_scoring.py` provides inverse folding log-likelihood scoring as an affinity proxy for de novo designs. **Results are informational only** — not used for filtering or ranking.
+
+### Tools
+
+| Tool | License | Metric | Validation |
+|------|---------|--------|------------|
+| **ProteinMPNN** | MIT | Log-likelihood of binder sequence given complex structure | Spearman r=0.27-0.41 on AbBiBench (best for de novo) |
+| **AntiFold** | BSD-3 | Antibody-specific log-likelihood | Supports nanobodies via `--nanobody_chain` |
+
+### Usage
+
+```python
+from src.analysis.affinity_scoring import batch_score_affinity
+
+results = batch_score_affinity(
+    cif_dir="data/outputs/structures/cif/",
+    design_ids=["fab_1XIW_0040", "vhh_1XIW_0008"],
+    binder_types=["scfv", "vhh"],
+)
+for r in results:
+    print(f"{r.design_id}: MPNN={r.proteinmpnn_ll}, AF={r.antifold_ll}")
+```
+
+### Important Caveats
+
+- Log-likelihoods are NOT direct affinity predictors
+- Higher values indicate better structural complementarity, which correlates with binding
+- ProteinMPNN operates on the Boltz-2 predicted structure, so errors in prediction propagate
+- Both tools run locally on CPU; no Modal/GPU required for 10 candidates
+- If a tool is not installed, `batch_score_affinity()` returns an error message (not an exception)
+
+### ANTIPASTI (Deprecated)
+
+`antipasti_scoring.py` is deprecated and redirects to `affinity_scoring.py`. ANTIPASTI was not integrated because:
+- Requires R dependency (rpy2), adding environment complexity
+- No VHH/nanobody support
+- Performance degrades on predicted (vs experimental) structures

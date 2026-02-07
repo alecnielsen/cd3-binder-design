@@ -18,9 +18,10 @@ The pipeline follows this flow:
 5. **Calibration Phase**: Set thresholds using known binders
 6. **Filtering Cascade**: Binding quality -> Humanness -> Liabilities -> Developability -> Aggregation
 7. **Epitope Annotation**: Compare to OKT3 epitope
-8. **Candidate Ranking**: Worst-metric-rank + greedy maximin diversity selection
-9. **Format Conversion**: Generate bispecific sequences
-10. **Final Output**: ~10 candidates with sequences, CIF structures, and scorecards
+8. **Candidate Ranking**: BoltzGen native rank + greedy maximin diversity selection
+9. **Candidate Validation**: ProteinMPNN + AntiFold affinity scoring, Protenix cross-validation (informational only)
+10. **Format Conversion**: Generate bispecific sequences
+11. **Final Output**: ~10 candidates with sequences, CIF structures, validation scores, and scorecards
 
 ## Filter Cascade Order
 
@@ -37,19 +38,11 @@ Filters are applied in the documented order:
 
 ## Candidate Ranking
 
-**Default: Worst-metric-rank** (replaces legacy composite score)
+**Default: BoltzGen native ranking** (`method: boltzgen`)
 
-Each candidate is ranked independently across 6 metrics (ipTM, pTM, pLDDT, interface area, contacts, humanness). Each rank is divided by the metric's importance weight. The quality key is the maximum weighted rank — i.e., the worst (highest) rank across all metrics determines overall quality. Sort ascending (lower = better). Tiebreak by ipTM.
+Uses BoltzGen's internal decision tree ranking, which was experimentally validated at 66% nanobody hit rate. BoltzGen ranks candidates using ipTM, pTM, PAE, H-bonds, salt bridges, and buried SASA — richer than any custom re-ranking we could build.
 
-Default metric weights:
-| Metric | Weight | Rationale |
-|--------|--------|-----------|
-| ipTM | 1 (high) | Best interface quality signal |
-| pTM | 1 (high) | Fold confidence |
-| interface_area | 1 (high) | Binding interface size |
-| humanness | 1 (high) | Critical for therapeutics |
-| num_contacts | 2 (lower) | Correlated with area |
-| pLDDT | 2 (lower) | Typically high, less discriminating |
+Therapeutic filters (humanness, liabilities, developability, aggregation) are applied as pass/fail gates, not ranking signals. Candidates that pass all filters are sorted by `boltzgen_rank` (lower = better).
 
 **Diversity selection: Greedy maximin** (alpha=0.001)
 
@@ -58,9 +51,31 @@ After ranking, iteratively picks candidates maximizing:
 
 This prevents near-duplicate sequences from occupying multiple slots. At alpha=0.001, quality dominates but identical sequences are penalized.
 
-**Legacy: Composite score** (`method: composite` in config)
+**Fallback: Worst-metric-rank** (`method: worst_metric_rank`)
+
+Each candidate is ranked independently across 6 metrics (ipTM, pTM, pLDDT, interface area, contacts, humanness). Quality key = max weighted rank. Sort ascending.
+
+**Legacy: Composite score** (`method: composite`)
 
 Available for backwards compatibility. Uses 30% pDockQ + 25% humanness + 25% liabilities + 20% developability. Not recommended because pDockQ is always 0.0 from Boltz-2.
+
+## Candidate Validation (Step 05b)
+
+After filtering, top candidates are validated with additional scoring and cross-prediction. **Results are informational only** — included in reports but not used for filtering or ranking.
+
+- **ProteinMPNN log-likelihood** (MIT): Inverse folding affinity proxy (Spearman r=0.27-0.41 on AbBiBench). Higher = better structural fit.
+- **AntiFold log-likelihood** (BSD-3): Antibody-specific inverse folding with nanobody support.
+- **Protenix re-prediction** (Apache 2.0): Cross-validates Boltz-2 predictions. Flags ipTM disagreements >0.1.
+
+Configuration:
+```yaml
+validation:
+  enabled: true
+  run_protenix: true          # Requires Modal deployment
+  run_proteinmpnn: true       # Local CPU
+  run_antifold: true          # Local CPU
+  iptm_disagreement_threshold: 0.1
+```
 
 ## Fallback Logic
 

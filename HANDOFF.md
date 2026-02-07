@@ -16,6 +16,7 @@ python3 scripts/02_run_denovo_design.py --config config.yaml  # ✅ VHH + Fab wo
 python3 scripts/03_run_optimization.py --config config.yaml   # ✅ Working (reformats known antibodies)
 python3 scripts/04_predict_structures.py --config config.yaml # ✅ Working
 python3 scripts/05_filter_candidates.py --config config.yaml  # ✅ Working
+python3 scripts/05b_validate_candidates.py --config config.yaml # ✅ Working (affinity + Protenix)
 python3 scripts/06_format_bispecifics.py --config config.yaml # ✅ Working
 python3 scripts/07_generate_report.py --config config.yaml    # ✅ Working
 ```
@@ -320,6 +321,8 @@ data/outputs/
 │   └── cif/                                     # CIF structure files (future runs)
 ├── filtered/
 │   └── filtered_candidates.json                 # 10 final candidates
+├── validated/
+│   └── validated_candidates.json                # Candidates with affinity + Protenix scores
 ├── formatted/                                    # Bispecific constructs
 └── reports/
     ├── report_20260206_085031.html              # HTML report ← LATEST
@@ -351,7 +354,56 @@ From known CD3 binder scFvs:
 
 ---
 
-## What Changed: BoltzGen Native Ranking (2026-02-07, latest)
+## What Changed: Validation Step 05b (2026-02-07, latest)
+
+### Problem: No Affinity Scoring or Cross-Validation
+
+The pipeline relied solely on Boltz-2 structural confidence metrics (ipTM, pTM, interface_area). No affinity proxies were available, and predictions were not cross-validated with an orthogonal structure predictor.
+
+### Solution: Step 05b — Candidate Validation
+
+Added `scripts/05b_validate_candidates.py` that runs after filtering (step 05):
+
+1. **ProteinMPNN log-likelihood** (MIT) — best-validated affinity proxy for de novo antibodies (Spearman r=0.27-0.41 on AbBiBench). Runs locally on CPU.
+2. **AntiFold log-likelihood** (BSD-3) — antibody-specific inverse folding with explicit nanobody support. Runs locally on CPU.
+3. **Protenix re-prediction** (Apache 2.0) — cross-validates Boltz-2 structure predictions on Modal H100. Flags candidates where ipTM disagrees by >0.1.
+
+**Results are informational only** — not used for filtering or ranking. They provide additional context for experimental candidate selection.
+
+### Files Created
+- `modal/protenix_app.py` — Protenix Modal deployment (replaced stub)
+- `src/analysis/affinity_scoring.py` — ProteinMPNN + AntiFold scoring
+- `scripts/05b_validate_candidates.py` — Validation pipeline step
+
+### Files Modified
+- `src/pipeline/config.py` — Added `ValidationConfig`
+- `src/pipeline/filter_cascade.py` — Added validation fields to `CandidateScore`
+- `config.yaml` — Added `validation:` section
+- `scripts/run_full_pipeline.py` — Inserted step 05b (now 9 total steps)
+- `scripts/07_generate_report.py` — Loads validated data, passes to report
+- `src/pipeline/report_generator.py` — Validation Scores table in HTML report
+- `src/analysis/antipasti_scoring.py` — Deprecated, redirects to affinity_scoring
+
+### Config
+```yaml
+validation:
+  enabled: true
+  run_protenix: true          # Modal GPU
+  run_proteinmpnn: true       # Local CPU
+  run_antifold: true          # Local CPU
+  iptm_disagreement_threshold: 0.1
+```
+
+### Dependencies
+```bash
+pip install proteinmpnn antifold   # Local (conda env)
+modal deploy modal/protenix_app.py  # Modal GPU
+modal run modal/protenix_app.py --download
+```
+
+---
+
+## What Changed: BoltzGen Native Ranking (2026-02-07, earlier)
 
 ### Problem: Custom Re-Ranking Discarded Validated Signal
 
@@ -397,7 +449,7 @@ ranking:
 
 ---
 
-## What Changed: Ranking + CIF + Diversity (2026-02-07, earlier)
+## What Changed: Ranking + CIF + Diversity (2026-02-07, even earlier)
 
 ### Problem: Broken Composite Score
 
@@ -415,18 +467,20 @@ Implemented custom worst-metric-rank as intermediate fix (later replaced by Bolt
 - **CIF files saved** to `data/outputs/structures/cif/` for downstream tools
 - **ipTM captured** in `ComplexPredictionResult` and `CandidateScore`
 - **Binding filter fixed** — interface_area is now primary hard filter; pDockQ only checked if non-zero
-- **ANTIPASTI stub** (`src/analysis/antipasti_scoring.py`) — MIT-licensed structure-based affinity prediction
-- **Protenix stub** (`modal/protenix_app.py`) — Apache 2.0, outperforms AF3 on Ab-Ag docking
+- **Affinity scoring** (`src/analysis/affinity_scoring.py`) — ProteinMPNN (MIT) + AntiFold (BSD-3) log-likelihood scoring
+- **Protenix deployment** (`modal/protenix_app.py`) — Apache 2.0, cross-validation vs Boltz-2
 
 ### Affinity Tool Assessment
 
 | Tool | License | Applicable? | Reason |
 |------|---------|-------------|--------|
+| **ProteinMPNN** | MIT | **Yes — integrated** | Best-validated affinity proxy (Spearman r=0.27-0.41, AbBiBench) |
+| **AntiFold** | BSD-3 | **Yes — integrated** | Antibody-specific inverse folding, supports nanobodies |
+| **Protenix** | Apache 2.0 | **Yes — integrated** | Cross-validation of Boltz-2 predictions |
 | PRODIGY | Apache 2.0 | No | r=0.16 on Ab-Ag complexes (poor) |
 | AttABseq | MIT | No | Requires WT reference sequence; not for de novo |
 | Boltz-2 IC50 | MIT | No | Small molecule only, not protein-protein |
-| ANTIPASTI | MIT | Maybe | Structure-based, needs validation on our designs |
-| Protenix | Apache 2.0 | Future | Re-prediction for confidence, not affinity |
+| ANTIPASTI | MIT | No | R dependency, no VHH support, degrades on predicted structures |
 
 ---
 
@@ -447,19 +501,22 @@ Prepare top candidates for wet lab:
 - Codon optimization for expression host
 - Construct design for SPR/BLI validation
 
-### 4. Exploratory: ANTIPASTI Affinity Prediction
+### 4. Affinity Proxy Scoring ✅ DONE
 
-Evaluate ANTIPASTI on saved CIF structures:
-- Run on known binder complexes (teplizumab, SP34, UCHT1) to calibrate
-- If correlates with known Kd, apply to de novo designs
-- Currently a stub — needs CIF files from a pipeline run with `export_cif: true`
+Replaced ANTIPASTI (R dependency, no VHH support) with ProteinMPNN + AntiFold:
+- `src/analysis/affinity_scoring.py` — log-likelihood scoring for de novo designs
+- ProteinMPNN (MIT): best-validated affinity proxy (Spearman r=0.27-0.41 on AbBiBench)
+- AntiFold (BSD-3): antibody-specific, supports nanobodies
+- Runs locally on CPU, integrated into step 05b
 
-### 5. Exploratory: Protenix Re-Prediction
+### 5. Protenix Cross-Validation ✅ DONE
 
-Deploy Protenix on Modal for high-confidence structure validation:
-- Re-predict top 10 candidates to cross-validate Boltz-2
-- Compare interface metrics between predictors
-- Flag designs where predictions disagree
+Protenix deployed on Modal for structure cross-validation:
+- `modal/protenix_app.py` — H100 GPU, `predict_complex()` + `batch_predict()`
+- Re-predicts top candidates, compares ipTM with Boltz-2
+- Flags disagreements where ipTM delta > 0.1
+- Deploy: `modal deploy modal/protenix_app.py && modal run modal/protenix_app.py --download`
+- Integrated into step 05b (`scripts/05b_validate_candidates.py`)
 
 ---
 
