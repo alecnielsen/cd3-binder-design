@@ -1,0 +1,70 @@
+{
+  "candidate_id": "sp34_original_WT",
+  "sequence": "QVQLQQPGAELVKPGASVKLSCKASGYTFTDYNMHWVKQTPGQGLEWIGVIHPNYGGTSYNQKFKG KATLTVDKSSSTAYMELRSLTSEDSAVYYCARDYYGSSHYAMDYWGQGTSVTVSS",
+  "sequence_vl": null,
+  "binder_type": "scfv",
+  "source": "unknown",
+  "binding": {
+    "pdockq": 0.0,
+    "pdockq_note": "Structural confidence, NOT affinity predictor",
+    "interface_area": 4080.0,
+    "num_contacts": 67
+  },
+  "epitope": {
+    "epitope_class": "novel_epitope",
+    "okt3_overlap": 0.1935483870967742
+  },
+  "humanness": {
+    "oasis_score_vh": null,
+    "oasis_score_vl": null,
+    "oasis_score_mean": 0.7261463519166323,
+    "has_back_mutation_variant": false
+  },
+  "liabilities": {
+    "deamidation_sites": [
+      198,
+      171
+    ],
+    "isomerization_sites": [],
+    "glycosylation_sites": [],
+    "oxidation_sites": [
+      33,
+      81,
+      108,
+      35,
+      46,
+      111,
+      125,
+      156
+    ],
+    "unpaired_cys": 0,
+    "cdr_deamidation_count": 0,
+    "cdr_isomerization_count": 0,
+    "cdr_glycosylation_count": 0,
+    "cdr_oxidation_count": 0
+  },
+  "developability": {
+    "cdr_h3_length": null,
+    "net_charge": null,
+    "isoelectric_point": null,
+    "hydrophobic_patches": 0
+  },
+  "filter_results": {
+    "binding": "pass",
+    "humanness": "fail",
+    "liabilities": "fail",
+    "developability": "pass",
+    "aggregation": "pass"
+  },
+  "risk_flags": [
+    "ACCEPTED_VIA_FALLBACK_THRESHOLD_10PCT"
+  ],
+  "composite_score": 0.3815365879791581,
+  "rank": 2,
+  "_provenance": {
+    "pipeline_version": "1.0.0",
+    "run_timestamp": "2026-02-03T07:09:09.512269",
+    "git_commit": "b02f569dd4e9",
+    "config_hash": "fd91127579d5"
+  }
+}

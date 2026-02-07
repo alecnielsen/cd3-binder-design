@@ -1,0 +1,110 @@
+{
+  "variants": [
+    {
+      "name": "teplizumab_original",
+      "parent_name": "teplizumab",
+      "vh": "QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPSRGYTNYNQKFKD KATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTLTVSS",
+      "vl": "QIVLTQSPAIMSASPGEKVTMTCSASSSVSYMNWYQQKSGTSPKRWIYDTSKLASGVPAHFRGSGS GTSYSLTISGMEAEDAATYYCQQWSSNPFTFGSGTKLEINR",
+      "variant_type": "original",
+      "mutations": [],
+      "humanness_score": null,
+      "notes": "Original teplizumab sequences"
+    },
+    {
+      "name": "teplizumab_original_WT",
+      "parent_name": "teplizumab_original",
+      "vh": "QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPSRGYTNYNQKFKD KATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTLTVSS",
+      "vl": "QIVLTQSPAIMSASPGEKVTMTCSASSSVSYMNWYQQKSGTSPKRWIYDTSKLASGVPAHFRGSGS GTSYSLTISGMEAEDAATYYCQQWSSNPFTFGSGTKLEINR",
+      "mutations": [],
+      "mutation_strings": [],
+      "predicted_fold_change": 1.0,
+      "affinity_class": "wild_type",
+      "notes": "Wild-type (no mutations)"
+    },
+    {
+      "name": "sp34_original",
+      "parent_name": "sp34",
+      "vh": "QVQLQQPGAELVKPGASVKLSCKASGYTFTDYNMHWVKQTPGQGLEWIGVIHPNYGGTSYNQKFKG KATLTVDKSSSTAYMELRSLTSEDSAVYYCARDYYGSSHYAMDYWGQGTSVTVSS",
+      "vl": "DIQMTQSPASLSASVGETVTITCRASENIYSYLAWYQQKQGKSPQLLVYNTKTLAEGVPSRFSGSGS GTQFSLKINSLQPEDFGSYYCQHHYGTPFTFGSGTKLEIK",
+      "variant_type": "original",
+      "mutations": [],
+      "humanness_score": null,
+      "notes": "Original sp34 sequences"
+    },
+    {
+      "name": "sp34_original_WT",
+      "parent_name": "sp34_original",
+      "vh": "QVQLQQPGAELVKPGASVKLSCKASGYTFTDYNMHWVKQTPGQGLEWIGVIHPNYGGTSYNQKFKG KATLTVDKSSSTAYMELRSLTSEDSAVYYCARDYYGSSHYAMDYWGQGTSVTVSS",
+      "vl": "DIQMTQSPASLSASVGETVTITCRASENIYSYLAWYQQKQGKSPQLLVYNTKTLAEGVPSRFSGSGS GTQFSLKINSLQPEDFGSYYCQHHYGTPFTFGSGTKLEIK",
+      "mutations": [],
+      "mutation_strings": [],
+      "predicted_fold_change": 1.0,
+      "affinity_class": "wild_type",
+      "notes": "Wild-type (no mutations)"
+    },
+    {
+      "name": "sp34_humanized",
+      "parent_name": "sp34",
+      "vh": "QVQLQQPGAELVKPGASVKLSCKASGYTFTDYNMHWVKQTPGQGLEWIGVIHPNYGGTSYNQKFKG KATLTVDKSSSTAYMELRSLTSEDSAVYYCARDYYGSSHYAMDYWGQGTSVTVSS",
+      "vl": "DIQMTQSPASLSASVGETVTITCRASENIYSYLAWYQQKQGKSPQLLVYNTKTLAEGVPSRFSGSGS GTQFSLKINSLQPEDFGSYYCQHHYGTPFTFGSGTKLEIK",
+      "variant_type": "humanized",
+      "mutations": [],
+      "humanness_score": null,
+      "notes": "Humanized with sapiens"
+    },
+    {
+      "name": "sp34_humanized_WT",
+      "parent_name": "sp34_humanized",
+      "vh": "QVQLQQPGAELVKPGASVKLSCKASGYTFTDYNMHWVKQTPGQGLEWIGVIHPNYGGTSYNQKFKG KATLTVDKSSSTAYMELRSLTSEDSAVYYCARDYYGSSHYAMDYWGQGTSVTVSS",
+      "vl": "DIQMTQSPASLSASVGETVTITCRASENIYSYLAWYQQKQGKSPQLLVYNTKTLAEGVPSRFSGSGS GTQFSLKINSLQPEDFGSYYCQHHYGTPFTFGSGTKLEIK",
+      "mutations": [],
+      "mutation_strings": [],
+      "predicted_fold_change": 1.0,
+      "affinity_class": "wild_type",
+      "notes": "Wild-type (no mutations)"
+    },
+    {
+      "name": "ucht1_original",
+      "parent_name": "ucht1",
+      "vh": "EVKLDETGGGLVQPGRPMKLSCVASGFTFSDYWMNWVRQSPEKGLEWVAEIRLKSNNYATHYAESVK GRFTISRDDSKSSVYLQMNNLRVEDTGIYYCTGSYYGMDYWGQGTSVTVSS",
+      "vl": "DIQMTQSPSSLSASLGERVSLTCRASQDIRNYLNWYQQKPDGTVKLLIYYTSRLHSGVPSRFSGSGS GTDYSLTISNLEQEDIATYFCQQGNTLPWTFGGGTKLEIK",
+      "variant_type": "original",
+      "mutations": [],
+      "humanness_score": null,
+      "notes": "Original ucht1 sequences"
+    },
+    {
+      "name": "ucht1_original_WT",
+      "parent_name": "ucht1_original",
+      "vh": "EVKLDETGGGLVQPGRPMKLSCVASGFTFSDYWMNWVRQSPEKGLEWVAEIRLKSNNYATHYAESVK GRFTISRDDSKSSVYLQMNNLRVEDTGIYYCTGSYYGMDYWGQGTSVTVSS",
+      "vl": "DIQMTQSPSSLSASLGERVSLTCRASQDIRNYLNWYQQKPDGTVKLLIYYTSRLHSGVPSRFSGSGS GTDYSLTISNLEQEDIATYFCQQGNTLPWTFGGGTKLEIK",
+      "mutations": [],
+      "mutation_strings": [],
+      "predicted_fold_change": 1.0,
+      "affinity_class": "wild_type",
+      "notes": "Wild-type (no mutations)"
+    },
+    {
+      "name": "ucht1_humanized",
+      "parent_name": "ucht1",
+      "vh": "EVKLDETGGGLVQPGRPMKLSCVASGFTFSDYWMNWVRQSPEKGLEWVAEIRLKSNNYATHYAESVK GRFTISRDDSKSSVYLQMNNLRVEDTGIYYCTGSYYGMDYWGQGTSVTVSS",
+      "vl": "DIQMTQSPSSLSASLGERVSLTCRASQDIRNYLNWYQQKPDGTVKLLIYYTSRLHSGVPSRFSGSGS GTDYSLTISNLEQEDIATYFCQQGNTLPWTFGGGTKLEIK",
+      "variant_type": "humanized",
+      "mutations": [],
+      "humanness_score": null,
+      "notes": "Humanized with sapiens"
+    },
+    {
+      "name": "ucht1_humanized_WT",
+      "parent_name": "ucht1_humanized",
+      "vh": "EVKLDETGGGLVQPGRPMKLSCVASGFTFSDYWMNWVRQSPEKGLEWVAEIRLKSNNYATHYAESVK GRFTISRDDSKSSVYLQMNNLRVEDTGIYYCTGSYYGMDYWGQGTSVTVSS",
+      "vl": "DIQMTQSPSSLSASLGERVSLTCRASQDIRNYLNWYQQKPDGTVKLLIYYTSRLHSGVPSRFSGSGS GTDYSLTISNLEQEDIATYFCQQGNTLPWTFGGGTKLEIK",
+      "mutations": [],
+      "mutation_strings": [],
+      "predicted_fold_change": 1.0,
+      "affinity_class": "wild_type",
+      "notes": "Wild-type (no mutations)"
+    }
+  ],
+  "count": 10
+}

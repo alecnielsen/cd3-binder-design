@@ -1,0 +1,74 @@
+{
+  "candidate_id": "teplizumab_original_WT",
+  "sequence": "QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPSRGYTNYNQKFKD KATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTLTVSS",
+  "sequence_vl": null,
+  "binder_type": "scfv",
+  "source": "unknown",
+  "binding": {
+    "pdockq": 0.0,
+    "pdockq_note": "Structural confidence, NOT affinity predictor",
+    "interface_area": 2560.0,
+    "num_contacts": 42
+  },
+  "epitope": {
+    "epitope_class": "novel_epitope",
+    "okt3_overlap": 0.07407407407407407
+  },
+  "humanness": {
+    "oasis_score_vh": null,
+    "oasis_score_vl": null,
+    "oasis_score_mean": null,
+    "has_back_mutation_variant": false
+  },
+  "liabilities": {
+    "deamidation_sites": [],
+    "isomerization_sites": [],
+    "glycosylation_sites": [],
+    "oxidation_sites": [
+      19,
+      33,
+      81,
+      35,
+      46,
+      109,
+      130,
+      140,
+      151,
+      197,
+      153,
+      165,
+      210
+    ],
+    "unpaired_cys": 0,
+    "cdr_deamidation_count": 0,
+    "cdr_isomerization_count": 0,
+    "cdr_glycosylation_count": 0,
+    "cdr_oxidation_count": 0
+  },
+  "developability": {
+    "cdr_h3_length": null,
+    "net_charge": null,
+    "isoelectric_point": null,
+    "hydrophobic_patches": 0
+  },
+  "filter_results": {
+    "binding": "pass",
+    "humanness": "soft_fail",
+    "liabilities": "fail",
+    "developability": "soft_fail",
+    "aggregation": "pass"
+  },
+  "risk_flags": [
+    "humanness_soft_fail",
+    "developability_soft_fail",
+    "ACCEPTED_VIA_FALLBACK_THRESHOLD_10PCT"
+  ],
+  "composite_score": 0.245,
+  "rank": 10,
+  "_provenance": {
+    "pipeline_version": "1.0.0",
+    "run_timestamp": "2026-01-26T09:23:39.601591",
+    "git_commit": "85e44a19b1e6",
+    "config_hash": "f4d642140640"
+  }
+}

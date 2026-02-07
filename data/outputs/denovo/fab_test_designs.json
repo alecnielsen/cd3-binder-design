@@ -1,0 +1,51 @@
+{
+  "config": {
+    "binder_type": "fab",
+    "num_designs": 2,
+    "target_pdb_path": "data/targets/1XIW.pdb",
+    "target_chain": "A",
+    "scaffold_names": [
+      "adalimumab"
+    ],
+    "scaffold_dir": "data/fab_scaffolds",
+    "hotspot_residues": [],
+    "seed": 42,
+    "temperature": 1.0,
+    "num_recycles": 3,
+    "output_dir": "data/outputs/denovo"
+  },
+  "config_hash": "06ab1d681071",
+  "num_designs": 2,
+  "designs": [
+    {
+      "sequence": "EVQLVESGGGLVQPGRSLRLSCAASGFTFSSYAMHWVRQAPGKGLEWVSAISSDGSSIDYADSVEGRFTISRDNAKNSLYLQMNSLRAEDTAVYYCAKGGGGYGSSYSSPADYWGQGTLVTVSS",
+      "vh_sequence": "EVQLVESGGGLVQPGRSLRLSCAASGFTFSSYAMHWVRQAPGKGLEWVSAISSDGSSIDYADSVEGRFTISRDNAKNSLYLQMNSLRAEDTAVYYCAKGGGGYGSSYSSPADYWGQGTLVTVSS",
+      "vl_sequence": "DIQMTQSPSSLSASVGDRVTITCRASQSIGTYLAWYQQKPGKAPKLLIYSASTLESGVPSRFSGSGSGTDFTLTISSLQPEDVATYYCGGGDGGGAGQYKSPPYTFGQGTKVEIK",
+      "scaffold_name": "",
+      "confidence": 0.0,
+      "design_id": "boltzgen_fab_0000",
+      "binder_type": "fab",
+      "target_structure": "data/targets/1XIW.pdb",
+      "plddt": null,
+      "ptm": 0.66947,
+      "iptm": 0.25131,
+      "seed": 42,
+      "temperature": 1.0
+    },
+    {
+      "sequence": "EVQLVESGGGLVQPGRSLRLSCAASGFTFSSYAMHWVRQAPGKGLEWVSAISSSGSYIDYADSVEGRFTISRDNAKNSLYLQMNSLRAEDTAVYYCAKVGWWWSWAWWAYGSSGSSAGDAWGQGTLVTVSS",
+      "vh_sequence": "EVQLVESGGGLVQPGRSLRLSCAASGFTFSSYAMHWVRQAPGKGLEWVSAISSSGSYIDYADSVEGRFTISRDNAKNSLYLQMNSLRAEDTAVYYCAKVGWWWSWAWWAYGSSGSSAGDAWGQGTLVTVSS",
+      "vl_sequence": "DIQMTQSPSSLSASVGDRVTITCRASQSVSTYLAWYQQKPGKAPKLLIYSASTLYSGVPSRFSGSGSGTDFTLTISSLQPEDVATYYCGGVAWAASSWGQYNSPPYTFGQGTKVEIK",
+      "scaffold_name": "",
+      "confidence": 0.0,
+      "design_id": "boltzgen_fab_0001",
+      "binder_type": "fab",
+      "target_structure": "data/targets/1XIW.pdb",
+      "plddt": null,
+      "ptm": 0.66292,
+      "iptm": 0.25949,
+      "seed": 42,
+      "temperature": 1.0
+    }
+  ]
+}

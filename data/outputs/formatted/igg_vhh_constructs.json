@@ -1,0 +1,382 @@
+[
+  {
+    "candidate_id": "fab_1XIW_0040",
+    "format": "igg_vhh",
+    "construct": {
+      "name": "fab_1XIW_0040_igg_vhh",
+      "format_type": "igg_vhh",
+      "target_1": "HER2 (ERBB2)",
+      "target_2": "CD3",
+      "chains": [
+        {
+          "name": "HC_target_igg_vhh",
+          "sequence": "EVQLVESGGGLVQPGGSLRLSCAASGFNIKDTYIHWVRQAPGKGLEWVARIYPTNGYTRYADSVKGRFTISADTSKNTAYLQMNSLRAEDTAVYYCSRWGGDGFYAMDYWGQGTLVTVSSASTKGPSVFPLAPSSKSTSGGTAALGCLVKDYFPEPVTVSWNSGALTSGVHTFPAVLQSSGLYSLSSVVTVPSSSLGTQTYICNVNHKPSNTKVDKRVEPKSCDKTHTCPPCPAPELLGGPSVFLFPPKPKDTLMISRTPEVTCVVVDVSHEDPEVKFNWYVDGVEVHNAKTKPREEQYNSTYRVVSVLTVLHQDWLNGKEYKCKVSNKALPAPIEKTISKAKGQPREPQVYTLPPSREEMTKNQVSLTCLVKGFYPSDIAVEWESNGQPENNYKTTPPVLDSDGSFFLYSKLTVDKSRWQQGNVFSCSVMHEALHNHYTQKSLSLSPGKGGGGSGGGGSQVQLQESGPGLVKPSQTLSLTCTVSGFSISTSSAYWSWIRQPPGKGLEWIGYISPSGSTDYNPSLKSRVTMSVDTSKNQFSLKVNSVTAADTAVYYCARGGASGGTGGSGGGGGAGTLDYWGQGTLVTVSS",
+          "chain_type": "heavy",
+          "components": [
+            "VH(target)",
+            "CH1",
+            "Hinge",
+            "CH2",
+            "CH3",
+            "Linker(10aa)",
+            "VHH(CD3)"
+          ],
+          "length": 591
+        },
+        {
+          "name": "LC_target",
+          "sequence": "DIQMTQSPSSLSASVGDRVTITCRASQDVNTAVAWYQQKPGKAPKLLIYSASFLYSGVPSRFSGSRSGTDFTLTISSLQPEDFATYYCQQHYTTPPTFGQGTKVEIKRTVAAPSVFIFPPSDEQLKSGTASVVCLLNNFYPREAKVQWKVDNALQSGNSQESVTEQDSKDSTYSLSSTLTLSKADYEKHKVYACEVTHQGLSSPVTKSFNRGEC",
+          "chain_type": "light",
+          "components": [
+            "VL(target)",
+            "CL"
+          ],
+          "length": 214
+        }
+      ],
+      "notes": "IgG-(VHH)2 Morrison format (symmetric). Bivalent for both targets: 2x Fab(target), 2x VHH(CD3). VHH fused to C-terminus of both heavy chains. Fc fusion linker: GGGGSGGGGS"
+    }
+  },
+  {
+    "candidate_id": "fab_1XIW_0011",
+    "format": "igg_vhh",
+    "construct": {
+      "name": "fab_1XIW_0011_igg_vhh",
+      "format_type": "igg_vhh",
+      "target_1": "HER2 (ERBB2)",
+      "target_2": "CD3",
+      "chains": [
+        {
+          "name": "HC_target_igg_vhh",
+          "sequence": "EVQLVESGGGLVQPGGSLRLSCAASGFNIKDTYIHWVRQAPGKGLEWVARIYPTNGYTRYADSVKGRFTISADTSKNTAYLQMNSLRAEDTAVYYCSRWGGDGFYAMDYWGQGTLVTVSSASTKGPSVFPLAPSSKSTSGGTAALGCLVKDYFPEPVTVSWNSGALTSGVHTFPAVLQSSGLYSLSSVVTVPSSSLGTQTYICNVNHKPSNTKVDKRVEPKSCDKTHTCPPCPAPELLGGPSVFLFPPKPKDTLMISRTPEVTCVVVDVSHEDPEVKFNWYVDGVEVHNAKTKPREEQYNSTYRVVSVLTVLHQDWLNGKEYKCKVSNKALPAPIEKTISKAKGQPREPQVYTLPPSREEMTKNQVSLTCLVKGFYPSDIAVEWESNGQPENNYKTTPPVLDSDGSFFLYSKLTVDKSRWQQGNVFSCSVMHEALHNHYTQKSLSLSPGKGGGGSGGGGSEVQLVESGGGLEQPGGSLRLSCAGSGFSFTSGGYAMTWVRQAPGKGLEWVSSISSSGSTYYADSVKGRFTISRDNSKNTLYLQMNSLRAEDTAVYYCAKNYYGYSIGAMDYWGQGTTVTVSS",
+          "chain_type": "heavy",
+          "components": [
+            "VH(target)",
+            "CH1",
+            "Hinge",
+            "CH2",
+            "CH3",
+            "Linker(10aa)",
+            "VHH(CD3)"
+          ],
+          "length": 582
+        },
+        {
+          "name": "LC_target",
+          "sequence": "DIQMTQSPSSLSASVGDRVTITCRASQDVNTAVAWYQQKPGKAPKLLIYSASFLYSGVPSRFSGSRSGTDFTLTISSLQPEDFATYYCQQHYTTPPTFGQGTKVEIKRTVAAPSVFIFPPSDEQLKSGTASVVCLLNNFYPREAKVQWKVDNALQSGNSQESVTEQDSKDSTYSLSSTLTLSKADYEKHKVYACEVTHQGLSSPVTKSFNRGEC",
+          "chain_type": "light",
+          "components": [
+            "VL(target)",
+            "CL"
+          ],
+          "length": 214
+        }
+      ],
+      "notes": "IgG-(VHH)2 Morrison format (symmetric). Bivalent for both targets: 2x Fab(target), 2x VHH(CD3). VHH fused to C-terminus of both heavy chains. Fc fusion linker: GGGGSGGGGS"
+    }
+  },
+  {
+    "candidate_id": "fab_1SY6_0015",
+    "format": "igg_vhh",
+    "construct": {
+      "name": "fab_1SY6_0015_igg_vhh",
+      "format_type": "igg_vhh",
+      "target_1": "HER2 (ERBB2)",
+      "target_2": "CD3",
+      "chains": [
+        {
+          "name": "HC_target_igg_vhh",
+          "sequence": "EVQLVESGGGLVQPGGSLRLSCAASGFNIKDTYIHWVRQAPGKGLEWVARIYPTNGYTRYADSVKGRFTISADTSKNTAYLQMNSLRAEDTAVYYCSRWGGDGFYAMDYWGQGTLVTVSSASTKGPSVFPLAPSSKSTSGGTAALGCLVKDYFPEPVTVSWNSGALTSGVHTFPAVLQSSGLYSLSSVVTVPSSSLGTQTYICNVNHKPSNTKVDKRVEPKSCDKTHTCPPCPAPELLGGPSVFLFPPKPKDTLMISRTPEVTCVVVDVSHEDPEVKFNWYVDGVEVHNAKTKPREEQYNSTYRVVSVLTVLHQDWLNGKEYKCKVSNKALPAPIEKTISKAKGQPREPQVYTLPPSREEMTKNQVSLTCLVKGFYPSDIAVEWESNGQPENNYKTTPPVLDSDGSFFLYSKLTVDKSRWQQGNVFSCSVMHEALHNHYTQKSLSLSPGKGGGGSGGGGSEVQLVESGGGLVQPGGSLRLSCAASGSYTFSDYWMNWVRQAPGKGLEWVAAISSSGDYKYYVGSVKGRFTISRDNAKNSLYLQMNSLRVEDTAVYYCVRETGIYGALDYWGRGTLVTVSS",
+          "chain_type": "heavy",
+          "components": [
+            "VH(target)",
+            "CH1",
+            "Hinge",
+            "CH2",
+            "CH3",
+            "Linker(10aa)",
+            "VHH(CD3)"
+          ],
+          "length": 580
+        },
+        {
+          "name": "LC_target",
+          "sequence": "DIQMTQSPSSLSASVGDRVTITCRASQDVNTAVAWYQQKPGKAPKLLIYSASFLYSGVPSRFSGSRSGTDFTLTISSLQPEDFATYYCQQHYTTPPTFGQGTKVEIKRTVAAPSVFIFPPSDEQLKSGTASVVCLLNNFYPREAKVQWKVDNALQSGNSQESVTEQDSKDSTYSLSSTLTLSKADYEKHKVYACEVTHQGLSSPVTKSFNRGEC",
+          "chain_type": "light",
+          "components": [
+            "VL(target)",
+            "CL"
+          ],
+          "length": 214
+        }
+      ],
+      "notes": "IgG-(VHH)2 Morrison format (symmetric). Bivalent for both targets: 2x Fab(target), 2x VHH(CD3). VHH fused to C-terminus of both heavy chains. Fc fusion linker: GGGGSGGGGS"
+    }
+  },
+  {
+    "candidate_id": "fab_1XIW_0008",
+    "format": "igg_vhh",
+    "construct": {
+      "name": "fab_1XIW_0008_igg_vhh",
+      "format_type": "igg_vhh",
+      "target_1": "HER2 (ERBB2)",
+      "target_2": "CD3",
+      "chains": [
+        {
+          "name": "HC_target_igg_vhh",
+          "sequence": "EVQLVESGGGLVQPGGSLRLSCAASGFNIKDTYIHWVRQAPGKGLEWVARIYPTNGYTRYADSVKGRFTISADTSKNTAYLQMNSLRAEDTAVYYCSRWGGDGFYAMDYWGQGTLVTVSSASTKGPSVFPLAPSSKSTSGGTAALGCLVKDYFPEPVTVSWNSGALTSGVHTFPAVLQSSGLYSLSSVVTVPSSSLGTQTYICNVNHKPSNTKVDKRVEPKSCDKTHTCPPCPAPELLGGPSVFLFPPKPKDTLMISRTPEVTCVVVDVSHEDPEVKFNWYVDGVEVHNAKTKPREEQYNSTYRVVSVLTVLHQDWLNGKEYKCKVSNKALPAPIEKTISKAKGQPREPQVYTLPPSREEMTKNQVSLTCLVKGFYPSDIAVEWESNGQPENNYKTTPPVLDSDGSFFLYSKLTVDKSRWQQGNVFSCSVMHEALHNHYTQKSLSLSPGKGGGGSGGGGSEVQLVQSGAEVKKPGESLKISCKGSGYTFSSYWIGWVRQMPGKGLEWMGIIYPSGSTRYSPSFQGQVTISADKSISTAYLQWSSLKASDTAMYYCARLDPYYYALDYWGQGTLVTVSS",
+          "chain_type": "heavy",
+          "components": [
+            "VH(target)",
+            "CH1",
+            "Hinge",
+            "CH2",
+            "CH3",
+            "Linker(10aa)",
+            "VHH(CD3)"
+          ],
+          "length": 578
+        },
+        {
+          "name": "LC_target",
+          "sequence": "DIQMTQSPSSLSASVGDRVTITCRASQDVNTAVAWYQQKPGKAPKLLIYSASFLYSGVPSRFSGSRSGTDFTLTISSLQPEDFATYYCQQHYTTPPTFGQGTKVEIKRTVAAPSVFIFPPSDEQLKSGTASVVCLLNNFYPREAKVQWKVDNALQSGNSQESVTEQDSKDSTYSLSSTLTLSKADYEKHKVYACEVTHQGLSSPVTKSFNRGEC",
+          "chain_type": "light",
+          "components": [
+            "VL(target)",
+            "CL"
+          ],
+          "length": 214
+        }
+      ],
+      "notes": "IgG-(VHH)2 Morrison format (symmetric). Bivalent for both targets: 2x Fab(target), 2x VHH(CD3). VHH fused to C-terminus of both heavy chains. Fc fusion linker: GGGGSGGGGS"
+    }
+  },
+  {
+    "candidate_id": "vhh_1XIW_0008",
+    "format": "igg_vhh",
+    "construct": {
+      "name": "vhh_1XIW_0008_igg_vhh",
+      "format_type": "igg_vhh",
+      "target_1": "HER2 (ERBB2)",
+      "target_2": "CD3",
+      "chains": [
+        {
+          "name": "HC_target_igg_vhh",
+          "sequence": "EVQLVESGGGLVQPGGSLRLSCAASGFNIKDTYIHWVRQAPGKGLEWVARIYPTNGYTRYADSVKGRFTISADTSKNTAYLQMNSLRAEDTAVYYCSRWGGDGFYAMDYWGQGTLVTVSSASTKGPSVFPLAPSSKSTSGGTAALGCLVKDYFPEPVTVSWNSGALTSGVHTFPAVLQSSGLYSLSSVVTVPSSSLGTQTYICNVNHKPSNTKVDKRVEPKSCDKTHTCPPCPAPELLGGPSVFLFPPKPKDTLMISRTPEVTCVVVDVSHEDPEVKFNWYVDGVEVHNAKTKPREEQYNSTYRVVSVLTVLHQDWLNGKEYKCKVSNKALPAPIEKTISKAKGQPREPQVYTLPPSREEMTKNQVSLTCLVKGFYPSDIAVEWESNGQPENNYKTTPPVLDSDGSFFLYSKLTVDKSRWQQGNVFSCSVMHEALHNHYTQKSLSLSPGKGGGGSGGGGSEVQLVESGGGLVQAGGSLRLSEAASGFTFSSYYMSWVRQAPGKGWEFVASISSSGNTNYADSVKGRFTISRDNAKNTLYLQMNSLKPEDTAVYYWVAGKGSTDYWGQGTLVTVSS",
+          "chain_type": "heavy",
+          "components": [
+            "VH(target)",
+            "CH1",
+            "Hinge",
+            "CH2",
+            "CH3",
+            "Linker(10aa)",
+            "VHH(CD3)"
+          ],
+          "length": 575
+        },
+        {
+          "name": "LC_target",
+          "sequence": "DIQMTQSPSSLSASVGDRVTITCRASQDVNTAVAWYQQKPGKAPKLLIYSASFLYSGVPSRFSGSRSGTDFTLTISSLQPEDFATYYCQQHYTTPPTFGQGTKVEIKRTVAAPSVFIFPPSDEQLKSGTASVVCLLNNFYPREAKVQWKVDNALQSGNSQESVTEQDSKDSTYSLSSTLTLSKADYEKHKVYACEVTHQGLSSPVTKSFNRGEC",
+          "chain_type": "light",
+          "components": [
+            "VL(target)",
+            "CL"
+          ],
+          "length": 214
+        }
+      ],
+      "notes": "IgG-(VHH)2 Morrison format (symmetric). Bivalent for both targets: 2x Fab(target), 2x VHH(CD3). VHH fused to C-terminus of both heavy chains. Fc fusion linker: GGGGSGGGGS"
+    }
+  },
+  {
+    "candidate_id": "vhh_1XIW_0006",
+    "format": "igg_vhh",
+    "construct": {
+      "name": "vhh_1XIW_0006_igg_vhh",
+      "format_type": "igg_vhh",
+      "target_1": "HER2 (ERBB2)",
+      "target_2": "CD3",
+      "chains": [
+        {
+          "name": "HC_target_igg_vhh",
+          "sequence": "EVQLVESGGGLVQPGGSLRLSCAASGFNIKDTYIHWVRQAPGKGLEWVARIYPTNGYTRYADSVKGRFTISADTSKNTAYLQMNSLRAEDTAVYYCSRWGGDGFYAMDYWGQGTLVTVSSASTKGPSVFPLAPSSKSTSGGTAALGCLVKDYFPEPVTVSWNSGALTSGVHTFPAVLQSSGLYSLSSVVTVPSSSLGTQTYICNVNHKPSNTKVDKRVEPKSCDKTHTCPPCPAPELLGGPSVFLFPPKPKDTLMISRTPEVTCVVVDVSHEDPEVKFNWYVDGVEVHNAKTKPREEQYNSTYRVVSVLTVLHQDWLNGKEYKCKVSNKALPAPIEKTISKAKGQPREPQVYTLPPSREEMTKNQVSLTCLVKGFYPSDIAVEWESNGQPENNYKTTPPVLDSDGSFFLYSKLTVDKSRWQQGNVFSCSVMHEALHNHYTQKSLSLSPGKGGGGSGGGGSEVQLVESGGGLVQPGGSLRLSEAASGFTFSSYSMGWFRQAPGKEREFVAGISSDGSYTYYADSVKGRFTISRDNAKNTLYLQMNSLKAEDTAVYYEAAASNDQDLDDAAAGDYSSFDYWGQGTQVTVSSA",
+          "chain_type": "heavy",
+          "components": [
+            "VH(target)",
+            "CH1",
+            "Hinge",
+            "CH2",
+            "CH3",
+            "Linker(10aa)",
+            "VHH(CD3)"
+          ],
+          "length": 590
+        },
+        {
+          "name": "LC_target",
+          "sequence": "DIQMTQSPSSLSASVGDRVTITCRASQDVNTAVAWYQQKPGKAPKLLIYSASFLYSGVPSRFSGSRSGTDFTLTISSLQPEDFATYYCQQHYTTPPTFGQGTKVEIKRTVAAPSVFIFPPSDEQLKSGTASVVCLLNNFYPREAKVQWKVDNALQSGNSQESVTEQDSKDSTYSLSSTLTLSKADYEKHKVYACEVTHQGLSSPVTKSFNRGEC",
+          "chain_type": "light",
+          "components": [
+            "VL(target)",
+            "CL"
+          ],
+          "length": 214
+        }
+      ],
+      "notes": "IgG-(VHH)2 Morrison format (symmetric). Bivalent for both targets: 2x Fab(target), 2x VHH(CD3). VHH fused to C-terminus of both heavy chains. Fc fusion linker: GGGGSGGGGS"
+    }
+  },
+  {
+    "candidate_id": "vhh_1XIW_0001",
+    "format": "igg_vhh",
+    "construct": {
+      "name": "vhh_1XIW_0001_igg_vhh",
+      "format_type": "igg_vhh",
+      "target_1": "HER2 (ERBB2)",
+      "target_2": "CD3",
+      "chains": [
+        {
+          "name": "HC_target_igg_vhh",
+          "sequence": "EVQLVESGGGLVQPGGSLRLSCAASGFNIKDTYIHWVRQAPGKGLEWVARIYPTNGYTRYADSVKGRFTISADTSKNTAYLQMNSLRAEDTAVYYCSRWGGDGFYAMDYWGQGTLVTVSSASTKGPSVFPLAPSSKSTSGGTAALGCLVKDYFPEPVTVSWNSGALTSGVHTFPAVLQSSGLYSLSSVVTVPSSSLGTQTYICNVNHKPSNTKVDKRVEPKSCDKTHTCPPCPAPELLGGPSVFLFPPKPKDTLMISRTPEVTCVVVDVSHEDPEVKFNWYVDGVEVHNAKTKPREEQYNSTYRVVSVLTVLHQDWLNGKEYKCKVSNKALPAPIEKTISKAKGQPREPQVYTLPPSREEMTKNQVSLTCLVKGFYPSDIAVEWESNGQPENNYKTTPPVLDSDGSFFLYSKLTVDKSRWQQGNVFSCSVMHEALHNHYTQKSLSLSPGKGGGGSGGGGSEVQLVESGGGLVQAGGSLRLSEAASGFTFSSYAMGWFRQAPGKEREFVAAISSSGSSTYYADSVKGRFTISRDNAKNTLYLQMNSLKPEDTAVYYAARGPALSDSDLLSATMDDFDYWGQGTQVTVSS",
+          "chain_type": "heavy",
+          "components": [
+            "VH(target)",
+            "CH1",
+            "Hinge",
+            "CH2",
+            "CH3",
+            "Linker(10aa)",
+            "VHH(CD3)"
+          ],
+          "length": 588
+        },
+        {
+          "name": "LC_target",
+          "sequence": "DIQMTQSPSSLSASVGDRVTITCRASQDVNTAVAWYQQKPGKAPKLLIYSASFLYSGVPSRFSGSRSGTDFTLTISSLQPEDFATYYCQQHYTTPPTFGQGTKVEIKRTVAAPSVFIFPPSDEQLKSGTASVVCLLNNFYPREAKVQWKVDNALQSGNSQESVTEQDSKDSTYSLSSTLTLSKADYEKHKVYACEVTHQGLSSPVTKSFNRGEC",
+          "chain_type": "light",
+          "components": [
+            "VL(target)",
+            "CL"
+          ],
+          "length": 214
+        }
+      ],
+      "notes": "IgG-(VHH)2 Morrison format (symmetric). Bivalent for both targets: 2x Fab(target), 2x VHH(CD3). VHH fused to C-terminus of both heavy chains. Fc fusion linker: GGGGSGGGGS"
+    }
+  },
+  {
+    "candidate_id": "fab_1SY6_0044",
+    "format": "igg_vhh",
+    "construct": {
+      "name": "fab_1SY6_0044_igg_vhh",
+      "format_type": "igg_vhh",
+      "target_1": "HER2 (ERBB2)",
+      "target_2": "CD3",
+      "chains": [
+        {
+          "name": "HC_target_igg_vhh",
+          "sequence": "EVQLVESGGGLVQPGGSLRLSCAASGFNIKDTYIHWVRQAPGKGLEWVARIYPTNGYTRYADSVKGRFTISADTSKNTAYLQMNSLRAEDTAVYYCSRWGGDGFYAMDYWGQGTLVTVSSASTKGPSVFPLAPSSKSTSGGTAALGCLVKDYFPEPVTVSWNSGALTSGVHTFPAVLQSSGLYSLSSVVTVPSSSLGTQTYICNVNHKPSNTKVDKRVEPKSCDKTHTCPPCPAPELLGGPSVFLFPPKPKDTLMISRTPEVTCVVVDVSHEDPEVKFNWYVDGVEVHNAKTKPREEQYNSTYRVVSVLTVLHQDWLNGKEYKCKVSNKALPAPIEKTISKAKGQPREPQVYTLPPSREEMTKNQVSLTCLVKGFYPSDIAVEWESNGQPENNYKTTPPVLDSDGSFFLYSKLTVDKSRWQQGNVFSCSVMHEALHNHYTQKSLSLSPGKGGGGSGGGGSQMQLVESGGGVVQPGRSLRLSCAASGFSLSTGGTGMHWVRQAPGKGLEWVAVILSGGSKHYADSVKGRFTITRDNSKNTLNLQMNSLRAEDTAVYYCARGGASGGGTALDYWGQGTMVTVSS",
+          "chain_type": "heavy",
+          "components": [
+            "VH(target)",
+            "CH1",
+            "Hinge",
+            "CH2",
+            "CH3",
+            "Linker(10aa)",
+            "VHH(CD3)"
+          ],
+          "length": 582
+        },
+        {
+          "name": "LC_target",
+          "sequence": "DIQMTQSPSSLSASVGDRVTITCRASQDVNTAVAWYQQKPGKAPKLLIYSASFLYSGVPSRFSGSRSGTDFTLTISSLQPEDFATYYCQQHYTTPPTFGQGTKVEIKRTVAAPSVFIFPPSDEQLKSGTASVVCLLNNFYPREAKVQWKVDNALQSGNSQESVTEQDSKDSTYSLSSTLTLSKADYEKHKVYACEVTHQGLSSPVTKSFNRGEC",
+          "chain_type": "light",
+          "components": [
+            "VL(target)",
+            "CL"
+          ],
+          "length": 214
+        }
+      ],
+      "notes": "IgG-(VHH)2 Morrison format (symmetric). Bivalent for both targets: 2x Fab(target), 2x VHH(CD3). VHH fused to C-terminus of both heavy chains. Fc fusion linker: GGGGSGGGGS"
+    }
+  },
+  {
+    "candidate_id": "vhh_1XIW_0005",
+    "format": "igg_vhh",
+    "construct": {
+      "name": "vhh_1XIW_0005_igg_vhh",
+      "format_type": "igg_vhh",
+      "target_1": "HER2 (ERBB2)",
+      "target_2": "CD3",
+      "chains": [
+        {
+          "name": "HC_target_igg_vhh",
+          "sequence": "EVQLVESGGGLVQPGGSLRLSCAASGFNIKDTYIHWVRQAPGKGLEWVARIYPTNGYTRYADSVKGRFTISADTSKNTAYLQMNSLRAEDTAVYYCSRWGGDGFYAMDYWGQGTLVTVSSASTKGPSVFPLAPSSKSTSGGTAALGCLVKDYFPEPVTVSWNSGALTSGVHTFPAVLQSSGLYSLSSVVTVPSSSLGTQTYICNVNHKPSNTKVDKRVEPKSCDKTHTCPPCPAPELLGGPSVFLFPPKPKDTLMISRTPEVTCVVVDVSHEDPEVKFNWYVDGVEVHNAKTKPREEQYNSTYRVVSVLTVLHQDWLNGKEYKCKVSNKALPAPIEKTISKAKGQPREPQVYTLPPSREEMTKNQVSLTCLVKGFYPSDIAVEWESNGQPENNYKTTPPVLDSDGSFFLYSKLTVDKSRWQQGNVFSCSVMHEALHNHYTQKSLSLSPGKGGGGSGGGGSQVQLVESGGGLVQAGGSLRLSEAASGFTFSSYGMGWFRQAPGKGREFVAYISSSGSTSYADSVKGRFTISRDNSKNTLYLQMNSLKPEDTAVYYEARGRGGAFDYWGQGTQVTVS",
+          "chain_type": "heavy",
+          "components": [
+            "VH(target)",
+            "CH1",
+            "Hinge",
+            "CH2",
+            "CH3",
+            "Linker(10aa)",
+            "VHH(CD3)"
+          ],
+          "length": 575
+        },
+        {
+          "name": "LC_target",
+          "sequence": "DIQMTQSPSSLSASVGDRVTITCRASQDVNTAVAWYQQKPGKAPKLLIYSASFLYSGVPSRFSGSRSGTDFTLTISSLQPEDFATYYCQQHYTTPPTFGQGTKVEIKRTVAAPSVFIFPPSDEQLKSGTASVVCLLNNFYPREAKVQWKVDNALQSGNSQESVTEQDSKDSTYSLSSTLTLSKADYEKHKVYACEVTHQGLSSPVTKSFNRGEC",
+          "chain_type": "light",
+          "components": [
+            "VL(target)",
+            "CL"
+          ],
+          "length": 214
+        }
+      ],
+      "notes": "IgG-(VHH)2 Morrison format (symmetric). Bivalent for both targets: 2x Fab(target), 2x VHH(CD3). VHH fused to C-terminus of both heavy chains. Fc fusion linker: GGGGSGGGGS"
+    }
+  },
+  {
+    "candidate_id": "fab_1SY6_0011",
+    "format": "igg_vhh",
+    "construct": {
+      "name": "fab_1SY6_0011_igg_vhh",
+      "format_type": "igg_vhh",
+      "target_1": "HER2 (ERBB2)",
+      "target_2": "CD3",
+      "chains": [
+        {
+          "name": "HC_target_igg_vhh",
+          "sequence": "EVQLVESGGGLVQPGGSLRLSCAASGFNIKDTYIHWVRQAPGKGLEWVARIYPTNGYTRYADSVKGRFTISADTSKNTAYLQMNSLRAEDTAVYYCSRWGGDGFYAMDYWGQGTLVTVSSASTKGPSVFPLAPSSKSTSGGTAALGCLVKDYFPEPVTVSWNSGALTSGVHTFPAVLQSSGLYSLSSVVTVPSSSLGTQTYICNVNHKPSNTKVDKRVEPKSCDKTHTCPPCPAPELLGGPSVFLFPPKPKDTLMISRTPEVTCVVVDVSHEDPEVKFNWYVDGVEVHNAKTKPREEQYNSTYRVVSVLTVLHQDWLNGKEYKCKVSNKALPAPIEKTISKAKGQPREPQVYTLPPSREEMTKNQVSLTCLVKGFYPSDIAVEWESNGQPENNYKTTPPVLDSDGSFFLYSKLTVDKSRWQQGNVFSCSVMHEALHNHYTQKSLSLSPGKGGGGSGGGGSQVQLQESGPGLVKPSQTLSLTCTVSGFSLTSGYYWSWIRQPPGKGLEWIGYISSKYSPPYTDYNPSLKSRVTMSVDTSKNQFSLKVNSVTAADTAVYYCARDWKYWGQGTLVTVSS",
+          "chain_type": "heavy",
+          "components": [
+            "VH(target)",
+            "CH1",
+            "Hinge",
+            "CH2",
+            "CH3",
+            "Linker(10aa)",
+            "VHH(CD3)"
+          ],
+          "length": 576
+        },
+        {
+          "name": "LC_target",
+          "sequence": "DIQMTQSPSSLSASVGDRVTITCRASQDVNTAVAWYQQKPGKAPKLLIYSASFLYSGVPSRFSGSRSGTDFTLTISSLQPEDFATYYCQQHYTTPPTFGQGTKVEIKRTVAAPSVFIFPPSDEQLKSGTASVVCLLNNFYPREAKVQWKVDNALQSGNSQESVTEQDSKDSTYSLSSTLTLSKADYEKHKVYACEVTHQGLSSPVTKSFNRGEC",
+          "chain_type": "light",
+          "components": [
+            "VL(target)",
+            "CL"
+          ],
+          "length": 214
+        }
+      ],
+      "notes": "IgG-(VHH)2 Morrison format (symmetric). Bivalent for both targets: 2x Fab(target), 2x VHH(CD3). VHH fused to C-terminus of both heavy chains. Fc fusion linker: GGGGSGGGGS"
+    }
+  }
+]

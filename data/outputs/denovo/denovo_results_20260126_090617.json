@@ -1,0 +1,42 @@
+{
+  "vhh_designs": [
+    {
+      "sequence": "DVVMTQSPSSLSASVGDRVTISERASQSLSSSDYLYWYQQKPGQKPKLLIYKTSTRESGVPDRFSGSGSGTDFSLTISGLQAEDEAVYYWQRYYGGRSYFGGGTKLTVLPG",
+      "confidence": 0.0,
+      "design_id": "vhh_1XIW_0000",
+      "binder_type": "vhh",
+      "target_structure": "data/targets/1XIW.pdb",
+      "plddt": null,
+      "ptm": null,
+      "seed": 42,
+      "temperature": 1.0
+    },
+    {
+      "sequence": "ELVLKQPGSVSVSVGQTATISGTGSSGVVGSGYVYWYQQKPGQPPKLLIYDDSTLASGVPSRFSGSKSGTTASLTISGAQAEDEATYYALARSSSTGAGVSGGGTKLTVS",
+      "confidence": 0.0,
+      "design_id": "vhh_1XIW_0001",
+      "binder_type": "vhh",
+      "target_structure": "data/targets/1XIW.pdb",
+      "plddt": null,
+      "ptm": null,
+      "seed": 42,
+      "temperature": 1.0
+    }
+  ],
+  "scfv_designs": [],
+  "config": {
+    "target_structures": [
+      "data/targets/1XIW.pdb"
+    ],
+    "num_vhh_designs": 2,
+    "num_scfv_designs": 0,
+    "seed": 42,
+    "temperature": 1.0,
+    "hotspot_residues": []
+  },
+  "timestamp": "20260126_090617",
+  "target_structures": [
+    "data/targets/1XIW.pdb"
+  ],
+  "total_designs": 2
+}
