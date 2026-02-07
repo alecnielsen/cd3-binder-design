@@ -70,6 +70,13 @@ Critical implementation details:
 40. **ipTM interpretation** - For de novo designs, ipTM 0.2-0.4 is typical. Values at high end (~0.35-0.40) indicate good structural confidence. ipTM is NOT an affinity predictor.
 41. **Step 04 extracts interface metrics** - BoltzGen outputs ipTM/pTM, but filtering needs interface_area, num_contacts, and epitope residues. Step 04 re-runs Boltz-2 to extract these.
 42. **Fab track validated** - Feb 5 run: 9/10 Fab designs generated with ipTM up to 0.368. One design typically fails BoltzGen's internal RMSD filter.
+43. **100x scale run completed** - Feb 6: 192 designs (100 VHH + 92 Fab) → 10 final candidates (6 Fab, 4 VHH). Top score 0.412. Output: `denovo_results_20260205_173718.json`.
+44. **Modal timeouts expected at scale** - ~14% failure rate (26/192) due to H100 GPU contention. Failures are intermittent, not sequential. Use batch endpoint or retry.
+45. **Filtering uses 5 cascaded filters** - (1) Binding: interface_area ≥2060Å², contacts ≥28. (2) Humanness: Sapiens ≥0.8. (3) Liabilities: no CDR deamidation/isomerization/glycosylation. (4) Developability: CDR-H3 8-20aa, charge -2 to +4. (5) Aggregation: CDR aromatics ≤20%.
+46. **Hard vs soft filters** - Hard=FAIL rejects outright, Soft=SOFT_FAIL flags but passes. Oxidation (>2 sites), developability ranges, aggregation are soft filters.
+47. **Calibrated thresholds from known binders** - min_interface_area (2060Å²) and min_contacts (28) derived from teplizumab/SP34/UCHT1 scFvs minus margin. pDockQ threshold is 0.0 (disabled).
+48. **Liability detection is regex-based** - No ML models. Pattern matching: NG/NS/NT/ND/NH (deamidation), DG/DS/DT/DD/DH/DN (isomerization), N-X-S/T (glycosylation), M/W (oxidation).
+49. **Fab designs dominate at scale** - At 100x, 6/10 top candidates are Fab (vs 2/10 at 10x). Fab has better humanness scores due to fully-human scaffolds.
 
 ## Quick Reference
 

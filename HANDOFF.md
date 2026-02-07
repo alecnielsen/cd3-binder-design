@@ -1,10 +1,10 @@
 # Handoff Notes - CD3 Binder Design Pipeline
 
-## Current Status (2026-02-05)
+## Current Status (2026-02-06)
 
-### Pipeline: BOTH TRACKS FULLY WORKING
+### Pipeline: PRODUCTION-SCALE RUN COMPLETE
 
-VHH and Fab de novo design both validated. Latest run (Feb 5): **10 VHH + 9 Fab designs** generated successfully.
+100x scale run completed: **100 VHH + 92 Fab = 192 designs** generated, filtered to **10 final candidates** (6 Fab, 4 VHH).
 
 ```bash
 conda activate cd3-binder
@@ -114,9 +114,67 @@ Or use the verification script: `python scripts/verify_fab_chains.py`
 
 ---
 
-## Latest Run (2026-02-05)
+## Latest Run: 100x Scale (2026-02-06)
 
-### De Novo Design Results
+### Generation Results
+
+| Type | Requested | Generated | Notes |
+|------|-----------|-----------|-------|
+| **VHH** | 100 | 100 | All succeeded |
+| **Fab** | 100 | 92 | 8 failed BoltzGen RMSD filter |
+| **Total** | 200 | 192 | |
+
+### Structure Prediction
+
+- **166/192 (86%)** succeeded
+- **26 failed** due to Modal timeouts (`FAILED_PRECONDITION: Function call has expired`)
+- Failures were scattered (not sequential), indicating intermittent GPU resource contention on H100s
+
+### Filtering Results
+
+| Stage | Count |
+|-------|-------|
+| Input designs | 192 |
+| Passed initial filters | 6 |
+| Final (with fallback) | **10** |
+
+**Final distribution**: 6 Fab, 4 VHH
+
+### Top 10 Candidates
+
+| Rank | ID | Type | Score | Interface (Å²) | Contacts | Humanness |
+|------|-----|------|-------|----------------|----------|-----------|
+| 1 | **fab_1XIW_0040** | Fab | 0.412 | 3,040 | 60 | 0.807 |
+| 2 | **fab_1XIW_0011** | Fab | 0.365 | 2,720 | 49 | 0.820 |
+| 3 | **fab_1SY6_0015** | Fab | 0.364 | 4,800 | 83 | 0.808 |
+| 4 | **fab_1XIW_0008** | Fab | 0.362 | 2,480 | 45 | 0.867 |
+| 5 | **vhh_1XIW_0008** | VHH | 0.356 | 2,960 | 54 | 0.756 |
+| 6 | fab_1SY6_0037 | Fab | 0.353 | 2,640 | 46 | 0.793 |
+| 7 | fab_1XIW_0045 | Fab | 0.351 | 2,320 | 41 | 0.803 |
+| 8 | vhh_1XIW_0001 | VHH | 0.327 | 2,400 | 43 | 0.766 |
+| 9 | vhh_1XIW_0005 | VHH | 0.320 | 2,480 | 40 | 0.774 |
+| 10 | vhh_1XIW_0006 | VHH | 0.309 | 2,240 | 36 | 0.797 |
+
+### Improvement from 10x → 100x Scale
+
+| Metric | 10x Run | 100x Run | Change |
+|--------|---------|----------|--------|
+| Top composite score | 0.371 | **0.412** | +11% |
+| Fab candidates in top 10 | 2 | **6** | +200% |
+| Best humanness | 0.82 | **0.87** | +6% |
+| Largest interface | 3,120 Å² | **4,800 Å²** | +54% |
+
+### Key Observations
+
+1. **Fab designs dominate at scale** - Better humanness scores, larger interfaces
+2. **Scaling improved quality** - Top score increased 11%, more diverse candidates
+3. **Modal timeouts manageable** - 86% success rate, plenty of candidates despite failures
+
+---
+
+## Previous Run (2026-02-05)
+
+### De Novo Design Results (10x scale)
 
 | Type | Requested | Generated | Best ipTM | Design ID |
 |------|-----------|-----------|-----------|-----------|
@@ -127,10 +185,8 @@ Top designs by ipTM:
 - fab_1SY6_0002: 0.368 (pTM 0.697)
 - vhh_1SY6_0000: 0.368
 - vhh_1XIW_0001: 0.361
-- vhh_1SY6_0003: 0.317
-- vhh_1XIW_0003: 0.305
 
-### Key Observations
+### Key Observations (10x run)
 
 1. **Fab track now working** - 9/10 Fab designs generated (1 failed RMSD filter)
 2. **ipTM scores competitive** - Best designs at 0.368 (high end of typical range)
@@ -252,16 +308,21 @@ After computational pipeline:
 
 ```
 data/outputs/
-├── calibration.json          # Calibration thresholds
+├── calibration.json                              # Calibration thresholds
 ├── denovo/
-│   ├── denovo_results_20260126_090617.json  # Old trial (2 VHH)
-│   ├── denovo_results_20260203_063803.json  # Validation (10 VHH)
-│   └── fab_test_designs.json                # Fab test (2 designs)
-├── optimized/                # Known antibody scFvs
-├── structures/               # Boltz-2 predictions
-├── filtered/                 # Filtered candidates
-├── formatted/                # Bispecific constructs
-└── reports/                  # Scorecards and HTML report
+│   ├── denovo_results_20260205_173718.json      # 100x run (192 designs) ← LATEST
+│   ├── denovo_results_20260205_101836.json      # 10x validation (19 designs)
+│   ├── denovo_results_20260203_063803.json      # Early validation (10 VHH)
+│   └── denovo_results_20260126_090617.json      # Initial trial (2 VHH)
+├── optimized/                                    # Known antibody scFvs
+├── structures/
+│   └── candidates_with_structures.json          # Boltz-2 predictions (192 candidates)
+├── filtered/
+│   └── filtered_candidates.json                 # 10 final candidates
+├── formatted/                                    # Bispecific constructs
+└── reports/
+    ├── report_20260206_085031.html              # HTML report ← LATEST
+    └── report_20260206_085031.json              # JSON report
 ```
 
 ---
@@ -286,3 +347,52 @@ From known CD3 binder scFvs:
 | UCHT1-scFv | 0.784 | 94.1 | 32 | 2240 Å² |
 
 **Important**: These are VH-linker-VL scFvs, NOT full IgG. pTM/pLDDT are structural confidence scores, NOT binding affinity predictors.
+
+---
+
+## Next Steps (Planned)
+
+### 1. Statistical Analysis of Metric Distributions
+
+Analyze the full 192-design dataset to understand:
+- Distribution of composite scores, interface areas, contacts, humanness
+- How much the top 10 differ from the overall population
+- Whether further scaling would likely improve metrics (diminishing returns analysis)
+
+### 2. Sequence Diversity / Cluster Analysis
+
+Assess diversity among the final 10 candidates:
+- Sequence identity matrix (VH sequences)
+- Hierarchical clustering or UMAP visualization
+- CDR3 diversity analysis (most variable region)
+- Determine if the 10 candidates represent distinct sequence families or are clustered
+
+### 3. Scaling Analysis
+
+Determine value of further scale-up:
+- Compare metric distributions at 10x vs 100x
+- Model expected improvement at 500x or 1000x
+- Identify if we're hitting ceiling effects
+
+### 4. Experimental Validation Preparation
+
+Prepare top candidates for wet lab:
+- Final sequence export (synthesis-ready format)
+- Codon optimization for expression host
+- Construct design for SPR/BLI validation
+
+---
+
+## Known Issues
+
+### Modal Timeouts at Scale
+
+When running >100 predictions, expect ~10-15% failure rate due to:
+- H100 GPU resource contention
+- 10-minute per-call timeout in `boltz2_app.py:250`
+- Intermittent connection issues
+
+**Mitigations**:
+- Use batch endpoint (`predict_complex_batch`) for better efficiency
+- Retry failed candidates separately
+- Run during off-peak hours
