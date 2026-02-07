@@ -31,6 +31,15 @@ def main():
     from src.analysis.developability import DevelopabilityAssessor
     from src.structure.interface_analysis import InterfaceAnalyzer
 
+    # Build lookup for boltzgen_rank from raw candidate data
+    def _get_boltzgen_rank(candidate_data: dict) -> int | None:
+        """Extract BoltzGen's internal rank from candidate data."""
+        # Direct field (set by boltzgen_app.py)
+        rank = candidate_data.get("boltzgen_rank")
+        if rank is not None:
+            return int(rank)
+        return None
+
     # Load config
     if Path(args.config).exists():
         config = PipelineConfig.load(args.config)
@@ -103,6 +112,7 @@ def main():
             sequence_vl=vl_seq,
             binder_type=binder_type,
             source=c.get("source", "unknown"),
+            boltzgen_rank=_get_boltzgen_rank(c),
         )
 
         # Add structure prediction metrics
@@ -215,7 +225,53 @@ def main():
         cid = c.get("design_id", c.get("name", "unknown"))
         raw_lookup[cid] = c
 
-    if ranking_method == "worst_metric_rank" and filtered:
+    n_final = config.output.num_final_candidates
+
+    if ranking_method == "boltzgen" and filtered:
+        # Use BoltzGen's internal ranking (experimentally validated, 66% nanobody hit rate)
+        # Sort by boltzgen_rank; candidates without a rank go to the end
+        filtered.sort(key=lambda s: s.boltzgen_rank if s.boltzgen_rank is not None else float("inf"))
+
+        print(f"  Sorted {len(filtered)} candidates by BoltzGen rank")
+        has_rank = sum(1 for s in filtered if s.boltzgen_rank is not None)
+        print(f"  {has_rank}/{len(filtered)} have BoltzGen rank")
+
+        # Apply diversity selection if enabled
+        if config.ranking.use_diversity_selection and len(filtered) > n_final:
+            # Build RankedCandidate objects for diversity selection
+            ranked_candidates = []
+            for i, score in enumerate(filtered):
+                rc = RankedCandidate(
+                    candidate_id=score.candidate_id,
+                    sequence=score.sequence,
+                    sequence_vl=score.sequence_vl,
+                    iptm=score.iptm or 0.0,
+                    _score_ref=score,
+                )
+                rc.final_rank = i + 1  # Preserve BoltzGen order
+                ranked_candidates.append(rc)
+
+            selected = diversity_select(
+                ranked_candidates, n_final, alpha=config.ranking.diversity_alpha
+            )
+            print(f"  Diversity selection: {len(ranked_candidates)} -> {len(selected)}")
+
+            filtered = []
+            for i, rc in enumerate(selected):
+                score = rc._score_ref
+                score.rank = i + 1
+                score.composite_score = float(score.boltzgen_rank or 0)
+                filtered.append(score)
+        else:
+            filtered = filtered[:n_final]
+            for i, score in enumerate(filtered):
+                score.rank = i + 1
+                score.composite_score = float(score.boltzgen_rank or 0)
+
+        stats["ranking_method"] = "boltzgen"
+        stats["diversity_selection"] = config.ranking.use_diversity_selection
+
+    elif ranking_method == "worst_metric_rank" and filtered:
         # Build RankedCandidate objects
         ranked_candidates = []
         for score in filtered:
@@ -240,7 +296,6 @@ def main():
         worst_metric_rank(ranked_candidates, config.ranking.metric_weights)
 
         # Apply diversity selection if enabled
-        n_final = config.output.num_final_candidates
         if config.ranking.use_diversity_selection:
             selected = diversity_select(
                 ranked_candidates, n_final, alpha=config.ranking.diversity_alpha
@@ -261,7 +316,6 @@ def main():
         stats["diversity_selection"] = config.ranking.use_diversity_selection
     else:
         # Legacy composite score ranking (already sorted by run_filter_cascade)
-        n_final = config.output.num_final_candidates
         filtered = filtered[:n_final]
         stats["ranking_method"] = "composite"
 
@@ -286,7 +340,11 @@ def main():
         iptm_str = f"{c.iptm:.3f}" if c.iptm else "N/A"
         area_str = f"{c.interface_area:.0f}" if c.interface_area else "N/A"
         humanness_str = f"{c.oasis_score_mean:.3f}" if c.oasis_score_mean else "N/A"
-        if ranking_method == "worst_metric_rank":
+        if ranking_method == "boltzgen":
+            bg_rank_str = f"bg_rank={c.boltzgen_rank}" if c.boltzgen_rank else "bg_rank=N/A"
+            print(f"  {c.rank}. {c.candidate_id}: {bg_rank_str}, "
+                  f"ipTM={iptm_str}, area={area_str}, humanness={humanness_str}")
+        elif ranking_method == "worst_metric_rank":
             print(f"  {c.rank}. {c.candidate_id}: quality_key={c.composite_score:.1f}, "
                   f"ipTM={iptm_str}, area={area_str}, humanness={humanness_str}")
         else:

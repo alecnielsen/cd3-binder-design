@@ -77,7 +77,7 @@ Critical implementation details:
 47. **Calibrated thresholds from known binders** - min_interface_area (2060Å²) and min_contacts (28) derived from teplizumab/SP34/UCHT1 scFvs minus margin. pDockQ threshold is 0.0 (disabled).
 48. **Liability detection is regex-based** - No ML models. Pattern matching: NG/NS/NT/ND/NH (deamidation), DG/DS/DT/DD/DH/DN (isomerization), N-X-S/T (glycosylation), M/W (oxidation).
 49. **Fab designs dominate at scale** - At 100x, 6/10 top candidates are Fab (vs 2/10 at 10x). Fab has better humanness scores due to fully-human scaffolds.
-50. **Ranking uses worst-metric-rank** - Replaces broken composite score (30% weight on pDockQ which is always 0.0). Each candidate is ranked per-metric, worst weighted rank becomes quality_key. Lower = better.
+50. **Ranking uses BoltzGen's native ranking** - Candidates are ranked by BoltzGen's internal decision tree (ipTM, pTM, PAE, H-bonds, salt bridges, SASA) which was experimentally validated at 66% nanobody hit rate. Our pipeline applies therapeutic pass/fail filters (humanness, liabilities, developability, aggregation) then sorts by `boltzgen_rank`. `worst_metric_rank` available as fallback via config.
 51. **Diversity selection is greedy maximin** - After ranking, iteratively pick candidates maximizing `(1-alpha)*quality + alpha*(1-max_identity_to_selected)` with alpha=0.001. Prevents near-duplicate pairs from occupying multiple slots.
 52. **CIF files saved to `data/outputs/structures/cif/`** - Boltz-2 outputs CIF format, now preserved on disk for downstream tools (ANTIPASTI, visualization).
 53. **iptm now captured in ComplexPredictionResult** - `iptm` field added to both `ComplexPredictionResult` and `CandidateScore`. Extracted from Boltz-2 results.

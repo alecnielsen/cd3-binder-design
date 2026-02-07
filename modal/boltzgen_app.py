@@ -327,6 +327,7 @@ def run_boltzgen(
     print(f"Found {len(fasta_files)} FASTA, {len(cif_files)} CIF, {len(json_files)} JSON, {len(csv_files)} CSV files")
 
     # Parse metrics from CSV if available (prefer metrics.csv which has design scores)
+    # IMPORTANT: CSV row order = BoltzGen's internal ranking (decision tree output)
     metrics_by_design = {}
     # Sort to prefer metrics.csv over other CSVs
     csv_files_sorted = sorted(csv_files, key=lambda f: "metrics" in f.name, reverse=True)
@@ -338,17 +339,19 @@ def run_boltzgen(
                 continue
             headers = csv_lines[0].split(",")
             print(f"  CSV {csv_file.name}: {headers[:8]}...")
-            for row in csv_lines[1:]:
+            for rank_idx, row in enumerate(csv_lines[1:]):
                 values = row.split(",")
                 if len(values) >= len(headers):
                     row_dict = dict(zip(headers, values))
                     # Use 'id' column as key (BoltzGen uses this)
                     design_id = row_dict.get("id", row_dict.get("file_name", ""))
                     if design_id and design_id not in metrics_by_design:
+                        # Row order in CSV = BoltzGen's rank (0-indexed)
+                        row_dict["_boltzgen_rank"] = rank_idx + 1
                         metrics_by_design[design_id] = row_dict
                         iptm = row_dict.get("design_to_target_iptm", "N/A")
                         ptm = row_dict.get("design_ptm", "N/A")
-                        print(f"    {design_id}: ipTM={iptm}, pTM={ptm}")
+                        print(f"    rank {rank_idx + 1}: {design_id}: ipTM={iptm}, pTM={ptm}")
         except Exception as e:
             print(f"  Error parsing CSV {csv_file}: {e}")
 
@@ -476,8 +479,12 @@ def run_boltzgen(
                 design["pae_min"] = float(metrics.get("min_design_to_target_pae", 0))
                 design["rmsd"] = float(metrics.get("filter_rmsd", 0))
                 design["rmsd_design"] = float(metrics.get("filter_rmsd_design", 0))
+                design["boltzgen_rank"] = metrics.get("_boltzgen_rank", i + 1)
             except (ValueError, TypeError):
                 pass  # Skip if conversion fails
+        else:
+            # Fallback: use parse order as rank
+            design["boltzgen_rank"] = i + 1
 
     print(f"Parsed {len(designs)} designs")
     return designs
@@ -691,6 +698,7 @@ def run_boltzgen_fab(
     print(f"Found {len(fasta_files)} FASTA, {len(cif_files)} CIF, {len(csv_files)} CSV files")
 
     # Parse metrics from CSV
+    # IMPORTANT: CSV row order = BoltzGen's internal ranking (decision tree output)
     metrics_by_design = {}
     csv_files_sorted = sorted(csv_files, key=lambda f: "metrics" in f.name, reverse=True)
     for csv_file in csv_files_sorted:
@@ -701,12 +709,13 @@ def run_boltzgen_fab(
                 continue
             headers = csv_lines[0].split(",")
             print(f"  CSV {csv_file.name}: {headers[:8]}...")
-            for row in csv_lines[1:]:
+            for rank_idx, row in enumerate(csv_lines[1:]):
                 values = row.split(",")
                 if len(values) >= len(headers):
                     row_dict = dict(zip(headers, values))
                     design_id = row_dict.get("id", row_dict.get("file_name", ""))
                     if design_id and design_id not in metrics_by_design:
+                        row_dict["_boltzgen_rank"] = rank_idx + 1
                         metrics_by_design[design_id] = row_dict
         except Exception as e:
             print(f"  Error parsing CSV {csv_file}: {e}")
@@ -825,8 +834,11 @@ def run_boltzgen_fab(
                 design["pTM"] = float(metrics.get("design_ptm", 0))
                 design["rmsd"] = float(metrics.get("filter_rmsd", 0))
                 design["rmsd_design"] = float(metrics.get("filter_rmsd_design", 0))
+                design["boltzgen_rank"] = metrics.get("_boltzgen_rank", i + 1)
             except (ValueError, TypeError):
                 pass
+        else:
+            design["boltzgen_rank"] = i + 1
 
     print(f"Parsed {len(designs)} Fab designs")
     # Print RMSD summary

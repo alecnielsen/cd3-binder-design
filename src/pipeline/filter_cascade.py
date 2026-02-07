@@ -65,6 +65,9 @@ class CandidateScore:
     cdr_positions: Optional[dict[str, tuple[int, int]]] = None
     full_sequence: Optional[str] = None
 
+    # BoltzGen's internal rank (from its decision tree ranking)
+    boltzgen_rank: Optional[int] = None
+
     # Filter results
     filter_results: dict[str, FilterResult] = field(default_factory=dict)
     risk_flags: list[str] = field(default_factory=list)
@@ -115,6 +118,7 @@ class CandidateScore:
                 "isoelectric_point": self.isoelectric_point,
                 "hydrophobic_patches": self.hydrophobic_patches,
             },
+            "boltzgen_rank": self.boltzgen_rank,
             "filter_results": {k: v.value for k, v in self.filter_results.items()},
             "risk_flags": self.risk_flags,
             "composite_score": self.composite_score,

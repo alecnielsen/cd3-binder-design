@@ -82,7 +82,8 @@ formatting:
     fc_fusion: "GGGGSGGGGS"
 
 ranking:
-  method: worst_metric_rank       # or "composite" for legacy behavior
+  method: boltzgen                  # Uses BoltzGen's internal ranking (validated 66% hit rate)
+                                    # Alternatives: "worst_metric_rank", "composite" (legacy)
   diversity_alpha: 0.001
   use_diversity_selection: true
 
@@ -351,8 +352,9 @@ Per-candidate JSON scorecard:
     "isoelectric_point": 7.8,
     "hydrophobic_patches": 1
   },
-  "composite_score": 3.0,
-  "composite_score_note": "quality_key from worst-metric-rank (lower = better)",
+  "boltzgen_rank": 5,
+  "composite_score": 5.0,
+  "composite_score_note": "BoltzGen internal rank (lower = better). Uses ipTM, pTM, PAE, H-bonds, salt bridges, buried SASA.",
   "rank": 3,
   "_provenance": {
     "pipeline_version": "1.0.0",

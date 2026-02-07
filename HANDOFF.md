@@ -351,7 +351,53 @@ From known CD3 binder scFvs:
 
 ---
 
-## What Changed: Ranking + CIF + Diversity (2026-02-07)
+## What Changed: BoltzGen Native Ranking (2026-02-07, latest)
+
+### Problem: Custom Re-Ranking Discarded Validated Signal
+
+The previous `worst_metric_rank` approach re-ranked candidates using a custom metric set (ipTM, pTM, pLDDT, interface area, contacts, humanness) — but this threw away BoltzGen's own ranking, which uses a richer set of metrics (ipTM, pTM, PAE, H-bonds, salt bridges, buried SASA) and was **experimentally validated at 66% nanobody hit rate**. Our custom ranking also included metrics not in BoltzGen's system (humanness, pLDDT) while omitting validated ones (PAE, H-bonds, salt bridges).
+
+### Solution: Trust BoltzGen for Binding Quality, Filter for Therapeutics
+
+1. **BoltzGen's internal rank preserved** — `boltzgen_rank` captured from CSV row order (which reflects BoltzGen's decision tree ranking) and propagated through the entire pipeline.
+2. **Therapeutic filters are pass/fail only** — Humanness (≥0.8), liabilities (no CDR deamidation/isomerization/glycosylation), developability (CDR-H3 8-20aa, charge -2 to +4), aggregation (CDR aromatics ≤20%) applied as gates, not ranking signals.
+3. **Sort survivors by BoltzGen rank** — After filtering, candidates are ordered by `boltzgen_rank` (lower = better).
+4. **Diversity selection on top** — Greedy maximin (alpha=0.001) prevents near-duplicates, same as before.
+
+### What BoltzGen's Ranking Includes
+
+| Metric | Weight | Our Previous Ranking |
+|--------|--------|---------------------|
+| `design_to_target_iptm` | 1 (high) | Had |
+| `design_ptm` | 1 (high) | Had |
+| `neg_min_design_to_target_pae` | 1 (high) | **Missing** |
+| H-bonds | 2 (lower) | **Missing** |
+| Salt bridges | 2 (lower) | **Missing** |
+| Buried SASA | 2 (lower) | **Missing** |
+
+Plus hard filters: RMSD < 2.5 Å, CYS fraction = 0, ALA/GLY/GLU/LEU/VAL < 20%.
+
+### Config Change
+
+```yaml
+ranking:
+  method: boltzgen    # was: worst_metric_rank
+```
+
+`worst_metric_rank` and `composite` still available as fallbacks.
+
+### Files Changed
+
+- `modal/boltzgen_app.py` — Capture `boltzgen_rank` from CSV row order (VHH + Fab)
+- `src/design/boltzgen_runner.py` — `BoltzGenDesign.boltzgen_rank` field
+- `src/pipeline/filter_cascade.py` — `CandidateScore.boltzgen_rank` field
+- `src/pipeline/config.py` — `RankingConfig.method` defaults to `"boltzgen"`
+- `scripts/05_filter_candidates.py` — New `"boltzgen"` ranking path
+- `config.yaml` — Updated to `method: boltzgen`
+
+---
+
+## What Changed: Ranking + CIF + Diversity (2026-02-07, earlier)
 
 ### Problem: Broken Composite Score
 
@@ -359,7 +405,7 @@ The old ranking system had 30% weight on pDockQ, which is **always 0.0** from Bo
 
 ### Solution: Worst-Metric-Rank + Diversity Selection
 
-Implemented the BoltzGen-validated ranking approach (66% nanobody hit rate):
+Implemented custom worst-metric-rank as intermediate fix (later replaced by BoltzGen native ranking above):
 
 1. **Worst-metric-rank**: For each candidate, rank across 6 metrics (ipTM, pTM, pLDDT, interface area, contacts, humanness). Divide each rank by importance weight. Quality key = max weighted rank. Sort ascending.
 2. **Greedy maximin diversity selection**: Pick highest quality first, then iteratively pick candidate maximizing `(1-alpha)*quality + alpha*(1-max_identity_to_selected)` with alpha=0.001.

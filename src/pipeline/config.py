@@ -87,10 +87,11 @@ class FormattingConfig:
 class RankingConfig:
     """Configuration for candidate ranking."""
 
-    # Ranking method: "worst_metric_rank" (new, default) or "composite" (legacy)
-    method: str = "worst_metric_rank"
+    # Ranking method: "boltzgen" (default, uses BoltzGen's internal ranking),
+    # "worst_metric_rank" (custom re-ranking), or "composite" (legacy)
+    method: str = "boltzgen"
 
-    # Metric weights for worst_metric_rank (higher = more important)
+    # Metric weights for worst_metric_rank (only used if method="worst_metric_rank")
     metric_weights: dict[str, int] = field(default_factory=lambda: {
         "iptm": 1,
         "ptm": 1,

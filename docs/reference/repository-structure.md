@@ -79,6 +79,7 @@ cd3-binder-design/
 │   │   ├── config.py                    # Pipeline configuration
 │   │   ├── design_pipeline.py           # End-to-end orchestration
 │   │   ├── filter_cascade.py            # Multi-stage filtering
+│   │   ├── ranking.py                   # Diversity selection (worst_metric_rank fallback)
 │   │   └── report_generator.py          # Developability scorecards
 │   │
 │   └── utils/
@@ -127,7 +128,7 @@ Design generation: BoltzGen runner for de novo VHH design and Fab CDR redesign, 
 Bispecific assembly: 5 formats (CrossMab, Fab+scFv, Fab+VHH, IgG-scFv, IgG-VHH) with linker insertion and constant region grafting.
 
 ### src/pipeline/
-Orchestration: configuration loading, multi-stage filtering cascade, end-to-end pipeline, HTML/JSON report generation.
+Orchestration: configuration loading, multi-stage filtering cascade, BoltzGen-native ranking with diversity selection, end-to-end pipeline, HTML/JSON report generation. Default ranking uses BoltzGen's internal decision tree (ipTM, pTM, PAE, H-bonds, salt bridges, SASA); therapeutic filters (humanness, liabilities, developability) applied as pass/fail gates.
 
 ### src/structure/
 Structure tools: PDB parsing, interface analysis, ABodyBuilder2 and Boltz-2 wrappers.

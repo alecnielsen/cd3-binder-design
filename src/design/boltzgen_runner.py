@@ -84,6 +84,9 @@ class BoltzGenDesign:
     ptm: Optional[float] = None
     iptm: Optional[float] = None  # Interface pTM
 
+    # BoltzGen's internal rank (from its decision tree filtering/ranking)
+    boltzgen_rank: Optional[int] = None
+
     # Metadata
     seed: Optional[int] = None
     temperature: Optional[float] = None
@@ -102,6 +105,7 @@ class BoltzGenDesign:
             "plddt": self.plddt,
             "ptm": self.ptm,
             "iptm": self.iptm,
+            "boltzgen_rank": self.boltzgen_rank,
             "seed": self.seed,
             "temperature": self.temperature,
         }
@@ -310,6 +314,7 @@ class BoltzGenRunner:
                     plddt=result.get("plddt"),
                     ptm=result.get("ptm"),
                     iptm=result.get("ipTM"),
+                    boltzgen_rank=result.get("boltzgen_rank", i + 1),
                     seed=self.config.seed,
                     temperature=self.config.temperature,
                 )
@@ -378,6 +383,7 @@ class BoltzGenRunner:
                     plddt=result.get("plddt"),
                     ptm=result.get("pTM", result.get("ptm")),
                     iptm=result.get("ipTM"),
+                    boltzgen_rank=result.get("boltzgen_rank", i + 1),
                     seed=self.config.seed,
                     temperature=self.config.temperature,
                 )
