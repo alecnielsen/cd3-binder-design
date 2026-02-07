@@ -68,12 +68,17 @@ formatting:
   - igg_vhh
   scfv_linker: GGGGSGGGGSGGGGS
   fc_fusion_linker: GGGGSGGGGS
+ranking:
+  method: worst_metric_rank
+  diversity_alpha: 0.001
+  use_diversity_selection: true
 output:
   num_final_candidates: 10
   include_structures: true
   generate_report: true
   include_provenance: true
   output_dir: data/outputs
+  export_cif: true
 reproducibility:
   boltzgen_seed: 42
   sampling_seed: 12345

@@ -316,7 +316,8 @@ data/outputs/
 │   └── denovo_results_20260126_090617.json      # Initial trial (2 VHH)
 ├── optimized/                                    # Known antibody scFvs
 ├── structures/
-│   └── candidates_with_structures.json          # Boltz-2 predictions (192 candidates)
+│   ├── candidates_with_structures.json          # Boltz-2 predictions (192 candidates)
+│   └── cif/                                     # CIF structure files (future runs)
 ├── filtered/
 │   └── filtered_candidates.json                 # 10 final candidates
 ├── formatted/                                    # Bispecific constructs
@@ -350,36 +351,69 @@ From known CD3 binder scFvs:
 
 ---
 
+## What Changed: Ranking + CIF + Diversity (2026-02-07)
+
+### Problem: Broken Composite Score
+
+The old ranking system had 30% weight on pDockQ, which is **always 0.0** from Boltz-2 (pDockQ is an AlphaFold-Multimer metric, not Boltz-2). Interface area and contacts — the actual binding signals — were only binary pass/fail filters, not used in ranking. Additionally, no diversity consideration existed; two near-duplicate pairs (77% and 75% sequence identity) occupied 4 of 10 slots.
+
+### Solution: Worst-Metric-Rank + Diversity Selection
+
+Implemented the BoltzGen-validated ranking approach (66% nanobody hit rate):
+
+1. **Worst-metric-rank**: For each candidate, rank across 6 metrics (ipTM, pTM, pLDDT, interface area, contacts, humanness). Divide each rank by importance weight. Quality key = max weighted rank. Sort ascending.
+2. **Greedy maximin diversity selection**: Pick highest quality first, then iteratively pick candidate maximizing `(1-alpha)*quality + alpha*(1-max_identity_to_selected)` with alpha=0.001.
+
+### Other Changes
+
+- **CIF files saved** to `data/outputs/structures/cif/` for downstream tools
+- **ipTM captured** in `ComplexPredictionResult` and `CandidateScore`
+- **Binding filter fixed** — interface_area is now primary hard filter; pDockQ only checked if non-zero
+- **ANTIPASTI stub** (`src/analysis/antipasti_scoring.py`) — MIT-licensed structure-based affinity prediction
+- **Protenix stub** (`modal/protenix_app.py`) — Apache 2.0, outperforms AF3 on Ab-Ag docking
+
+### Affinity Tool Assessment
+
+| Tool | License | Applicable? | Reason |
+|------|---------|-------------|--------|
+| PRODIGY | Apache 2.0 | No | r=0.16 on Ab-Ag complexes (poor) |
+| AttABseq | MIT | No | Requires WT reference sequence; not for de novo |
+| Boltz-2 IC50 | MIT | No | Small molecule only, not protein-protein |
+| ANTIPASTI | MIT | Maybe | Structure-based, needs validation on our designs |
+| Protenix | Apache 2.0 | Future | Re-prediction for confidence, not affinity |
+
+---
+
 ## Next Steps (Planned)
 
-### 1. Statistical Analysis of Metric Distributions
+### 1. Statistical Analysis of Metric Distributions ✅ DONE
 
-Analyze the full 192-design dataset to understand:
-- Distribution of composite scores, interface areas, contacts, humanness
-- How much the top 10 differ from the overall population
-- Whether further scaling would likely improve metrics (diminishing returns analysis)
+Analysis script at `scripts/analysis_metric_distributions.py`. Output in `data/outputs/analysis/`.
 
-### 2. Sequence Diversity / Cluster Analysis
+### 2. Sequence Diversity / Cluster Analysis ✅ DONE
 
-Assess diversity among the final 10 candidates:
-- Sequence identity matrix (VH sequences)
-- Hierarchical clustering or UMAP visualization
-- CDR3 diversity analysis (most variable region)
-- Determine if the 10 candidates represent distinct sequence families or are clustered
+Diversity selection now built into ranking pipeline. Greedy maximin with alpha=0.001 prevents near-duplicate pairs.
 
-### 3. Scaling Analysis
-
-Determine value of further scale-up:
-- Compare metric distributions at 10x vs 100x
-- Model expected improvement at 500x or 1000x
-- Identify if we're hitting ceiling effects
-
-### 4. Experimental Validation Preparation
+### 3. Experimental Validation Preparation
 
 Prepare top candidates for wet lab:
 - Final sequence export (synthesis-ready format)
 - Codon optimization for expression host
 - Construct design for SPR/BLI validation
+
+### 4. Exploratory: ANTIPASTI Affinity Prediction
+
+Evaluate ANTIPASTI on saved CIF structures:
+- Run on known binder complexes (teplizumab, SP34, UCHT1) to calibrate
+- If correlates with known Kd, apply to de novo designs
+- Currently a stub — needs CIF files from a pipeline run with `export_cif: true`
+
+### 5. Exploratory: Protenix Re-Prediction
+
+Deploy Protenix on Modal for high-confidence structure validation:
+- Re-predict top 10 candidates to cross-validate Boltz-2
+- Compare interface metrics between predictors
+- Flag designs where predictions disagree
 
 ---
 

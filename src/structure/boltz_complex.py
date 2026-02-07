@@ -24,10 +24,11 @@ class ComplexPredictionResult:
     target_sequence: str
 
     # Confidence scores
-    pdockq: float  # Predicted DockQ - structural confidence
-    ptm: float  # Predicted TM-score
-    plddt_mean: float  # Mean pLDDT
-    ipae: float  # Interface PAE (lower = better)
+    iptm: float = 0.0  # Interface pTM - primary binding quality signal
+    pdockq: float = 0.0  # Predicted DockQ - structural confidence (always 0.0 from Boltz-2)
+    ptm: float = 0.0  # Predicted TM-score
+    plddt_mean: float = 0.0  # Mean pLDDT
+    ipae: float = 0.0  # Interface PAE (lower = better)
 
     # Interface analysis
     interface_residues_binder: list[int] = field(default_factory=list)
@@ -44,6 +45,7 @@ class ComplexPredictionResult:
         return {
             "binder_sequence": self.binder_sequence,
             "target_sequence": self.target_sequence,
+            "iptm": self.iptm,
             "pdockq": self.pdockq,
             "pdockq_note": "Structural confidence, NOT affinity predictor",
             "ptm": self.ptm,
@@ -59,6 +61,15 @@ class ComplexPredictionResult:
 
     def save_pdb(self, output_path: str) -> str:
         """Save structure to PDB file."""
+        with open(output_path, "w") as f:
+            f.write(self.pdb_string)
+        return output_path
+
+    def save_cif(self, output_path: str) -> str:
+        """Save structure to CIF file.
+
+        Boltz-2 outputs CIF format (stored in pdb_string field for historical reasons).
+        """
         with open(output_path, "w") as f:
             f.write(self.pdb_string)
         return output_path
@@ -207,6 +218,7 @@ class Boltz2Predictor:
                 pdb_string=result.get("cif_string", ""),  # Boltz-2 returns CIF
                 binder_sequence=binder_sequence,
                 target_sequence=result["target_sequence"],
+                iptm=result.get("iptm", result.get("ipTM", 0.0)),
                 pdockq=result["pdockq"],
                 ptm=result["ptm"],
                 plddt_mean=result["plddt_mean"],

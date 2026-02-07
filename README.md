@@ -150,16 +150,21 @@ CALIBRATION (run first!)
     (see docs/reference/calibration-methodology.md)
 
 FILTERING CASCADE
-├── Binding quality (pDockQ, interface area, contacts)
+├── Binding quality (interface area, contacts)
 ├── Humanness (OASis > 0.8)
 ├── Liabilities (deamidation, glycosylation, etc.)
 ├── Developability (charge, CDR-H3 length, etc.)
 └── Aggregation propensity
 
+RANKING (worst-metric-rank + diversity selection)
+├── Rank per metric: ipTM, pTM, pLDDT, interface area, contacts, humanness
+├── Quality key = worst weighted rank per candidate
+└── Greedy maximin diversity selection (alpha=0.001)
+
 FORMAT CONVERSION
 └── 5 bispecific formats (CrossMab, Fab+scFv, etc.)
 
-OUTPUT: ~10 candidates with sequences, structures, scorecards
+OUTPUT: ~10 candidates with sequences, structures (CIF), scorecards
 ```
 
 ---
@@ -176,7 +181,16 @@ All tools have permissive licenses suitable for commercial use:
 | **ANARCI** | Antibody numbering | BSD 3-Clause |
 | **BioPhi/Sapiens** | Humanness scoring | MIT |
 
+**Exploratory (not yet integrated):**
+
+| Tool | Purpose | License | Status |
+|------|---------|---------|--------|
+| **ANTIPASTI** | Structure-based affinity prediction | MIT | Stub |
+| **Protenix** | Ab-Ag structure prediction (outperforms AF3) | Apache 2.0 | Stub |
+
 **Excluded (non-permissive):** IgFold (JHU Academic), NetMHCIIpan (DTU academic)
+
+**Excluded (poor performance or inapplicable):** PRODIGY (r=0.16 on Ab-Ag), AttABseq (requires WT reference), Boltz-2 IC50 (small molecule only)
 
 **Compute:** Modal provides on-demand A100/H100 GPUs for BoltzGen and Boltz-2.
 
@@ -234,6 +248,22 @@ python scripts/04_predict_structures.py # Boltz-2 complex prediction (Modal GPU)
 python scripts/05_filter_candidates.py  # Apply filtering cascade
 python scripts/06_format_bispecifics.py # Generate 5 bispecific formats
 python scripts/07_generate_report.py    # Final report with scorecards
+```
+
+### Configuration
+
+Key sections in `config.yaml`:
+
+```yaml
+# Ranking: worst-metric-rank replaces broken composite score
+ranking:
+  method: worst_metric_rank  # or "composite" for legacy behavior
+  diversity_alpha: 0.001      # Greedy maximin diversity weight
+  use_diversity_selection: true
+
+# CIF structure export
+output:
+  export_cif: true  # Save CIF files to data/outputs/structures/cif/
 ```
 
 ---

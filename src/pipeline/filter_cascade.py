@@ -29,6 +29,7 @@ class CandidateScore:
     source: str = "unknown"  # "denovo" or "optimized"
 
     # Binding metrics
+    iptm: Optional[float] = None
     pdockq: Optional[float] = None
     interface_area: Optional[float] = None
     num_contacts: Optional[int] = None
@@ -81,6 +82,7 @@ class CandidateScore:
             "binder_type": self.binder_type,
             "source": self.source,
             "binding": {
+                "iptm": self.iptm,
                 "pdockq": self.pdockq,
                 "pdockq_note": "Structural confidence, NOT affinity predictor",
                 "interface_area": self.interface_area,
@@ -185,32 +187,37 @@ class FilterCascade:
     def filter_binding(self, candidate: CandidateScore) -> FilterResult:
         """Filter by binding quality metrics.
 
-        Hard fails if pdockq is missing or below threshold, or if
-        interface_area/num_contacts are present but below threshold.
+        Interface area is the primary hard filter. pDockQ is only checked
+        if the threshold is non-zero AND the candidate has a non-zero value
+        (Boltz-2 does not produce pDockQ — it's always 0.0).
 
         Soft fails if interface_area or num_contacts are missing,
         as this indicates incomplete binding evidence.
         """
-        if candidate.pdockq is None:
-            return FilterResult.FAIL
-
-        if candidate.pdockq < self._thresholds["min_pdockq"]:
-            return FilterResult.FAIL
-
         # Track if we have incomplete binding data
         has_incomplete_data = False
 
+        # Interface area — primary hard filter
         if candidate.interface_area is not None:
             if candidate.interface_area < self._thresholds["min_interface_area"]:
                 return FilterResult.FAIL
         else:
             has_incomplete_data = True
 
+        # Contact count — hard filter
         if candidate.num_contacts is not None:
             if candidate.num_contacts < self._thresholds["min_contacts"]:
                 return FilterResult.FAIL
         else:
             has_incomplete_data = True
+
+        # pDockQ — only apply if threshold is non-zero AND candidate has non-zero value.
+        # Boltz-2 does not produce pDockQ (always 0.0), so this avoids rejecting
+        # every candidate when calibrated_min_pdockq is also 0.0.
+        min_pdockq = self._thresholds["min_pdockq"]
+        if min_pdockq > 0 and candidate.pdockq is not None and candidate.pdockq > 0:
+            if candidate.pdockq < min_pdockq:
+                return FilterResult.FAIL
 
         # Soft-fail if binding evidence is incomplete
         if has_incomplete_data:

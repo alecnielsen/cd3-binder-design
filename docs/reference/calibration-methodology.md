@@ -18,7 +18,9 @@ Calibration establishes filter thresholds by running Boltz-2 structure predictio
 | **num_contacts** | Residue pairs within 5Å | Binding energy |
 | **interface_area** | Estimated buried surface | Binding free energy |
 
-**pDockQ** is NOT a native Boltz-2 metric—it's an AlphaFold-Multimer post-processing score. Boltz-2 does have a separate **affinity prediction module** that outputs log10(IC50), but this is not validated for antibody-antigen systems and is not currently used.
+**pDockQ** is NOT a native Boltz-2 metric—it's an AlphaFold-Multimer post-processing score. Boltz-2 always returns pDockQ = 0.0, so the binding filter only applies pDockQ thresholds when both the threshold and value are non-zero. Interface area and contacts are the primary binding quality filters.
+
+Boltz-2 does have a separate **affinity prediction module** that outputs log10(IC50), but this is not validated for antibody-antigen systems and is not currently used.
 
 ### What We're Testing
 

@@ -147,6 +147,14 @@ def main():
             candidate["structure_prediction"]["target_structure"] = target_pdb
             results.append(candidate)
 
+            # Save CIF file if enabled
+            if config.output.export_cif and result.pdb_string:
+                cif_dir = Path(args.output) / "cif"
+                cif_dir.mkdir(parents=True, exist_ok=True)
+                design_id = candidate.get("design_id", candidate.get("name", f"candidate_{i}"))
+                cif_path = cif_dir / f"{design_id}.cif"
+                result.save_cif(str(cif_path))
+
             if (i + 1) % 10 == 0:
                 print(f"  Predicted {i + 1}/{len(candidates)}")
 

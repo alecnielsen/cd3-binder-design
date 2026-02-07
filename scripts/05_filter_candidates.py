@@ -25,6 +25,7 @@ def main():
 
     from src.pipeline.config import PipelineConfig
     from src.pipeline.filter_cascade import CandidateScore, run_filter_cascade
+    from src.pipeline.ranking import RankedCandidate, worst_metric_rank, diversity_select
     from src.analysis.liabilities import LiabilityScanner
     from src.analysis.humanness import score_humanness_pair
     from src.analysis.developability import DevelopabilityAssessor
@@ -107,6 +108,7 @@ def main():
         # Add structure prediction metrics
         sp = c.get("structure_prediction", {})
         if sp:
+            score.iptm = sp.get("iptm") or sp.get("ipTM") or 0.0
             score.pdockq = sp.get("pdockq")
             score.interface_area = sp.get("interface_area")
             score.num_contacts = sp.get("num_contacts")
@@ -203,6 +205,66 @@ def main():
     if stats.get("used_fallback"):
         print(f"  Fallback relaxations: {len(stats['relaxations_applied'])}")
 
+    # --- Ranking ---
+    ranking_method = config.ranking.method
+    print(f"\nRanking method: {ranking_method}")
+
+    # Build a lookup from candidate_id to raw data for ptm/plddt extraction
+    raw_lookup = {}
+    for c in candidates_data:
+        cid = c.get("design_id", c.get("name", "unknown"))
+        raw_lookup[cid] = c
+
+    if ranking_method == "worst_metric_rank" and filtered:
+        # Build RankedCandidate objects
+        ranked_candidates = []
+        for score in filtered:
+            raw = raw_lookup.get(score.candidate_id, {})
+            sp = raw.get("structure_prediction", {})
+
+            rc = RankedCandidate(
+                candidate_id=score.candidate_id,
+                sequence=score.sequence,
+                sequence_vl=score.sequence_vl,
+                iptm=score.iptm or 0.0,
+                ptm=sp.get("ptm", 0.0),
+                plddt=sp.get("plddt_mean", 0.0),
+                interface_area=score.interface_area or 0.0,
+                num_contacts=score.num_contacts or 0,
+                humanness=score.oasis_score_mean or score.oasis_score_vh or 0.0,
+                _score_ref=score,
+            )
+            ranked_candidates.append(rc)
+
+        # Apply worst-metric-rank
+        worst_metric_rank(ranked_candidates, config.ranking.metric_weights)
+
+        # Apply diversity selection if enabled
+        n_final = config.output.num_final_candidates
+        if config.ranking.use_diversity_selection:
+            selected = diversity_select(
+                ranked_candidates, n_final, alpha=config.ranking.diversity_alpha
+            )
+            print(f"  Diversity selection: {len(ranked_candidates)} -> {len(selected)}")
+        else:
+            selected = ranked_candidates[:n_final]
+
+        # Map back to CandidateScore, updating ranks
+        filtered = []
+        for i, rc in enumerate(selected):
+            score = rc._score_ref
+            score.rank = i + 1
+            score.composite_score = rc.quality_key  # Store quality_key as score
+            filtered.append(score)
+
+        stats["ranking_method"] = "worst_metric_rank"
+        stats["diversity_selection"] = config.ranking.use_diversity_selection
+    else:
+        # Legacy composite score ranking (already sorted by run_filter_cascade)
+        n_final = config.output.num_final_candidates
+        filtered = filtered[:n_final]
+        stats["ranking_method"] = "composite"
+
     # Save results
     output_dir = Path(args.output)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -219,10 +281,17 @@ def main():
     print(f"Results saved to: {output_path}")
 
     # Print top candidates
-    print(f"\nTop 5 candidates:")
+    print(f"\nTop candidates:")
     for c in filtered[:5]:
-        pdockq_str = f"{c.pdockq:.3f}" if c.pdockq is not None else "N/A"
-        print(f"  {c.rank}. {c.candidate_id}: score={c.composite_score:.3f}, pDockQ={pdockq_str}")
+        iptm_str = f"{c.iptm:.3f}" if c.iptm else "N/A"
+        area_str = f"{c.interface_area:.0f}" if c.interface_area else "N/A"
+        humanness_str = f"{c.oasis_score_mean:.3f}" if c.oasis_score_mean else "N/A"
+        if ranking_method == "worst_metric_rank":
+            print(f"  {c.rank}. {c.candidate_id}: quality_key={c.composite_score:.1f}, "
+                  f"ipTM={iptm_str}, area={area_str}, humanness={humanness_str}")
+        else:
+            print(f"  {c.rank}. {c.candidate_id}: score={c.composite_score:.3f}, "
+                  f"ipTM={iptm_str}")
 
     print("\n" + "=" * 60)
     print("Filtering complete!")

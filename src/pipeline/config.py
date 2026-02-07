@@ -84,6 +84,28 @@ class FormattingConfig:
 
 
 @dataclass
+class RankingConfig:
+    """Configuration for candidate ranking."""
+
+    # Ranking method: "worst_metric_rank" (new, default) or "composite" (legacy)
+    method: str = "worst_metric_rank"
+
+    # Metric weights for worst_metric_rank (higher = more important)
+    metric_weights: dict[str, int] = field(default_factory=lambda: {
+        "iptm": 1,
+        "ptm": 1,
+        "interface_area": 1,
+        "humanness": 1,
+        "num_contacts": 2,
+        "plddt": 2,
+    })
+
+    # Diversity selection
+    use_diversity_selection: bool = True
+    diversity_alpha: float = 0.001  # Greedy maximin alpha
+
+
+@dataclass
 class OutputConfig:
     """Configuration for pipeline output."""
 
@@ -92,6 +114,7 @@ class OutputConfig:
     generate_report: bool = True
     include_provenance: bool = True
     output_dir: str = "data/outputs"
+    export_cif: bool = True
 
 
 @dataclass
@@ -125,6 +148,7 @@ class PipelineConfig:
     output: OutputConfig = field(default_factory=OutputConfig)
     reproducibility: ReproducibilityConfig = field(default_factory=ReproducibilityConfig)
     epitope: EpitopeConfig = field(default_factory=EpitopeConfig)
+    ranking: RankingConfig = field(default_factory=RankingConfig)
 
     # Calibrated thresholds (set after calibration)
     calibrated_min_pdockq: Optional[float] = None
@@ -180,6 +204,7 @@ class PipelineConfig:
                 "generate_report": self.output.generate_report,
                 "include_provenance": self.output.include_provenance,
                 "output_dir": self.output.output_dir,
+                "export_cif": self.output.export_cif,
             },
             "reproducibility": {
                 "boltzgen_seed": self.reproducibility.boltzgen_seed,
@@ -189,6 +214,12 @@ class PipelineConfig:
             "epitope": {
                 "okt3_epitope_residues": self.epitope.okt3_epitope_residues,
                 "overlap_threshold": self.epitope.overlap_threshold,
+            },
+            "ranking": {
+                "method": self.ranking.method,
+                "metric_weights": self.ranking.metric_weights,
+                "use_diversity_selection": self.ranking.use_diversity_selection,
+                "diversity_alpha": self.ranking.diversity_alpha,
             },
             "calibrated_thresholds": {
                 "min_pdockq": self.calibrated_min_pdockq,
@@ -334,6 +365,7 @@ class PipelineConfig:
             config.output.generate_report = o.get("generate_report", True)
             config.output.include_provenance = o.get("include_provenance", True)
             config.output.output_dir = o.get("output_dir", "data/outputs")
+            config.output.export_cif = o.get("export_cif", True)
 
         # Reproducibility
         if "reproducibility" in data:
@@ -351,6 +383,14 @@ class PipelineConfig:
             e = data["epitope"]
             config.epitope.okt3_epitope_residues = e.get("okt3_epitope_residues", config.epitope.okt3_epitope_residues)
             config.epitope.overlap_threshold = e.get("overlap_threshold", 0.5)
+
+        # Ranking
+        if "ranking" in data:
+            r = data["ranking"]
+            config.ranking.method = r.get("method", "worst_metric_rank")
+            config.ranking.metric_weights = r.get("metric_weights", config.ranking.metric_weights)
+            config.ranking.use_diversity_selection = r.get("use_diversity_selection", True)
+            config.ranking.diversity_alpha = r.get("diversity_alpha", 0.001)
 
         # Calibrated thresholds
         if "calibrated_thresholds" in data:

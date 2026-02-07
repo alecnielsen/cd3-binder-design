@@ -43,7 +43,7 @@ calibration:
 
 filtering:
   binding:
-    min_pdockq: 0.5
+    min_pdockq: 0.5              # Only applied if non-zero; Boltz-2 always returns 0.0
     min_interface_area: 800
     min_contacts: 10
     use_calibrated: true
@@ -81,10 +81,16 @@ formatting:
     scfv: "GGGGSGGGGSGGGGS"
     fc_fusion: "GGGGSGGGGS"
 
+ranking:
+  method: worst_metric_rank       # or "composite" for legacy behavior
+  diversity_alpha: 0.001
+  use_diversity_selection: true
+
 output:
   num_final_candidates: 10
   include_structures: true
   generate_report: true
+  export_cif: true                # Save CIF files to structures/cif/
 
 reproducibility:
   boltzgen_seed: 42
@@ -345,7 +351,8 @@ Per-candidate JSON scorecard:
     "isoelectric_point": 7.8,
     "hydrophobic_patches": 1
   },
-  "composite_score": 0.82,
+  "composite_score": 3.0,
+  "composite_score_note": "quality_key from worst-metric-rank (lower = better)",
   "rank": 3,
   "_provenance": {
     "pipeline_version": "1.0.0",

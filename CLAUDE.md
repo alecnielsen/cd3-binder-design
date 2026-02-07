@@ -77,6 +77,12 @@ Critical implementation details:
 47. **Calibrated thresholds from known binders** - min_interface_area (2060Å²) and min_contacts (28) derived from teplizumab/SP34/UCHT1 scFvs minus margin. pDockQ threshold is 0.0 (disabled).
 48. **Liability detection is regex-based** - No ML models. Pattern matching: NG/NS/NT/ND/NH (deamidation), DG/DS/DT/DD/DH/DN (isomerization), N-X-S/T (glycosylation), M/W (oxidation).
 49. **Fab designs dominate at scale** - At 100x, 6/10 top candidates are Fab (vs 2/10 at 10x). Fab has better humanness scores due to fully-human scaffolds.
+50. **Ranking uses worst-metric-rank** - Replaces broken composite score (30% weight on pDockQ which is always 0.0). Each candidate is ranked per-metric, worst weighted rank becomes quality_key. Lower = better.
+51. **Diversity selection is greedy maximin** - After ranking, iteratively pick candidates maximizing `(1-alpha)*quality + alpha*(1-max_identity_to_selected)` with alpha=0.001. Prevents near-duplicate pairs from occupying multiple slots.
+52. **CIF files saved to `data/outputs/structures/cif/`** - Boltz-2 outputs CIF format, now preserved on disk for downstream tools (ANTIPASTI, visualization).
+53. **iptm now captured in ComplexPredictionResult** - `iptm` field added to both `ComplexPredictionResult` and `CandidateScore`. Extracted from Boltz-2 results.
+54. **ANTIPASTI and Protenix are exploratory stubs** - `src/analysis/antipasti_scoring.py` wraps ANTIPASTI (MIT, structure-based affinity). `modal/protenix_app.py` documents Protenix (Apache 2.0, outperforms AF3 on Ab-Ag docking). Neither integrated into pipeline yet.
+55. **PRODIGY not integrated** - r=0.16 on antibody-antigen complexes (poor). AttABseq requires WT reference (not applicable for de novo). Boltz-2 IC50 is small-molecule only.
 
 ## Quick Reference
 
