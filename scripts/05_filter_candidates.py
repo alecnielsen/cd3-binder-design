@@ -9,6 +9,7 @@ Usage:
 
 import argparse
 from pathlib import Path
+from typing import Optional
 import json
 
 
@@ -32,7 +33,7 @@ def main():
     from src.structure.interface_analysis import InterfaceAnalyzer
 
     # Build lookup for boltzgen_rank from raw candidate data
-    def _get_boltzgen_rank(candidate_data: dict) -> int | None:
+    def _get_boltzgen_rank(candidate_data: dict) -> Optional[int]:
         """Extract BoltzGen's internal rank from candidate data."""
         # Direct field (set by boltzgen_app.py)
         rank = candidate_data.get("boltzgen_rank")

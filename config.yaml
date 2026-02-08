@@ -69,7 +69,7 @@ formatting:
   scfv_linker: GGGGSGGGGSGGGGS
   fc_fusion_linker: GGGGSGGGGS
 ranking:
-  method: boltzgen
+  method: worst_metric_rank  # boltzgen_rank not available in current data; use worst_metric_rank
   diversity_alpha: 0.001
   use_diversity_selection: true
 output:

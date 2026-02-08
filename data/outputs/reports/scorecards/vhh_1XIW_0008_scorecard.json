@@ -5,6 +5,7 @@
   "binder_type": "vhh",
   "source": "unknown",
   "binding": {
+    "iptm": null,
     "pdockq": 0.0,
     "pdockq_note": "Structural confidence, NOT affinity predictor",
     "interface_area": 2400.0,
@@ -48,6 +49,14 @@
     "isoelectric_point": null,
     "hydrophobic_patches": 0
   },
+  "boltzgen_rank": null,
+  "validation": {
+    "proteinmpnn_ll": null,
+    "antifold_ll": null,
+    "protenix_iptm": 0.34602296352386475,
+    "protenix_ptm": 0.6658728122711182,
+    "protenix_ranking_score": 0.40999293327331543
+  },
   "filter_results": {
     "binding": "pass",
     "humanness": "fail",
@@ -59,12 +68,12 @@
     "aggregation_soft_fail",
     "ACCEPTED_VIA_FALLBACK_THRESHOLD_10PCT"
   ],
-  "composite_score": 0.3561722324167014,
-  "rank": 5,
+  "composite_score": 8.0,
+  "rank": 4,
   "_provenance": {
     "pipeline_version": "1.0.0",
-    "run_timestamp": "2026-02-06T08:50:31.405877",
-    "git_commit": "fbf67af0d1fa",
-    "config_hash": "96bc55481b90"
+    "run_timestamp": "2026-02-07T18:20:11.111710",
+    "git_commit": "3519df1db400",
+    "config_hash": "66d7eba20328"
   }
 }

@@ -25,16 +25,18 @@ AA_3TO1 = {
 }
 
 
-def extract_sequence_from_pdb(pdb_path: str) -> str:
-    """Extract amino acid sequence from PDB file."""
+def extract_sequence_from_pdb(pdb_path: str, chain_id: str = "A") -> str:
+    """Extract amino acid sequence from a specific chain in PDB file."""
     sequence = []
     seen = set()
     with open(pdb_path) as f:
         for line in f:
             if line.startswith("ATOM"):
+                chain = line[21]
+                if chain != chain_id:
+                    continue
                 res_name = line[17:20].strip()
                 res_num = int(line[22:26])
-                chain = line[21]
                 key = (chain, res_num, res_name)
                 if key not in seen and res_name in AA_3TO1:
                     seen.add(key)

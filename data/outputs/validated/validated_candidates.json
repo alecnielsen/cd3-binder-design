@@ -55,9 +55,13 @@
       "validation": {
         "proteinmpnn_ll": null,
         "antifold_ll": null,
-        "protenix_iptm": null,
-        "protenix_ptm": null,
-        "protenix_ranking_score": null
+        "protenix_iptm": 0.45119741559028625,
+        "protenix_ptm": 0.7035910487174988,
+        "protenix_ranking_score": 0.5016761422157288,
+        "boltz2_protenix_iptm_delta": 0.4512,
+        "agreement_flags": [
+          "ipTM_disagreement: Boltz2=0.000 vs Protenix=0.451 (delta=0.451)"
+        ]
       },
       "filter_results": {
         "binding": "pass",
@@ -131,9 +135,13 @@
       "validation": {
         "proteinmpnn_ll": null,
         "antifold_ll": null,
-        "protenix_iptm": null,
-        "protenix_ptm": null,
-        "protenix_ranking_score": null
+        "protenix_iptm": 0.23979246616363525,
+        "protenix_ptm": 0.6433001160621643,
+        "protenix_ranking_score": 0.32049399614334106,
+        "boltz2_protenix_iptm_delta": 0.2398,
+        "agreement_flags": [
+          "ipTM_disagreement: Boltz2=0.000 vs Protenix=0.240 (delta=0.240)"
+        ]
       },
       "filter_results": {
         "binding": "pass",
@@ -205,9 +213,13 @@
       "validation": {
         "proteinmpnn_ll": null,
         "antifold_ll": null,
-        "protenix_iptm": null,
-        "protenix_ptm": null,
-        "protenix_ranking_score": null
+        "protenix_iptm": 0.3471611738204956,
+        "protenix_ptm": 0.6549100279808044,
+        "protenix_ranking_score": 0.40871095657348633,
+        "boltz2_protenix_iptm_delta": 0.3472,
+        "agreement_flags": [
+          "ipTM_disagreement: Boltz2=0.000 vs Protenix=0.347 (delta=0.347)"
+        ]
       },
       "filter_results": {
         "binding": "pass",
@@ -281,9 +293,13 @@
       "validation": {
         "proteinmpnn_ll": null,
         "antifold_ll": null,
-        "protenix_iptm": null,
-        "protenix_ptm": null,
-        "protenix_ranking_score": null
+        "protenix_iptm": 0.34602296352386475,
+        "protenix_ptm": 0.6658728122711182,
+        "protenix_ranking_score": 0.40999293327331543,
+        "boltz2_protenix_iptm_delta": 0.346,
+        "agreement_flags": [
+          "ipTM_disagreement: Boltz2=0.000 vs Protenix=0.346 (delta=0.346)"
+        ]
       },
       "filter_results": {
         "binding": "pass",
@@ -359,9 +375,13 @@
       "validation": {
         "proteinmpnn_ll": null,
         "antifold_ll": null,
-        "protenix_iptm": null,
-        "protenix_ptm": null,
-        "protenix_ranking_score": null
+        "protenix_iptm": 0.2809649109840393,
+        "protenix_ptm": 0.6521552205085754,
+        "protenix_ranking_score": 0.35520297288894653,
+        "boltz2_protenix_iptm_delta": 0.281,
+        "agreement_flags": [
+          "ipTM_disagreement: Boltz2=0.000 vs Protenix=0.281 (delta=0.281)"
+        ]
       },
       "filter_results": {
         "binding": "pass",
@@ -436,9 +456,13 @@
       "validation": {
         "proteinmpnn_ll": null,
         "antifold_ll": null,
-        "protenix_iptm": null,
-        "protenix_ptm": null,
-        "protenix_ranking_score": null
+        "protenix_iptm": 0.5699345469474792,
+        "protenix_ptm": 0.7702944278717041,
+        "protenix_ranking_score": 0.6100065112113953,
+        "boltz2_protenix_iptm_delta": 0.5699,
+        "agreement_flags": [
+          "ipTM_disagreement: Boltz2=0.000 vs Protenix=0.570 (delta=0.570)"
+        ]
       },
       "filter_results": {
         "binding": "pass",
@@ -511,9 +535,13 @@
       "validation": {
         "proteinmpnn_ll": null,
         "antifold_ll": null,
-        "protenix_iptm": null,
-        "protenix_ptm": null,
-        "protenix_ranking_score": null
+        "protenix_iptm": 0.21765735745429993,
+        "protenix_ptm": 0.6227274537086487,
+        "protenix_ranking_score": 0.2986713945865631,
+        "boltz2_protenix_iptm_delta": 0.2177,
+        "agreement_flags": [
+          "ipTM_disagreement: Boltz2=0.000 vs Protenix=0.218 (delta=0.218)"
+        ]
       },
       "filter_results": {
         "binding": "pass",
@@ -585,9 +613,13 @@
       "validation": {
         "proteinmpnn_ll": null,
         "antifold_ll": null,
-        "protenix_iptm": null,
-        "protenix_ptm": null,
-        "protenix_ranking_score": null
+        "protenix_iptm": 0.21700429916381836,
+        "protenix_ptm": 0.6342995762825012,
+        "protenix_ranking_score": 0.30046337842941284,
+        "boltz2_protenix_iptm_delta": 0.217,
+        "agreement_flags": [
+          "ipTM_disagreement: Boltz2=0.000 vs Protenix=0.217 (delta=0.217)"
+        ]
       },
       "filter_results": {
         "binding": "pass",
@@ -662,9 +694,13 @@
       "validation": {
         "proteinmpnn_ll": null,
         "antifold_ll": null,
-        "protenix_iptm": null,
-        "protenix_ptm": null,
-        "protenix_ranking_score": null
+        "protenix_iptm": 0.2653886675834656,
+        "protenix_ptm": 0.664770245552063,
+        "protenix_ranking_score": 0.3452649712562561,
+        "boltz2_protenix_iptm_delta": 0.2654,
+        "agreement_flags": [
+          "ipTM_disagreement: Boltz2=0.000 vs Protenix=0.265 (delta=0.265)"
+        ]
       },
       "filter_results": {
         "binding": "pass",
@@ -736,9 +772,13 @@
       "validation": {
         "proteinmpnn_ll": null,
         "antifold_ll": null,
-        "protenix_iptm": null,
-        "protenix_ptm": null,
-        "protenix_ranking_score": null
+        "protenix_iptm": 0.3942461311817169,
+        "protenix_ptm": 0.6975721716880798,
+        "protenix_ranking_score": 0.45491135120391846,
+        "boltz2_protenix_iptm_delta": 0.3942,
+        "agreement_flags": [
+          "ipTM_disagreement: Boltz2=0.000 vs Protenix=0.394 (delta=0.394)"
+        ]
       },
       "filter_results": {
         "binding": "pass",
@@ -771,5 +811,12 @@
     "used_fallback": true,
     "ranking_method": "worst_metric_rank",
     "diversity_selection": true
+  },
+  "validation_summary": {
+    "proteinmpnn_scored": 0,
+    "antifold_scored": 0,
+    "protenix_predicted": 10,
+    "iptm_disagreements": 10,
+    "iptm_disagreement_threshold": 0.1
   }
 }
