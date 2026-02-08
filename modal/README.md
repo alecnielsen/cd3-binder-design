@@ -184,17 +184,21 @@ modal run modal/boltz2_app.py --binder-seq "EVQLVESGGGLVQ..." --target-seq "QTPY
 Cross-validation structure prediction using Protenix (Apache 2.0, ByteDance). Used in step 05b to re-predict top candidates after filtering, providing an orthogonal check against Boltz-2 predictions.
 
 ```bash
-# Download model weights (first time only)
-modal run modal/protenix_app.py --download
-
-# Deploy
+# Deploy (builds CUDA devel image — takes ~5 min first time)
 modal deploy modal/protenix_app.py
+
+# Pre-cache model weights via warmup prediction (first time only)
+modal run modal/protenix_app.py --warmup-flag
 ```
+
+**Important**: Protenix requires `nvidia/cuda:12.4.1-devel-ubuntu22.04` base image (not `debian_slim`). Protenix JIT-compiles custom CUDA kernels (e.g., `fast_layer_norm_cuda_v2`) which require the `nvcc` compiler. The `CUDA_HOME` env var is set to `/usr/local/cuda`.
 
 **Functions:**
 - `predict_complex()`: Predict single binder-target complex structure
-- `batch_predict()`: Predict complexes for multiple candidates sequentially
-- `download_weights()`: Download Protenix model weights to persistent volume
+- `batch_predict()`: Predict complexes for multiple candidates sequentially (60 min timeout)
+- `warmup()`: Run minimal prediction to trigger auto-download and cache model weights
+
+**Note**: There is no separate `download_weights` command. Protenix auto-downloads weights on first prediction. The `warmup()` function handles this by running a minimal 2-chain prediction.
 
 **Input:** Binder sequence(s) + target sequence (pure sequence, no PDB needed)
 - VHH: 2 chains (binder + target)
@@ -212,8 +216,11 @@ modal deploy modal/protenix_app.py
 
 **GPU Configuration:**
 - GPU: H100
-- Timeout: 30 min per prediction
+- Image: `nvidia/cuda:12.4.1-devel-ubuntu22.04` with Python 3.11
+- Dependencies: `protenix` (pip), `kalign` + `hmmer` (apt)
+- Timeout: 30 min per prediction, 60 min for batch
 - MSA: Disabled by default (`use_msa=False`) for speed
+- Volume: `protenix-cache` for persistent model weight storage
 
 **Cross-validation:** Candidates where Boltz-2 and Protenix ipTM disagree by >0.1 are flagged in the validation report.
 

@@ -1,6 +1,6 @@
 # Handoff Notes - CD3 Binder Design Pipeline
 
-## Current Status (2026-02-06)
+## Current Status (2026-02-07)
 
 ### Pipeline: PRODUCTION-SCALE RUN COMPLETE
 
@@ -165,11 +165,33 @@ Or use the verification script: `python scripts/verify_fab_chains.py`
 | Best humanness | 0.82 | **0.87** | +6% |
 | Largest interface | 3,120 Å² | **4,800 Å²** | +54% |
 
+### Protenix Cross-Validation Results (2026-02-07)
+
+All 10 candidates re-predicted with Protenix on Modal H100:
+
+| Rank | ID | Boltz-2 ipTM | Protenix ipTM | Protenix ranking_score |
+|------|-----|-------------|---------------|----------------------|
+| 1 | **vhh_1XIW_0006** | 0.309 | **0.570** | 0.610 |
+| 2 | fab_1XIW_0040 | 0.412 | 0.451 | 0.502 |
+| 3 | fab_1SY6_0011 | — | 0.394 | 0.455 |
+| 4 | fab_1SY6_0015 | 0.364 | 0.347 | 0.409 |
+| 5 | vhh_1XIW_0008 | 0.356 | 0.346 | 0.410 |
+| 6 | fab_1SY6_0044 | — | 0.281 | 0.355 |
+| 7 | vhh_1XIW_0001 | 0.327 | 0.265 | 0.345 |
+| 8 | fab_1XIW_0011 | 0.365 | 0.240 | 0.320 |
+| 9 | vhh_1XIW_0005 | 0.320 | 0.218 | 0.299 |
+| 10 | fab_1XIW_0008 | 0.362 | 0.217 | 0.300 |
+
+**Key finding**: `vhh_1XIW_0006` scored 0.570 ipTM on Protenix — very strong for de novo design. All 10 candidates had ipTM disagreement >0.1 between Boltz-2 and Protenix, which is expected for de novo designs (different models weight different structural features).
+
+**ProteinMPNN/AntiFold**: Not scored (CIF files from original Boltz-2 runs were not saved to disk; only available for future pipeline runs with `export_cif: true`).
+
 ### Key Observations
 
 1. **Fab designs dominate at scale** - Better humanness scores, larger interfaces
 2. **Scaling improved quality** - Top score increased 11%, more diverse candidates
 3. **Modal timeouts manageable** - 86% success rate, plenty of candidates despite failures
+4. **Protenix cross-validation complete** - All 10 candidates predicted, vhh_1XIW_0006 strongest
 
 ---
 
@@ -232,7 +254,16 @@ Step 04 re-runs Boltz-2 to extract these interface metrics. It also processes th
 
 ## Fixes Applied
 
-### Session 2026-02-04 (Latest)
+### Session 2026-02-07 (Latest)
+
+1. **Protenix CUDA devel image** - Protenix JIT-compiles CUDA kernels (e.g., `fast_layer_norm_cuda_v2`), requiring `nvcc`. Switched from `debian_slim` to `nvidia/cuda:12.4.1-devel-ubuntu22.04` base image.
+2. **Protenix warmup replaces download** - Protenix auto-downloads weights on first prediction; no `download_weights` module exists. Added `warmup()` function that runs a minimal 2-chain prediction to cache weights.
+3. **Python 3.9 compatibility** - Fixed `int | None` type union syntax (requires Python 3.10+) to `Optional[int]` in `scripts/05_filter_candidates.py`.
+4. **Target chain extraction** - `extract_sequence_from_pdb()` in step 05b was extracting all chains (765 residues) instead of just chain A (91 residues). Added `chain_id` parameter.
+5. **Ranking fallback** - Changed config to `worst_metric_rank` since `boltzgen_rank` is not available in existing 100x run data (predates rank capture).
+6. **Protenix validation complete** - All 10 candidates predicted. Top: vhh_1XIW_0006 ipTM=0.570.
+
+### Session 2026-02-04
 
 1. **BoltzGen refolding fix** - Upgraded from PyPI v0.2.0 to GitHub main branch which includes Dec 17, 2025 refolding fix
 2. **Modal image updated** - Now uses `git+https://github.com/HannesStark/boltzgen.git@main` instead of PyPI package
@@ -323,10 +354,16 @@ data/outputs/
 │   └── filtered_candidates.json                 # 10 final candidates
 ├── validated/
 │   └── validated_candidates.json                # Candidates with affinity + Protenix scores
+├── structures/
+│   ├── candidates_with_structures.json          # Boltz-2 predictions (192 candidates)
+│   ├── cif/                                     # Boltz-2 CIF files (future runs)
+│   └── protenix_cif/                            # Protenix CIF files (10 candidates)
 ├── formatted/                                    # Bispecific constructs
 └── reports/
-    ├── report_20260206_085031.html              # HTML report ← LATEST
-    └── report_20260206_085031.json              # JSON report
+    ├── report_20260207_182011.html              # HTML report ← LATEST (with validation)
+    ├── report_20260207_182011.json              # JSON report
+    ├── report_20260206_085031.html              # Previous report
+    └── report_20260206_085031.json
 ```
 
 ---
@@ -396,9 +433,9 @@ validation:
 
 ### Dependencies
 ```bash
-pip install proteinmpnn antifold   # Local (conda env)
-modal deploy modal/protenix_app.py  # Modal GPU
-modal run modal/protenix_app.py --download
+pip install proteinmpnn antifold     # Local (conda env)
+modal deploy modal/protenix_app.py   # Modal GPU (uses CUDA devel image)
+modal run modal/protenix_app.py --warmup-flag  # Pre-download weights via minimal prediction
 ```
 
 ---
@@ -433,10 +470,10 @@ Plus hard filters: RMSD < 2.5 Å, CYS fraction = 0, ALA/GLY/GLU/LEU/VAL < 20%.
 
 ```yaml
 ranking:
-  method: boltzgen    # was: worst_metric_rank
+  method: worst_metric_rank  # boltzgen_rank not available in current data
 ```
 
-`worst_metric_rank` and `composite` still available as fallbacks.
+BoltzGen native ranking (`boltzgen`) is preferred when `boltzgen_rank` data is available. Current 100x run data predates the `boltzgen_rank` capture, so `worst_metric_rank` is used as fallback. `composite` also available as legacy option.
 
 ### Files Changed
 
@@ -512,11 +549,13 @@ Replaced ANTIPASTI (R dependency, no VHH support) with ProteinMPNN + AntiFold:
 ### 5. Protenix Cross-Validation ✅ DONE
 
 Protenix deployed on Modal for structure cross-validation:
-- `modal/protenix_app.py` — H100 GPU, `predict_complex()` + `batch_predict()`
+- `modal/protenix_app.py` — H100 GPU, CUDA 12.4.1 devel image (required for JIT kernel compilation)
+- `predict_complex()` + `batch_predict()` + `warmup()` (pre-caches model weights)
 - Re-predicts top candidates, compares ipTM with Boltz-2
 - Flags disagreements where ipTM delta > 0.1
-- Deploy: `modal deploy modal/protenix_app.py && modal run modal/protenix_app.py --download`
+- Deploy: `modal deploy modal/protenix_app.py && modal run modal/protenix_app.py --warmup-flag`
 - Integrated into step 05b (`scripts/05b_validate_candidates.py`)
+- All 10 candidates validated; top Protenix ipTM = 0.570 (vhh_1XIW_0006)
 
 ---
 

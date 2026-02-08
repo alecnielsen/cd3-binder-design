@@ -261,9 +261,9 @@ python scripts/07_generate_report.py    # Final report with scorecards
 Key sections in `config.yaml`:
 
 ```yaml
-# Ranking: BoltzGen native ranking (experimentally validated)
+# Ranking: BoltzGen native when available, worst_metric_rank as fallback
 ranking:
-  method: boltzgen            # or "worst_metric_rank", "composite" (legacy)
+  method: worst_metric_rank   # or "boltzgen" (preferred when boltzgen_rank data available)
   diversity_alpha: 0.001      # Greedy maximin diversity weight
   use_diversity_selection: true
 

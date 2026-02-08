@@ -77,17 +77,21 @@ Critical implementation details:
 47. **Calibrated thresholds from known binders** - min_interface_area (2060Å²) and min_contacts (28) derived from teplizumab/SP34/UCHT1 scFvs minus margin. pDockQ threshold is 0.0 (disabled).
 48. **Liability detection is regex-based** - No ML models. Pattern matching: NG/NS/NT/ND/NH (deamidation), DG/DS/DT/DD/DH/DN (isomerization), N-X-S/T (glycosylation), M/W (oxidation).
 49. **Fab designs dominate at scale** - At 100x, 6/10 top candidates are Fab (vs 2/10 at 10x). Fab has better humanness scores due to fully-human scaffolds.
-50. **Ranking uses BoltzGen's native ranking** - Candidates are ranked by BoltzGen's internal decision tree (ipTM, pTM, PAE, H-bonds, salt bridges, SASA) which was experimentally validated at 66% nanobody hit rate. Our pipeline applies therapeutic pass/fail filters (humanness, liabilities, developability, aggregation) then sorts by `boltzgen_rank`. `worst_metric_rank` available as fallback via config.
+50. **Ranking supports BoltzGen native or worst_metric_rank** - BoltzGen's internal decision tree (ipTM, pTM, PAE, H-bonds, salt bridges, SASA) was experimentally validated at 66% nanobody hit rate. Config: `ranking.method: boltzgen` (preferred) or `worst_metric_rank` (current fallback — used because `boltzgen_rank` data is not available in 100x run). Pipeline applies therapeutic pass/fail filters then sorts by chosen ranking method.
 51. **Diversity selection is greedy maximin** - After ranking, iteratively pick candidates maximizing `(1-alpha)*quality + alpha*(1-max_identity_to_selected)` with alpha=0.001. Prevents near-duplicate pairs from occupying multiple slots.
 52. **CIF files saved to `data/outputs/structures/cif/`** - Boltz-2 outputs CIF format, now preserved on disk for downstream tools (ANTIPASTI, visualization).
 53. **iptm now captured in ComplexPredictionResult** - `iptm` field added to both `ComplexPredictionResult` and `CandidateScore`. Extracted from Boltz-2 results.
-54. **Validation step 05b integrates Protenix + affinity scoring** - `scripts/05b_validate_candidates.py` runs after filtering. Uses ProteinMPNN (MIT, inverse folding log-likelihood, Spearman r=0.27-0.41 on AbBiBench) and AntiFold (BSD-3, antibody-specific with nanobody support) for affinity proxy scoring. Protenix (Apache 2.0) provides cross-validation of Boltz-2 structure predictions. Results are informational only — not used for filtering/ranking. ANTIPASTI was skipped (R dependency, no VHH support, degrades on predicted structures).
+54. **Validation step 05b integrates Protenix + affinity scoring** - `scripts/05b_validate_candidates.py` runs after filtering. Uses ProteinMPNN (MIT, inverse folding log-likelihood, Spearman r=0.27-0.41 on AbBiBench) and AntiFold (BSD-3, antibody-specific with nanobody support) for affinity proxy scoring. Protenix (Apache 2.0) provides cross-validation of Boltz-2 structure predictions on Modal H100. Results are informational only — not used for filtering/ranking. All 10 candidates validated; top Protenix ipTM = 0.570 (vhh_1XIW_0006). ANTIPASTI was skipped (R dependency, no VHH support, degrades on predicted structures).
 55. **PRODIGY not integrated** - r=0.16 on antibody-antigen complexes (poor). AttABseq requires WT reference (not applicable for de novo). Boltz-2 IC50 is small-molecule only.
-56. **Protenix deployed on Modal** - `modal/protenix_app.py` runs Protenix (Apache 2.0) on H100. Predicts complex structures with `predict_complex()` and `batch_predict()`. Deploy: `modal deploy modal/protenix_app.py && modal run modal/protenix_app.py --download`.
+56. **Protenix deployed on Modal** - `modal/protenix_app.py` runs Protenix (Apache 2.0) on H100 with CUDA 12.4.1 devel image (required — Protenix JIT-compiles CUDA kernels). Functions: `predict_complex()`, `batch_predict()`, `warmup()`. Deploy: `modal deploy modal/protenix_app.py && modal run modal/protenix_app.py --warmup-flag`. No separate `download_weights` exists; `warmup()` runs a minimal prediction to auto-download and cache weights.
 57. **ProteinMPNN + AntiFold for affinity scoring** - `src/analysis/affinity_scoring.py` provides `batch_score_affinity()`. Run locally (CPU). ProteinMPNN (MIT) is best-validated affinity proxy for de novo antibodies. AntiFold (BSD-3) supports nanobodies via `--nanobody_chain`.
 58. **Validation is informational only** - Step 05b scores are NOT used for filtering or ranking. They provide additional context for experimental candidate selection. CandidateScore has `proteinmpnn_ll`, `antifold_ll`, `protenix_iptm`, `protenix_ptm`, `protenix_ranking_score` fields.
 59. **ANTIPASTI deprecated** - `src/analysis/antipasti_scoring.py` now redirects to `affinity_scoring.py`. Old `AntipastiResult` and `score_affinity()` return deprecation errors.
 60. **ValidationConfig in config.yaml** - `validation.enabled`, `validation.run_protenix`, `validation.run_proteinmpnn`, `validation.run_antifold`. `iptm_disagreement_threshold: 0.1` flags candidates where Boltz-2 and Protenix ipTM differ by >0.1.
+61. **Protenix requires CUDA devel image** - `nvidia/cuda:12.4.1-devel-ubuntu22.04` base image, not `debian_slim`. Protenix JIT-compiles custom CUDA kernels (e.g., `fast_layer_norm_cuda_v2`) which require `nvcc` compiler. Set `CUDA_HOME=/usr/local/cuda`.
+62. **Python 3.9 type syntax** - The conda env uses Python 3.9. Use `Optional[int]` (from `typing`) not `int | None` (requires 3.10+). This applies to all scripts run locally.
+63. **Ranking uses worst_metric_rank** - Config currently set to `worst_metric_rank` because `boltzgen_rank` data is not available in the 100x run (predates rank capture). Switch to `boltzgen` for future runs.
+64. **Protenix CIF files saved** - `data/outputs/structures/protenix_cif/` contains CIF structures from Protenix cross-validation for all 10 candidates.
 
 ## Quick Reference
 
@@ -100,7 +104,7 @@ export PYTHONPATH=/Users/alec/kernel/cd3-binder-design
 modal deploy modal/boltzgen_app.py      # Deploy BoltzGen to Modal
 modal run modal/boltzgen_app.py --download  # Download model weights
 modal deploy modal/protenix_app.py      # Deploy Protenix to Modal
-modal run modal/protenix_app.py --download  # Download Protenix weights
+modal run modal/protenix_app.py --warmup-flag  # Pre-cache Protenix weights
 python scripts/setup_fab_scaffolds.py   # Download Fab scaffolds
 
 # Run pipeline
