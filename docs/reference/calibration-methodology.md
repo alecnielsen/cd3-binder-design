@@ -122,10 +122,33 @@ properties:
 2. IC50 is assay-dependent (not intrinsic Kd)
 3. Would require separate validation against SPR/BLI data
 
+## Validation Baselines
+
+When `calibration.run_validation_baselines: true` (default), step 00 also runs ProteinMPNN, AntiFold, and Protenix on the known binder controls. This establishes baselines for the validation scores used in ranking.
+
+**Process:**
+1. Save Boltz-2 CIF files for controls to `data/outputs/calibration_cif/`
+2. Run `batch_score_affinity()` on control CIFs (ProteinMPNN + AntiFold, local CPU)
+3. Run Protenix `predict_complex()` on controls via Modal H100
+4. Store baselines in `calibration.json` under `validation_baselines`:
+
+```json
+{
+  "validation_baselines": {
+    "proteinmpnn_ll": {"min": ..., "max": ..., "mean": ..., "by_control": {...}},
+    "antifold_ll": {"min": ..., "max": ..., "mean": ..., "by_control": {...}},
+    "protenix_iptm": {"min": ..., "max": ..., "mean": ..., "by_control": {...}}
+  }
+}
+```
+
+These baselines provide context for interpreting de novo design scores — a design scoring better than known binders on ProteinMPNN/AntiFold log-likelihood is a positive signal (though not a guarantee of binding).
+
 ## Recommendations
 
 1. **Always run calibration** before filtering de novo designs
 2. **Don't over-interpret** high pTM/pLDDT as strong binding
 3. **Use calibrated thresholds** to filter candidates
-4. **Validate experimentally** with SPR/BLI for actual affinity
-5. **Consider enabling affinity prediction** if validation data becomes available
+4. **Review validation baselines** to contextualize de novo design scores
+5. **Validate experimentally** with SPR/BLI for actual affinity
+6. **Consider enabling affinity prediction** if validation data becomes available

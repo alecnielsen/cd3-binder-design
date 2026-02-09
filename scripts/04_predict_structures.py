@@ -148,12 +148,36 @@ def main():
             results.append(candidate)
 
             # Save CIF file if enabled
+            cif_dir = Path(args.output) / "cif"
             if config.output.export_cif and result.pdb_string:
-                cif_dir = Path(args.output) / "cif"
                 cif_dir.mkdir(parents=True, exist_ok=True)
                 design_id = candidate.get("design_id", candidate.get("name", f"candidate_{i}"))
                 cif_path = cif_dir / f"{design_id}.cif"
                 result.save_cif(str(cif_path))
+
+            # For Fab designs (VH+VL), also run 3-chain prediction
+            vh = candidate.get("vh")
+            vl = candidate.get("vl")
+            if vh and vl and use_modal:
+                try:
+                    result_3chain = predictor.predict_complex_3chain(
+                        vh_sequence=vh,
+                        vl_sequence=vl,
+                        target_pdb_path=target_pdb,
+                        seed=config.reproducibility.sampling_seed + i,
+                    )
+                    candidate["structure_prediction_3chain"] = result_3chain.to_dict()
+                    candidate["structure_prediction_3chain"]["target_structure"] = target_pdb
+
+                    # Save 3-chain CIF
+                    if config.output.export_cif and result_3chain.pdb_string:
+                        cif_dir.mkdir(parents=True, exist_ok=True)
+                        design_id = candidate.get("design_id", candidate.get("name", f"candidate_{i}"))
+                        cif_path_3chain = cif_dir / f"{design_id}_3chain.cif"
+                        result_3chain.save_cif(str(cif_path_3chain))
+                except Exception as e3:
+                    print(f"  Warning: 3-chain prediction failed for candidate {i}: {e3}")
+                    candidate["structure_prediction_3chain"] = None
 
             if (i + 1) % 10 == 0:
                 print(f"  Predicted {i + 1}/{len(candidates)}")

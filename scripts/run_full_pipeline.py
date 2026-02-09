@@ -7,8 +7,9 @@ This script orchestrates all pipeline steps:
 2. De novo design
 3. Optimization
 4. Structure prediction
+4a. Score candidates (ProteinMPNN + AntiFold + Protenix)
 5. Filtering
-5b. Candidate validation (affinity scoring + Protenix cross-validation)
+5b. Cross-validation
 6. Bispecific formatting
 7. Report generation
 
@@ -51,8 +52,8 @@ def main():
     parser.add_argument("--no-modal", action="store_true", help="Run without Modal (local/mock)")
     parser.add_argument("--skip-calibration", action="store_true", help="Skip calibration step")
     parser.add_argument("--skip-setup", action="store_true", help="Skip target setup (if already done)")
-    parser.add_argument("--start-from", type=int, default=0, help="Start from step N (0-8)")
-    parser.add_argument("--stop-after", type=int, default=8, help="Stop after step N (0-8)")
+    parser.add_argument("--start-from", type=int, default=0, help="Start from step N (0-9)")
+    parser.add_argument("--stop-after", type=int, default=9, help="Stop after step N (0-9)")
     args = parser.parse_args()
 
     print("=" * 70)
@@ -73,8 +74,9 @@ def main():
         ("02_run_denovo_design.py", "De novo design"),
         ("03_run_optimization.py", "Optimization"),
         ("04_predict_structures.py", "Structure prediction"),
+        ("04a_score_candidates.py", "Score candidates (ProteinMPNN + AntiFold + Protenix)"),
         ("05_filter_candidates.py", "Filtering"),
-        ("05b_validate_candidates.py", "Candidate validation"),
+        ("05b_validate_candidates.py", "Cross-validation"),
         ("06_format_bispecifics.py", "Bispecific formatting"),
         ("07_generate_report.py", "Report generation"),
     ]
@@ -121,9 +123,9 @@ def main():
     print("\nOutputs:")
     print("  - data/outputs/denovo/       : De novo designs")
     print("  - data/outputs/optimized/    : Optimized variants")
-    print("  - data/outputs/structures/   : Structure predictions")
+    print("  - data/outputs/structures/   : Structure predictions + scored candidates")
     print("  - data/outputs/filtered/     : Filtered candidates")
-    print("  - data/outputs/validated/    : Validated candidates (affinity + Protenix)")
+    print("  - data/outputs/validated/    : Cross-validated candidates")
     print("  - data/outputs/formatted/    : Bispecific sequences")
     print("  - data/outputs/reports/      : Final reports")
     print("\nNext steps:")

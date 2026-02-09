@@ -82,7 +82,7 @@ cd3-binder-design/
 │   │   ├── config.py                    # Pipeline configuration
 │   │   ├── design_pipeline.py           # End-to-end orchestration
 │   │   ├── filter_cascade.py            # Multi-stage filtering
-│   │   ├── ranking.py                   # Diversity selection (worst_metric_rank fallback)
+│   │   ├── ranking.py                   # Ranking with validation metrics + diversity selection
 │   │   └── report_generator.py          # Developability scorecards
 │   │
 │   └── utils/
@@ -102,9 +102,10 @@ cd3-binder-design/
 │   ├── 01_setup_targets.py              # Download structures
 │   ├── 02_run_denovo_design.py          # Run BoltzGen VHH + Fab on Modal
 │   ├── 03_run_optimization.py           # Generate optimized variants
-│   ├── 04_predict_structures.py         # Run structure prediction
-│   ├── 05_filter_candidates.py          # Apply filtering cascade
-│   ├── 05b_validate_candidates.py       # Affinity scoring + Protenix cross-validation
+│   ├── 04_predict_structures.py         # Run structure prediction (+ 3-chain for Fabs)
+│   ├── 04a_score_candidates.py          # Pre-filter + ProteinMPNN/AntiFold/Protenix scoring
+│   ├── 05_filter_candidates.py          # Filtering cascade + ranking with validation scores
+│   ├── 05b_validate_candidates.py       # Cross-validation (Boltz-2 vs Protenix ipTM)
 │   ├── 06_format_bispecifics.py         # Convert to bispecific formats
 │   ├── 07_generate_report.py            # Generate final report
 │   └── run_full_pipeline.py             # Execute all steps
@@ -133,7 +134,7 @@ Design generation: BoltzGen runner for de novo VHH design and Fab CDR redesign, 
 Bispecific assembly: 5 formats (CrossMab, Fab+scFv, Fab+VHH, IgG-scFv, IgG-VHH) with linker insertion and constant region grafting.
 
 ### src/pipeline/
-Orchestration: configuration loading, multi-stage filtering cascade, BoltzGen-native ranking with diversity selection, end-to-end pipeline, HTML/JSON report generation. Default ranking uses BoltzGen's internal decision tree (ipTM, pTM, PAE, H-bonds, salt bridges, SASA); therapeutic filters (humanness, liabilities, developability) applied as pass/fail gates.
+Orchestration: configuration loading, multi-stage filtering cascade, ranking with BoltzGen native + validation metrics (proteinmpnn_ll, antifold_ll, protenix_iptm) + diversity selection, end-to-end pipeline, HTML/JSON report generation. Default ranking uses BoltzGen's internal decision tree with auto-fallback to worst_metric_rank; therapeutic filters applied as pass/fail gates.
 
 ### src/structure/
 Structure tools: PDB parsing, interface analysis, ABodyBuilder2 and Boltz-2 wrappers.
@@ -142,4 +143,4 @@ Structure tools: PDB parsing, interface analysis, ABodyBuilder2 and Boltz-2 wrap
 GPU deployments for Modal cloud compute. Required for BoltzGen, Boltz-2, and Protenix (CUDA only).
 
 ### scripts/
-Pipeline execution scripts numbered 00-07 (including 05b validation) for step-by-step or full pipeline runs.
+Pipeline execution scripts numbered 00-07 (including 04a scoring and 05b cross-validation) for step-by-step or full pipeline runs.

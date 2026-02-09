@@ -226,6 +226,79 @@ def calculate_interface_metrics(
     }
 
 
+def calculate_interface_metrics_multichain(
+    cif_or_pdb: str,
+    binder_chains: list,
+    target_chain: str = "A",
+    distance_cutoff: float = 5.0,
+) -> dict:
+    """Calculate interface metrics for multi-chain binder vs target.
+
+    Unions all binder chains (e.g., VH=B + VL=C) as one side vs target chain A.
+    Contact residues are tagged with their chain for disambiguation.
+
+    Args:
+        cif_or_pdb: Structure content (mmCIF or PDB format).
+        binder_chains: List of binder chain IDs (e.g., ["B", "C"]).
+        target_chain: Target chain ID.
+        distance_cutoff: Distance cutoff for contacts in Angstroms.
+
+    Returns:
+        Dict with num_contacts, interface_residues_binder, interface_residues_target,
+        interface_area.
+    """
+    binder_atoms = []
+    target_atoms = []
+    binder_residues = set()
+    target_residues = set()
+    binder_chain_set = set(binder_chains)
+
+    if "_atom_site." in cif_or_pdb:
+        atoms = parse_mmcif_atoms(cif_or_pdb)
+        for atom in atoms:
+            if atom["chain"] in binder_chain_set:
+                binder_atoms.append((atom["chain"], atom["res_num"], atom["x"], atom["y"], atom["z"]))
+            elif atom["chain"] == target_chain:
+                target_atoms.append((atom["res_num"], atom["x"], atom["y"], atom["z"]))
+    else:
+        for line in cif_or_pdb.split("\n"):
+            if not line.startswith("ATOM"):
+                continue
+            if len(line) >= 54 and line[30:38].strip().replace(".", "").replace("-", "").isdigit():
+                chain = line[21]
+                try:
+                    x = float(line[30:38])
+                    y = float(line[38:46])
+                    z = float(line[46:54])
+                    res_num = int(line[22:26])
+                except (ValueError, IndexError):
+                    continue
+                if chain in binder_chain_set:
+                    binder_atoms.append((chain, res_num, x, y, z))
+                elif chain == target_chain:
+                    target_atoms.append((res_num, x, y, z))
+
+    contact_pairs = set()
+    cutoff_sq = distance_cutoff ** 2
+
+    for chain_b, res_b, xb, yb, zb in binder_atoms:
+        for res_t, xt, yt, zt in target_atoms:
+            dist_sq = (xb - xt) ** 2 + (yb - yt) ** 2 + (zb - zt) ** 2
+            if dist_sq <= cutoff_sq:
+                contact_pairs.add((chain_b, res_b, res_t))
+                binder_residues.add((chain_b, res_b))
+                target_residues.add(res_t)
+
+    interface_area = (len(binder_residues) + len(target_residues)) * 80.0
+
+    return {
+        "num_contacts": len(contact_pairs),
+        "interface_residues_binder": sorted([r for _, r in binder_residues]),
+        "interface_residues_target": sorted(target_residues),
+        "interface_area": interface_area,
+    }
+
+
 @app.function(
     volumes={models_dir: boltz_model_volume},
     timeout=20 * MINUTES,
@@ -313,6 +386,101 @@ def predict_complex(
         "cif_string": cif_content,
         "binder_sequence": binder_sequence,
         "target_sequence": target_sequence,
+        "pdockq": confidence.get("pdockq", 0.0),
+        "ptm": confidence.get("ptm", 0.0),
+        "plddt_mean": confidence.get("complex_plddt", 0.0),
+        "ipae": confidence.get("ipae", 0.0),
+        "iptm": confidence.get("protein_iptm", 0.0),
+        "num_contacts": interface["num_contacts"],
+        "interface_residues_binder": interface["interface_residues_binder"],
+        "interface_residues_target": interface["interface_residues_target"],
+        "interface_area": interface["interface_area"],
+        "seed": seed,
+    }
+
+
+@app.function(
+    image=image,
+    volumes={models_dir: boltz_model_volume},
+    timeout=10 * MINUTES,
+    gpu="H100",
+)
+def predict_complex_multichain(
+    vh_sequence: str,
+    vl_sequence: str,
+    target_sequence: str,
+    use_msa: bool = False,
+    seed: int = 42,
+) -> dict:
+    """Predict 3-chain complex: target (A) + VH (B) + VL (C).
+
+    For Fab designs, this predicts the native VH/VL pairing as separate
+    chains rather than concatenating into an scFv. Provides complementary
+    metrics to the scFv prediction.
+
+    Args:
+        vh_sequence: VH amino acid sequence.
+        vl_sequence: VL amino acid sequence.
+        target_sequence: Target amino acid sequence.
+        use_msa: Whether to use MSA server.
+        seed: Random seed.
+
+    Returns:
+        Dictionary with prediction results including interface metrics
+        computed by unioning chains B+C as binder vs chain A as target.
+    """
+    # Clean up old results directories
+    for old_dir in Path(".").glob("boltz_results_*"):
+        shutil.rmtree(old_dir, ignore_errors=True)
+
+    # Build 3-chain YAML: A=target, B=VH, C=VL
+    yaml_content = build_yaml(
+        {"A": target_sequence, "B": vh_sequence, "C": vl_sequence},
+        use_msa=use_msa,
+    )
+
+    input_path = Path("input.yaml")
+    input_path.write_text(yaml_content)
+
+    cmd = [
+        "boltz", "predict", str(input_path),
+        "--cache", str(models_dir),
+        "--accelerator", "gpu",
+        "--seed", str(seed),
+    ]
+    if use_msa:
+        cmd.append("--use_msa_server")
+
+    print(f"Running 3-chain: {' '.join(cmd)}")
+    result = subprocess.run(cmd, capture_output=True, text=True)
+
+    if result.returncode != 0:
+        print(f"STDERR: {result.stderr}")
+        raise RuntimeError(f"Boltz-2 3-chain prediction failed: {result.stderr}")
+
+    results_dirs = list(Path(".").glob("boltz_results_*"))
+    if not results_dirs:
+        raise RuntimeError("No boltz_results directory found after prediction")
+    results_dir = results_dirs[0]
+    pred_dir = list((results_dir / "predictions").iterdir())[0]
+
+    cif_file = list(pred_dir.glob("*_model_0.cif"))[0]
+    conf_file = list(pred_dir.glob("confidence_*.json"))[0]
+
+    cif_content = cif_file.read_text()
+    confidence = json.loads(conf_file.read_text())
+
+    # Calculate interface metrics: union of chains B+C (binder) vs chain A (target)
+    interface = calculate_interface_metrics_multichain(
+        cif_content, binder_chains=["B", "C"], target_chain="A"
+    )
+
+    return {
+        "cif_string": cif_content,
+        "vh_sequence": vh_sequence,
+        "vl_sequence": vl_sequence,
+        "target_sequence": target_sequence,
+        "prediction_mode": "3chain",
         "pdockq": confidence.get("pdockq", 0.0),
         "ptm": confidence.get("ptm", 0.0),
         "plddt_mean": confidence.get("complex_plddt", 0.0),

@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
-"""Step 5b: Validate top candidates with affinity scoring and cross-prediction.
+"""Step 5b: Cross-validation check on final candidates.
 
-Runs after filtering (step 05) on the final candidates:
-1. Affinity proxy scoring (ProteinMPNN + AntiFold log-likelihoods) — local CPU
-2. Protenix re-prediction — Modal GPU cross-validation vs Boltz-2
-3. Cross-validation analysis — flag ipTM disagreements
+Lightweight step that runs after filtering (step 05). Compares Boltz-2 vs
+Protenix ipTM for the final candidates and flags disagreements.
 
-Results are informational (included in report), not used for filtering/ranking.
+ProteinMPNN and AntiFold scoring has moved to step 04a (run on all survivors
+before ranking). This step only:
+1. Runs Protenix on final candidates that weren't scored in 04a (if any)
+2. Computes Boltz-2 vs Protenix ipTM deltas
+3. Flags candidates with significant disagreements
+4. Saves Protenix CIF files for final candidates
 
 Usage:
     python scripts/05b_validate_candidates.py [--config config.yaml]
@@ -47,7 +50,7 @@ def extract_sequence_from_pdb(pdb_path: str, chain_id: str = "A") -> str:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Validate candidates")
+    parser = argparse.ArgumentParser(description="Cross-validate final candidates")
     parser.add_argument("--config", type=str, default="config.yaml", help="Config file")
     parser.add_argument("--input", type=str, help="Input filtered candidates JSON")
     parser.add_argument("--output", type=str, default="data/outputs/validated", help="Output dir")
@@ -55,7 +58,7 @@ def main():
     args = parser.parse_args()
 
     print("=" * 60)
-    print("CD3 Binder Pipeline - Candidate Validation (Step 05b)")
+    print("CD3 Binder Pipeline - Cross-Validation (Step 05b)")
     print("=" * 60)
 
     from src.pipeline.config import PipelineConfig
@@ -95,10 +98,7 @@ def main():
         print("No candidates to validate.")
         return 0
 
-    # CIF directory for structure-based scoring
-    cif_dir = Path("data/outputs/structures/cif")
-
-    # Extract target sequence from first target PDB
+    # Extract target sequence
     target_sequence = None
     target_structures = config.design.target_structures
     if target_structures:
@@ -107,92 +107,63 @@ def main():
             target_sequence = extract_sequence_from_pdb(primary_target)
             print(f"Target sequence: {len(target_sequence)} residues from {primary_target}")
 
-    # ---- 1. Affinity scoring (local, CPU) ----
-    affinity_results = {}
-    if config.validation.run_proteinmpnn or config.validation.run_antifold:
-        print(f"\n--- Affinity Scoring ---")
-        from src.analysis.affinity_scoring import batch_score_affinity
-
-        design_ids = [c["candidate_id"] for c in candidates_data]
-        binder_types = [c.get("binder_type", "vhh") for c in candidates_data]
-
-        results = batch_score_affinity(
-            cif_dir=str(cif_dir),
-            design_ids=design_ids,
-            binder_types=binder_types,
-            run_proteinmpnn=config.validation.run_proteinmpnn,
-            run_antifold=config.validation.run_antifold,
-        )
-
-        for r in results:
-            affinity_results[r.design_id] = r
-            status = []
-            if r.proteinmpnn_ll is not None:
-                status.append(f"MPNN={r.proteinmpnn_ll:.3f}")
-            if r.antifold_ll is not None:
-                status.append(f"AF={r.antifold_ll:.3f}")
-            if r.error:
-                status.append(f"err={r.error[:60]}")
-            print(f"  {r.design_id}: {', '.join(status) if status else 'no scores'}")
-
-    # ---- 2. Protenix cross-prediction (Modal GPU) ----
+    # ---- Protenix cross-validation for candidates missing Protenix scores ----
     protenix_results = {}
     run_protenix = config.validation.run_protenix and not args.no_modal
     if run_protenix and target_sequence:
-        print(f"\n--- Protenix Cross-Validation ---")
-        try:
-            import modal
-            protenix_fn = modal.Function.from_name("protenix-cd3", "predict_complex")
+        # Check which candidates need Protenix (not already scored in 04a)
+        needs_protenix = [
+            c for c in candidates_data
+            if c.get("validation", {}).get("protenix_iptm") is None
+            and c.get("validation_scores", {}).get("protenix_iptm") is None
+        ]
 
-            protenix_cif_dir = Path("data/outputs/structures/protenix_cif")
-            protenix_cif_dir.mkdir(parents=True, exist_ok=True)
+        if needs_protenix:
+            print(f"\n--- Protenix Cross-Validation ({len(needs_protenix)} candidates) ---")
+            try:
+                import modal
+                protenix_fn = modal.Function.from_name("protenix-cd3", "predict_complex")
 
-            for c in candidates_data:
-                cid = c["candidate_id"]
-                seq = c.get("sequence", "")
-                seq_vl = c.get("sequence_vl")
-                binder_type = c.get("binder_type", "vhh")
+                protenix_cif_dir = Path("data/outputs/structures/protenix_cif")
+                protenix_cif_dir.mkdir(parents=True, exist_ok=True)
 
-                print(f"  Predicting {cid} with Protenix...")
-                try:
-                    pred = protenix_fn.remote(
-                        binder_sequence=seq,
-                        target_sequence=target_sequence,
-                        binder_type=binder_type,
-                        binder_sequence_vl=seq_vl,
-                        seed=config.validation.protenix_seeds[0],
-                        use_msa=config.validation.protenix_use_msa,
-                    )
+                for c in needs_protenix:
+                    cid = c["candidate_id"]
+                    seq = c.get("sequence", "")
+                    seq_vl = c.get("sequence_vl")
+                    binder_type = c.get("binder_type", "vhh")
 
-                    protenix_results[cid] = pred
+                    print(f"  Predicting {cid} with Protenix...")
+                    try:
+                        pred = protenix_fn.remote(
+                            binder_sequence=seq,
+                            target_sequence=target_sequence,
+                            binder_type=binder_type,
+                            binder_sequence_vl=seq_vl,
+                            seed=config.validation.protenix_seeds[0],
+                            use_msa=config.validation.protenix_use_msa,
+                        )
+                        protenix_results[cid] = pred
 
-                    if pred.get("error"):
-                        print(f"    Error: {pred['error'][:80]}")
-                    else:
-                        iptm = pred.get("iptm")
-                        ptm = pred.get("ptm")
-                        rs = pred.get("ranking_score")
-                        print(f"    ipTM={iptm}, pTM={ptm}, ranking_score={rs}")
+                        if pred.get("error"):
+                            print(f"    Error: {pred['error'][:80]}")
+                        else:
+                            print(f"    ipTM={pred.get('iptm')}, pTM={pred.get('ptm')}")
 
-                    # Save CIF
-                    if pred.get("cif_string"):
-                        cif_path = protenix_cif_dir / f"{cid}_protenix.cif"
-                        cif_path.write_text(pred["cif_string"])
+                        if pred.get("cif_string"):
+                            cif_path = protenix_cif_dir / f"{cid}_protenix.cif"
+                            cif_path.write_text(pred["cif_string"])
 
-                except Exception as e:
-                    print(f"    Error: {e}")
-                    protenix_results[cid] = {"error": str(e)}
+                    except Exception as e:
+                        print(f"    Error: {e}")
+                        protenix_results[cid] = {"error": str(e)}
 
-        except Exception as e:
-            print(f"  Protenix not available: {e}")
-            print("  Deploy with: modal deploy modal/protenix_app.py")
-            run_protenix = False
+            except Exception as e:
+                print(f"  Protenix not available: {e}")
+        else:
+            print(f"\n  All {len(candidates_data)} candidates already have Protenix scores from step 04a")
 
-    elif run_protenix and not target_sequence:
-        print("\nSkipping Protenix: no target sequence available")
-        run_protenix = False
-
-    # ---- 3. Cross-validation analysis ----
+    # ---- Cross-validation analysis ----
     print(f"\n--- Cross-Validation Analysis ---")
     threshold = config.validation.iptm_disagreement_threshold
 
@@ -201,45 +172,50 @@ def main():
 
     for c in candidates_data:
         cid = c["candidate_id"]
-        validated = dict(c)  # Copy all existing fields
+        validated = dict(c)
 
-        # Add affinity scores
-        validation = {}
-        aff = affinity_results.get(cid)
-        if aff:
-            validation["proteinmpnn_ll"] = aff.proteinmpnn_ll
-            validation["antifold_ll"] = aff.antifold_ll
+        # Get or create validation dict
+        validation = dict(c.get("validation", {}))
 
-        # Add Protenix scores
+        # Merge validation_scores from 04a into validation dict
+        vs = c.get("validation_scores", {})
+        for key in ["proteinmpnn_ll_scfv", "proteinmpnn_ll_3chain",
+                     "antifold_ll_scfv", "antifold_ll_3chain",
+                     "protenix_iptm", "protenix_ptm", "protenix_ranking_score"]:
+            if vs.get(key) is not None:
+                validation[key] = vs[key]
+
+        # Add newly-computed Protenix scores
         prot = protenix_results.get(cid, {})
         if prot and not prot.get("error"):
             validation["protenix_iptm"] = prot.get("iptm")
             validation["protenix_ptm"] = prot.get("ptm")
             validation["protenix_ranking_score"] = prot.get("ranking_score")
 
-            # Compute ipTM delta (Boltz-2 vs Protenix)
-            boltz2_iptm = c.get("binding", {}).get("iptm")
-            protenix_iptm = prot.get("iptm")
+        # Compute ipTM delta (Boltz-2 vs Protenix)
+        boltz2_iptm = c.get("binding", {}).get("iptm")
+        protenix_iptm = validation.get("protenix_iptm")
 
-            if boltz2_iptm is not None and protenix_iptm is not None:
-                delta = abs(boltz2_iptm - protenix_iptm)
-                validation["boltz2_protenix_iptm_delta"] = round(delta, 4)
+        if boltz2_iptm is not None and protenix_iptm is not None:
+            delta = abs(boltz2_iptm - protenix_iptm)
+            validation["boltz2_protenix_iptm_delta"] = round(delta, 4)
 
-                if delta > threshold:
-                    disagreement_count += 1
-                    validation.setdefault("agreement_flags", []).append(
-                        f"ipTM_disagreement: Boltz2={boltz2_iptm:.3f} vs Protenix={protenix_iptm:.3f} (delta={delta:.3f})"
-                    )
-        elif prot and prot.get("error"):
-            validation["protenix_error"] = prot["error"][:200]
+            if delta > threshold:
+                disagreement_count += 1
+                validation.setdefault("agreement_flags", []).append(
+                    f"ipTM_disagreement: Boltz2={boltz2_iptm:.3f} vs Protenix={protenix_iptm:.3f} (delta={delta:.3f})"
+                )
 
         validated["validation"] = validation
         validated_candidates.append(validated)
 
     # Print summary
-    n_with_mpnn = sum(1 for c in validated_candidates if c.get("validation", {}).get("proteinmpnn_ll") is not None)
-    n_with_af = sum(1 for c in validated_candidates if c.get("validation", {}).get("antifold_ll") is not None)
-    n_with_protenix = sum(1 for c in validated_candidates if c.get("validation", {}).get("protenix_iptm") is not None)
+    n_with_protenix = sum(1 for c in validated_candidates
+                          if c.get("validation", {}).get("protenix_iptm") is not None)
+    n_with_mpnn = sum(1 for c in validated_candidates
+                       if c.get("validation", {}).get("proteinmpnn_ll_scfv") is not None)
+    n_with_af = sum(1 for c in validated_candidates
+                     if c.get("validation", {}).get("antifold_ll_scfv") is not None)
 
     print(f"\n  ProteinMPNN scores: {n_with_mpnn}/{len(validated_candidates)}")
     print(f"  AntiFold scores: {n_with_af}/{len(validated_candidates)}")
@@ -269,7 +245,7 @@ def main():
     print(f"\nResults saved to: {output_path}")
 
     print("\n" + "=" * 60)
-    print("Validation complete!")
+    print("Cross-validation complete!")
     print("=" * 60)
 
     return 0

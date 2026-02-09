@@ -151,9 +151,11 @@ modal run modal/boltz2_app.py --binder-seq "EVQLVESGGGLVQ..." --target-seq "QTPY
 ```
 
 **Functions:**
-- `predict_complex()`: Predict single binder-target complex
+- `predict_complex()`: Predict single binder-target complex (2-chain: binder + target)
+- `predict_complex_multichain()`: Predict 3-chain complex (VH + VL + target) for Fab designs
 - `predict_complex_batch()`: Predict complexes for multiple binders
 - `run_calibration()`: Calibrate thresholds using known binders
+- `calculate_interface_metrics_multichain()`: Interface metrics for multi-chain binders (unions B+C vs A)
 
 **Output Metrics:**
 | Metric | Description |

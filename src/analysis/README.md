@@ -113,9 +113,9 @@ Note: The original structural Chothia definition uses H2: 52-56, but we use the 
 - Hydrophobic residues for patch detection: A, I, L, M, F, V, W (excludes Y which has Kyte-Doolittle -1.3)
 - BioPhi soft-fail: If BioPhi is not installed, humanness scoring returns `None` scores and the pipeline continues (soft-fail behavior). A real score of `0.0` is treated as a valid value (fails the threshold).
 
-## Affinity Proxy Scoring (Step 05b)
+## Affinity Proxy Scoring (Step 04a)
 
-`affinity_scoring.py` provides inverse folding log-likelihood scoring as an affinity proxy for de novo designs. **Results are informational only** — not used for filtering or ranking.
+`affinity_scoring.py` provides inverse folding log-likelihood scoring as an affinity proxy for de novo designs. Scores are computed in step 04a (pre-filter + scoring) and **used as ranking metrics** in step 05 (proteinmpnn_ll weight=1, antifold_ll weight=2, protenix_iptm weight=1).
 
 ### Tools
 

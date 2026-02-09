@@ -18,12 +18,15 @@ from typing import Optional
 # Lower weight = metric rank is divided by a larger number = less penalized.
 # Weight 1 = high importance, weight 2 = lower importance.
 DEFAULT_METRIC_WEIGHTS = {
-    "iptm": 1,           # Best available interface quality signal
-    "ptm": 1,            # Fold confidence
-    "interface_area": 1,  # Binding interface size
-    "humanness": 1,       # Critical for therapeutics
-    "num_contacts": 2,    # Correlated with area, lower importance
-    "plddt": 2,           # Typically high, less discriminating
+    "iptm": 1,              # Best available interface quality signal
+    "ptm": 1,               # Fold confidence
+    "interface_area": 1,    # Binding interface size
+    "humanness": 1,         # Critical for therapeutics
+    "num_contacts": 2,      # Correlated with area, lower importance
+    "plddt": 2,             # Typically high, less discriminating
+    "proteinmpnn_ll": 1,   # Inverse folding fit (higher = better)
+    "antifold_ll": 2,      # Antibody-specific inverse folding
+    "protenix_iptm": 1,    # Cross-validation interface quality
 }
 
 
@@ -42,6 +45,11 @@ class RankedCandidate:
     interface_area: float = 0.0
     num_contacts: int = 0
     humanness: float = 0.0
+
+    # Validation metrics (from step 04a)
+    proteinmpnn_ll: Optional[float] = None
+    antifold_ll: Optional[float] = None
+    protenix_iptm: Optional[float] = None
 
     # Per-metric ranks (1 = best)
     metric_ranks: dict[str, int] = field(default_factory=dict)
@@ -89,6 +97,7 @@ def worst_metric_rank(
     weights = metric_weights or DEFAULT_METRIC_WEIGHTS
 
     # Define metric accessors (higher = better for all)
+    # Validation metrics may be None — candidates without a score get worst rank.
     metric_accessors = {
         "iptm": lambda c: c.iptm,
         "ptm": lambda c: c.ptm,
@@ -96,7 +105,12 @@ def worst_metric_rank(
         "interface_area": lambda c: c.interface_area,
         "num_contacts": lambda c: c.num_contacts,
         "humanness": lambda c: c.humanness,
+        "proteinmpnn_ll": lambda c: c.proteinmpnn_ll,
+        "antifold_ll": lambda c: c.antifold_ll,
+        "protenix_iptm": lambda c: c.protenix_iptm,
     }
+
+    n = len(candidates)
 
     # Rank candidates per metric
     for metric_name, accessor in metric_accessors.items():
@@ -105,8 +119,19 @@ def worst_metric_rank(
 
         weight = weights[metric_name]
 
+        # Check if any candidates have this metric
+        has_metric = [c for c in candidates if accessor(c) is not None]
+        if not has_metric:
+            # No candidates have this metric — skip entirely
+            continue
+
         # Sort by metric value descending (best = rank 1)
-        sorted_by_metric = sorted(candidates, key=accessor, reverse=True)
+        # Candidates with None get worst rank (n)
+        sorted_by_metric = sorted(
+            candidates,
+            key=lambda c, acc=accessor: (0 if acc(c) is None else 1, acc(c) if acc(c) is not None else 0),
+            reverse=True,
+        )
 
         for rank_idx, candidate in enumerate(sorted_by_metric):
             rank = rank_idx + 1

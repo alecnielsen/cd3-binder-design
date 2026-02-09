@@ -2,7 +2,7 @@
 
 This module handles:
 - Antibody structure prediction (ABodyBuilder2)
-- Complex structure prediction (Boltz-2)
+- Complex structure prediction (Boltz-2) — both 2-chain (scFv) and 3-chain (VH+VL+target) modes
 - Interface analysis (contact residues, buried surface area, pDockQ)
 - Modal GPU deployment for compute-intensive predictions
 
@@ -16,10 +16,14 @@ This module handles:
 - Predict binder + CD3 epsilon complex
 - Assess binding mode and interface
 - Extract pDockQ confidence score
+- **Dual prediction for Fabs**: Both scFv (2-chain) and VH+VL+target (3-chain) modes
+  - `predict_complex()` — 2-chain (binder + target), `prediction_mode: "scfv"`
+  - `predict_complex_3chain()` — 3-chain (VH + VL + target), `prediction_mode: "3chain"`
+  - `ComplexPredictionResult.prediction_mode` field tracks which mode was used
 
 ## Calibration Phase
 
-**Purpose:** Establish filter thresholds using KNOWN BINDERS
+**Purpose:** Establish filter thresholds using KNOWN BINDERS + validation baselines
 
 1. Run Boltz-2 on teplizumab/SP34/UCHT1 + CD3 epsilon complexes
 2. Record pDockQ, interface area, contact counts for each
@@ -28,6 +32,12 @@ This module handles:
    - min_interface_area = min(known_binder_area) - 100
    - min_contacts = min(known_binder_contacts) - 2
 4. Document calibration results in config.yaml
+5. **Validation baselines** (when `run_validation_baselines: true`):
+   - Save CIF files to `data/outputs/calibration_cif/`
+   - Run ProteinMPNN + AntiFold on control CIFs (local CPU)
+   - Run Protenix on controls via Modal
+   - Store baselines in `calibration.json` under `validation_baselines`
+   - `run_calibration()` returns `cif_strings` dict mapping control name → CIF content
 
 **CRITICAL:** If known binders fail default thresholds, thresholds are wrong, not the binders. Calibration prevents false negative filtering.
 
@@ -179,6 +189,9 @@ residue_numbers = [12, 13, 14, 15, ...]  # Starts at 12!
 ## Implementation Notes
 
 - For VH/VL pairs, calibration constructs scFv (not VH-only) for accurate threshold setting
+- `ComplexPredictionResult` has `prediction_mode` field: `"scfv"` (default) or `"3chain"`
+- `predict_complex_3chain()` routes to Modal `predict_complex_multichain()` function
+- `calculate_interface_metrics_multichain()` unions binder chains B+C vs target chain A
 - Seeds are passed to Modal functions for reproducibility
 - GPU type: A100 recommended for Boltz-2
 - Timeout should be sufficient for complex prediction (can take 5-10 minutes per complex)

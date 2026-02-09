@@ -89,10 +89,21 @@ def main():
             known_binder_sequences=known_sequences,
             target_pdb_path=target_pdb,
             use_modal=use_modal,
+            control_names=config.calibration.positive_controls,
         )
     except Exception as e:
         print(f"ERROR: Calibration failed: {e}")
         return 1
+
+    # Save CIF files for controls
+    cif_strings = calibration_results.pop("cif_strings", {})
+    if cif_strings:
+        cif_dir = Path("data/outputs/calibration_cif")
+        cif_dir.mkdir(parents=True, exist_ok=True)
+        for name, cif_content in cif_strings.items():
+            cif_path = cif_dir / f"{name}.cif"
+            cif_path.write_text(cif_content)
+            print(f"  Saved CIF: {cif_path}")
 
     # Print results
     print("\n" + "=" * 60)
@@ -110,6 +121,92 @@ def main():
     print(f"  min_pdockq: {thresholds['min_pdockq']:.3f}")
     print(f"  min_interface_area: {thresholds['min_interface_area']:.1f}")
     print(f"  min_contacts: {thresholds['min_contacts']}")
+
+    # --- Validation baselines (ProteinMPNN, AntiFold, Protenix on controls) ---
+    if config.calibration.run_validation_baselines and cif_strings:
+        print(f"\n--- Validation Baselines ---")
+        validation_baselines = {}
+
+        # Affinity scoring on controls
+        try:
+            from src.analysis.affinity_scoring import batch_score_affinity
+            cif_dir_str = str(Path("data/outputs/calibration_cif"))
+            control_names = list(cif_strings.keys())
+            control_types = ["scfv"] * len(control_names)  # Controls are scFvs
+
+            aff_results = batch_score_affinity(
+                cif_dir=cif_dir_str,
+                design_ids=control_names,
+                binder_types=control_types,
+                run_proteinmpnn=config.validation.run_proteinmpnn,
+                run_antifold=config.validation.run_antifold,
+            )
+
+            mpnn_scores = {}
+            af_scores = {}
+            for r in aff_results:
+                if r.proteinmpnn_ll is not None:
+                    mpnn_scores[r.design_id] = r.proteinmpnn_ll
+                    print(f"  {r.design_id} ProteinMPNN: {r.proteinmpnn_ll:.3f}")
+                if r.antifold_ll is not None:
+                    af_scores[r.design_id] = r.antifold_ll
+                    print(f"  {r.design_id} AntiFold: {r.antifold_ll:.3f}")
+
+            if mpnn_scores:
+                vals = list(mpnn_scores.values())
+                validation_baselines["proteinmpnn_ll"] = {
+                    "min": min(vals), "max": max(vals),
+                    "mean": sum(vals) / len(vals),
+                    "by_control": mpnn_scores,
+                }
+            if af_scores:
+                vals = list(af_scores.values())
+                validation_baselines["antifold_ll"] = {
+                    "min": min(vals), "max": max(vals),
+                    "mean": sum(vals) / len(vals),
+                    "by_control": af_scores,
+                }
+        except Exception as e:
+            print(f"  Affinity scoring failed: {e}")
+
+        # Protenix on controls
+        if use_modal and config.validation.run_protenix:
+            try:
+                import modal
+                from src.structure.pdb_utils import extract_sequence_from_pdb
+                target_sequence = extract_sequence_from_pdb(target_pdb)
+                protenix_fn = modal.Function.from_name("protenix-cd3", "predict_complex")
+
+                protenix_scores = {}
+                for i, name in enumerate(config.calibration.positive_controls):
+                    seq = known_sequences[i]
+                    print(f"  Running Protenix on {name}...")
+                    try:
+                        pred = protenix_fn.remote(
+                            binder_sequence=seq,
+                            target_sequence=target_sequence,
+                            binder_type="scfv",
+                            seed=config.validation.protenix_seeds[0],
+                        )
+                        if pred.get("iptm") is not None:
+                            protenix_scores[name] = pred["iptm"]
+                            print(f"    ipTM={pred['iptm']}")
+                    except Exception as e:
+                        print(f"    Error: {e}")
+
+                if protenix_scores:
+                    vals = list(protenix_scores.values())
+                    validation_baselines["protenix_iptm"] = {
+                        "min": min(vals), "max": max(vals),
+                        "mean": sum(vals) / len(vals),
+                        "by_control": protenix_scores,
+                    }
+            except Exception as e:
+                print(f"  Protenix scoring failed: {e}")
+
+        if validation_baselines:
+            calibration_results["validation_baselines"] = validation_baselines
+            print(f"\n  Validation baselines computed for {len(validation_baselines)} metrics")
 
     # Save results
     output_path = Path(args.output)

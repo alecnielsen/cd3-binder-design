@@ -19,13 +19,14 @@ The scripts are numbered to indicate their execution order:
 | Step | Script | Description |
 |------|--------|-------------|
 | - | `setup_fab_scaffolds.py` | Download Fab scaffolds from PDB (run once) |
-| 0 | `00_run_calibration.py` | Calibrate filter thresholds using known binders |
+| 0 | `00_run_calibration.py` | Calibrate filter thresholds + validation baselines |
 | 1 | `01_setup_targets.py` | Download and prepare CD3 target structures |
 | 2 | `02_run_denovo_design.py` | Run BoltzGen VHH + Fab design on Modal |
 | 3 | `03_run_optimization.py` | Generate optimized variants of existing binders |
-| 4 | `04_predict_structures.py` | Run Boltz-2 complex structure prediction |
-| 5 | `05_filter_candidates.py` | Apply filtering cascade (binding, humanness, liabilities) |
-| 5b | `05b_validate_candidates.py` | Affinity scoring (ProteinMPNN, AntiFold) + Protenix cross-validation |
+| 4 | `04_predict_structures.py` | Boltz-2 complex prediction (+ 3-chain for Fabs) |
+| 4a | `04a_score_candidates.py` | Pre-filter + ProteinMPNN/AntiFold/Protenix scoring |
+| 5 | `05_filter_candidates.py` | Filtering cascade + ranking with validation scores |
+| 5b | `05b_validate_candidates.py` | Cross-validation (Boltz-2 vs Protenix ipTM deltas) |
 | 6 | `06_format_bispecifics.py` | Convert candidates to bispecific antibody formats |
 | 7 | `07_generate_report.py` | Generate final HTML and JSON reports |
 
@@ -147,20 +148,29 @@ Applies filters in order:
 2. Relax thresholds by up to 10%
 3. Include borderline candidates with risk flags
 
-### Candidate Validation (Step 5b)
+### Pre-filter + Scoring (Step 4a)
 
-Runs after filtering on the top N candidates. **Results are informational only** — not used for filtering or ranking.
+Runs after structure prediction. Applies hard pre-filters (binding, humanness, CDR liabilities) to reduce ~200 candidates to ~30-50, then runs scoring on survivors:
 
-Three validation analyses:
 1. **ProteinMPNN log-likelihood** (MIT): Inverse folding affinity proxy, best-validated for de novo antibodies (Spearman r=0.27-0.41). Runs locally on CPU.
 2. **AntiFold log-likelihood** (BSD-3): Antibody-specific inverse folding with nanobody support. Runs locally on CPU.
 3. **Protenix re-prediction** (Apache 2.0): Cross-validates Boltz-2 structure predictions. Runs on Modal H100.
 
-Cross-validation flags candidates where Boltz-2 and Protenix ipTM disagree by >0.1.
+For Fabs with dual predictions, scores BOTH scFv and 3-chain CIF files.
 
-**Output**: `data/outputs/validated/validated_candidates.json` — same as filtered_candidates.json with added `validation` section per candidate.
+**Output**: `data/outputs/structures/candidates_with_scores.json` — candidates with full `validation_scores` dict.
 
 **Prerequisite**: Deploy Protenix on Modal (`modal deploy modal/protenix_app.py`). ProteinMPNN and AntiFold are optional (`pip install proteinmpnn antifold`); missing tools produce error messages but don't fail the step.
+
+### Candidate Cross-Validation (Step 5b)
+
+Lightweight step that runs after filtering. Only:
+1. Runs Protenix on final candidates not already scored in step 04a (if any)
+2. Computes Boltz-2 vs Protenix ipTM deltas
+3. Flags candidates with significant disagreements (>0.1)
+4. Saves Protenix CIF files for final candidates
+
+**Output**: `data/outputs/validated/validated_candidates.json` — same as filtered_candidates.json with added `validation` section per candidate.
 
 ### Bispecific Formatting (Step 6)
 
@@ -182,8 +192,8 @@ Converts candidates into 5 bispecific formats:
 
 ## Dependencies
 
-- Python 3.10+
-- Modal account (for GPU compute in steps 2, 4)
+- Python 3.9+ (conda env `cd3-binder`)
+- Modal account (for GPU compute in steps 2, 4, 4a, 5b)
 - Dependencies in `requirements.txt`
 
 ## Error Handling
@@ -199,11 +209,12 @@ The full pipeline aborts on any step failure with a clear error message.
 
 | Step | Output Directory |
 |------|-----------------|
-| 0 | `data/outputs/calibration.json` |
+| 0 | `data/outputs/calibration.json` (+ `calibration_cif/`) |
 | 1 | `data/targets/` |
 | 2 | `data/outputs/denovo/` |
 | 3 | `data/outputs/optimized/` |
-| 4 | `data/outputs/structures/` |
+| 4 | `data/outputs/structures/candidates_with_structures.json` (+ `cif/`) |
+| 4a | `data/outputs/structures/candidates_with_scores.json` |
 | 5 | `data/outputs/filtered/` |
 | 5b | `data/outputs/validated/` |
 | 6 | `data/outputs/formatted/` |

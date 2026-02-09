@@ -38,6 +38,9 @@ class CalibrationConfig:
     interface_area_margin: float = 100.0
     contacts_margin: int = 2
 
+    # Whether to run ProteinMPNN, AntiFold, Protenix on controls for baselines
+    run_validation_baselines: bool = True
+
 
 @dataclass
 class FilteringConfig:
@@ -91,6 +94,9 @@ class RankingConfig:
     # "worst_metric_rank" (custom re-ranking), or "composite" (legacy)
     method: str = "boltzgen"
 
+    # Fallback ranking method when primary method's data is unavailable
+    secondary_method: str = "worst_metric_rank"
+
     # Metric weights for worst_metric_rank (only used if method="worst_metric_rank")
     metric_weights: dict[str, int] = field(default_factory=lambda: {
         "iptm": 1,
@@ -99,6 +105,9 @@ class RankingConfig:
         "humanness": 1,
         "num_contacts": 2,
         "plddt": 2,
+        "proteinmpnn_ll": 1,
+        "antifold_ll": 2,
+        "protenix_iptm": 1,
     })
 
     # Diversity selection
@@ -188,6 +197,7 @@ class PipelineConfig:
                 "pdockq_margin": self.calibration.pdockq_margin,
                 "interface_area_margin": self.calibration.interface_area_margin,
                 "contacts_margin": self.calibration.contacts_margin,
+                "run_validation_baselines": self.calibration.run_validation_baselines,
             },
             "filtering": {
                 "min_pdockq": self.filtering.min_pdockq,
@@ -233,6 +243,7 @@ class PipelineConfig:
             },
             "ranking": {
                 "method": self.ranking.method,
+                "secondary_method": self.ranking.secondary_method,
                 "metric_weights": self.ranking.metric_weights,
                 "use_diversity_selection": self.ranking.use_diversity_selection,
                 "diversity_alpha": self.ranking.diversity_alpha,
@@ -331,6 +342,7 @@ class PipelineConfig:
             config.calibration.pdockq_margin = margins.get("pdockq", c.get("pdockq_margin", 0.05))
             config.calibration.interface_area_margin = margins.get("interface_area", c.get("interface_area_margin", 100.0))
             config.calibration.contacts_margin = margins.get("contacts", c.get("contacts_margin", 2))
+            config.calibration.run_validation_baselines = c.get("run_validation_baselines", True)
 
         # Filtering - support nested (filtering.binding, filtering.humanness, etc.) and flat
         if "filtering" in data:
@@ -414,6 +426,7 @@ class PipelineConfig:
         if "ranking" in data:
             r = data["ranking"]
             config.ranking.method = r.get("method", "worst_metric_rank")
+            config.ranking.secondary_method = r.get("secondary_method", "worst_metric_rank")
             config.ranking.metric_weights = r.get("metric_weights", config.ranking.metric_weights)
             config.ranking.use_diversity_selection = r.get("use_diversity_selection", True)
             config.ranking.diversity_alpha = r.get("diversity_alpha", 0.001)

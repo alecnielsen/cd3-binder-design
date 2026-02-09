@@ -83,7 +83,18 @@ formatting:
 
 ranking:
   method: boltzgen                  # Uses BoltzGen's internal ranking (validated 66% hit rate)
+  secondary_method: worst_metric_rank  # Auto-fallback when boltzgen_rank unavailable
                                     # Alternatives: "worst_metric_rank", "composite" (legacy)
+  metric_weights:                   # Used by worst_metric_rank (9 metrics)
+    iptm: 1
+    ptm: 1
+    interface_area: 1
+    humanness: 1
+    num_contacts: 2
+    plddt: 2
+    proteinmpnn_ll: 1               # From step 04a
+    antifold_ll: 2                   # From step 04a
+    protenix_iptm: 1                 # From step 04a
   diversity_alpha: 0.001
   use_diversity_selection: true
 
@@ -363,13 +374,31 @@ Per-candidate JSON scorecard:
     "hydrophobic_patches": 1
   },
   "boltzgen_rank": 5,
+  "structure_prediction_3chain": {
+    "prediction_mode": "3chain",
+    "iptm": 0.38,
+    "ptm": 0.75,
+    "plddt_mean": 0.71,
+    "interface_area": 2890,
+    "num_contacts": 55
+  },
+  "validation_scores": {
+    "proteinmpnn_ll_scfv": -1.8,
+    "proteinmpnn_ll_3chain": -1.6,
+    "antifold_ll_scfv": -2.3,
+    "antifold_ll_3chain": -2.1,
+    "protenix_iptm": 0.45,
+    "protenix_ptm": 0.71,
+    "protenix_ranking_score": 0.82
+  },
   "validation": {
     "proteinmpnn_ll": -1.45,
     "proteinmpnn_ll_note": "Inverse folding log-likelihood (higher = better structural fit). NOT a direct affinity predictor.",
     "antifold_ll": -2.10,
     "protenix_iptm": 0.32,
     "protenix_ptm": 0.48,
-    "protenix_ranking_score": 0.42
+    "protenix_ranking_score": 0.42,
+    "boltz2_protenix_iptm_delta": 0.08
   },
   "composite_score": 5.0,
   "composite_score_note": "BoltzGen internal rank (lower = better). Uses ipTM, pTM, PAE, H-bonds, salt bridges, buried SASA.",
@@ -417,8 +446,9 @@ _provenance:
 | Step | GPU Type | Time (est.) | Cost (est.) |
 |------|----------|-------------|-------------|
 | BoltzGen (400 designs) | A100 | 1-2 hours | $5-15 |
-| Boltz-2 (400 complexes) | A100 | 2-4 hours | $10-30 |
+| Boltz-2 (400 complexes, scFv + 3-chain) | A100 | 3-6 hours | $15-40 |
 | ABodyBuilder2 | A100 | 30 min | $2-5 |
-| Protenix (10 candidates) | H100 | 30-60 min | $5-10 |
-| ProteinMPNN + AntiFold (10) | CPU | 5 min | Free (local) |
-| **Total** | | **5-9 hours** | **$25-60** |
+| Step 04a: Protenix (~40 survivors) | H100 | 1-2 hours | $10-20 |
+| Step 04a: ProteinMPNN + AntiFold (~40) | CPU | 15 min | Free (local) |
+| Step 05b: Protenix (10 final) | H100 | 30-60 min | $5-10 |
+| **Total** | | **7-12 hours** | **$40-90** |

@@ -133,6 +133,23 @@ design:
     - dupilumab
 ```
 
+### Pipeline Steps (Updated)
+```
+00 → 01 → 02 → 03 → 04 → 04a → 05 → 05b → 06 → 07
+```
+- **Step 04a** (`scripts/04a_score_candidates.py`): Hard pre-filter → ProteinMPNN + AntiFold + Protenix scoring on survivors. Output: `candidates_with_scores.json`.
+- **Step 05** now reads scored input from 04a and uses validation metrics (proteinmpnn_ll, antifold_ll, protenix_iptm) in worst_metric_rank ranking.
+- **Step 05b** is now lightweight cross-validation only (no longer runs affinity scoring — moved to 04a).
+- **Dual Fab prediction**: Step 04 predicts Fabs as BOTH scFv (2-chain) and VH+VL+target (3-chain). Both metric sets stored.
+- **Ranking auto-fallback**: `method: boltzgen` with `secondary_method: worst_metric_rank`. Falls back automatically if no boltzgen_rank data.
+- **Calibration baselines**: Step 00 runs ProteinMPNN/AntiFold/Protenix on controls when `run_validation_baselines: true`.
+65. **3-chain prediction via Modal** — `predict_complex_multichain()` in `modal/boltz2_app.py` and `predict_complex_3chain()` in `Boltz2Predictor`. Chain assignment: A=target, B=VH, C=VL. Interface metrics union chains B+C as binder.
+66. **ComplexPredictionResult.prediction_mode** — "scfv" or "3chain" field tracks which prediction mode produced the result.
+67. **Step 04a pre-filters before scoring** — Only candidates passing hard filters (binding, humanness, CDR liabilities) get expensive validation scoring. Reduces ~200 → ~30-50 candidates.
+68. **Validation scores used for ranking** — `proteinmpnn_ll`, `antifold_ll`, `protenix_iptm` fields on both `CandidateScore` and `RankedCandidate`. Included in worst_metric_rank with configurable weights.
+69. **RankingConfig.secondary_method** — Fallback ranking method when primary method's data unavailable. Default: "worst_metric_rank".
+70. **run_calibration() returns cif_strings** — `calibration["cif_strings"]` dict maps control name → CIF content. Saved to `data/outputs/calibration_cif/`.
+
 ### Future: Affinity Prediction Tools (Not Yet Integrated)
 - **Boltz-2 IC50** - Enable with `--sampling_steps_affinity 200` (MIT, not antibody-validated)
 - **AttABseq** - Sequence-based ΔΔG prediction (MIT, https://github.com/ruofanjin/AttABseq)

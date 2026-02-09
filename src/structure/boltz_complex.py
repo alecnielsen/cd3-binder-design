@@ -38,6 +38,7 @@ class ComplexPredictionResult:
 
     # Metadata
     model_version: str = "boltz2"
+    prediction_mode: str = "scfv"  # "scfv" or "3chain"
     seed: Optional[int] = None
 
     def to_dict(self) -> dict:
@@ -45,6 +46,7 @@ class ComplexPredictionResult:
         return {
             "binder_sequence": self.binder_sequence,
             "target_sequence": self.target_sequence,
+            "prediction_mode": self.prediction_mode,
             "iptm": self.iptm,
             "pdockq": self.pdockq,
             "pdockq_note": "Structural confidence, NOT affinity predictor",
@@ -259,6 +261,66 @@ class Boltz2Predictor:
             seed=seed,
         )
 
+    def predict_complex_3chain(
+        self,
+        vh_sequence: str,
+        vl_sequence: str,
+        target_pdb_path: str,
+        target_chain: str = "A",
+        seed: int = 42,
+    ) -> ComplexPredictionResult:
+        """Predict 3-chain complex: target + VH + VL as separate chains.
+
+        For Fab designs, this predicts native VH/VL pairing rather than scFv.
+
+        Args:
+            vh_sequence: VH amino acid sequence.
+            vl_sequence: VL amino acid sequence.
+            target_pdb_path: Path to target structure PDB.
+            target_chain: Chain ID in target PDB.
+            seed: Random seed.
+
+        Returns:
+            ComplexPredictionResult with prediction_mode="3chain".
+        """
+        if not self.use_modal:
+            raise RuntimeError("3-chain prediction requires Modal (GPU compute)")
+
+        try:
+            import modal
+            from src.structure.pdb_utils import extract_sequence_from_pdb
+
+            predict_fn = modal.Function.from_name("boltz2-cd3", "predict_complex_multichain")
+            target_sequence = extract_sequence_from_pdb(target_pdb_path, target_chain)
+
+            result = predict_fn.remote(
+                vh_sequence=vh_sequence,
+                vl_sequence=vl_sequence,
+                target_sequence=target_sequence,
+                seed=seed,
+            )
+
+            return ComplexPredictionResult(
+                pdb_string=result.get("cif_string", ""),
+                binder_sequence=vh_sequence,
+                target_sequence=result["target_sequence"],
+                iptm=result.get("iptm", result.get("ipTM", 0.0)),
+                pdockq=result["pdockq"],
+                ptm=result["ptm"],
+                plddt_mean=result["plddt_mean"],
+                ipae=result.get("ipae", 0.0),
+                interface_residues_binder=result.get("interface_residues_binder", []),
+                interface_residues_target=result.get("interface_residues_target", []),
+                num_contacts=result.get("num_contacts", 0),
+                interface_area=result.get("interface_area", 0.0),
+                model_version="boltz2",
+                prediction_mode="3chain",
+                seed=seed,
+            )
+
+        except Exception as e:
+            raise RuntimeError(f"Failed to run 3-chain prediction on Modal: {e}")
+
     def predict_batch(
         self,
         binder_sequences: list[str],
@@ -338,6 +400,7 @@ def run_calibration(
     pdockq_margin: float = 0.05,
     interface_area_margin: float = 100.0,
     contacts_margin: int = 2,
+    control_names: Optional[list[str]] = None,
 ) -> dict:
     """Run calibration to establish filter thresholds.
 
@@ -352,17 +415,25 @@ def run_calibration(
         pdockq_margin: Margin to subtract from min pDockQ.
         interface_area_margin: Margin to subtract from min interface area.
         contacts_margin: Margin to subtract from min contacts.
+        control_names: Optional names for each control (for labeling CIF output).
 
     Returns:
-        Dictionary with calibrated thresholds.
+        Dictionary with calibrated thresholds and CIF strings.
     """
     predictor = Boltz2Predictor(use_modal=use_modal)
 
+    if control_names is None:
+        control_names = [f"control_{i}" for i in range(len(known_binder_sequences))]
+
     results = []
-    for seq in known_binder_sequences:
+    cif_strings = {}
+    for i, seq in enumerate(known_binder_sequences):
+        name = control_names[i] if i < len(control_names) else f"control_{i}"
         try:
             result = predictor.predict_complex(seq, target_pdb_path, target_chain)
             results.append(result)
+            if result.pdb_string:
+                cif_strings[name] = result.pdb_string
         except Exception as e:
             print(f"Warning: Calibration failed for sequence: {e}")
 
@@ -376,6 +447,7 @@ def run_calibration(
 
     calibration = {
         "known_binder_results": [r.to_dict() for r in results],
+        "cif_strings": cif_strings,
         "calibrated_thresholds": {
             "min_pdockq": max(0.0, min(pdockq_values) - pdockq_margin),
             "min_interface_area": max(0.0, min(area_values) - interface_area_margin),

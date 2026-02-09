@@ -1,22 +1,28 @@
 # Handoff Notes - CD3 Binder Design Pipeline
 
-## Current Status (2026-02-07)
+## Current Status (2026-02-08)
 
-### Pipeline: PRODUCTION-SCALE RUN COMPLETE
+### Pipeline: ENHANCED FOR NEXT RUN
 
-100x scale run completed: **100 VHH + 92 Fab = 192 designs** generated, filtered to **10 final candidates** (6 Fab, 4 VHH).
+100x scale run completed previously (192 designs → 10 candidates). Pipeline now enhanced with:
+- **Step 04a** (pre-filter + scoring): Hard pre-filter → ProteinMPNN + AntiFold + Protenix scoring before ranking
+- **Dual Fab prediction**: Fabs predicted as both scFv (2-chain) and VH+VL+target (3-chain)
+- **Validation scores in ranking**: ProteinMPNN, AntiFold, Protenix ipTM now used as ranking metrics (not just informational)
+- **Calibration validation baselines**: ProteinMPNN, AntiFold, Protenix scored on known controls
+- **Ranking auto-fallback**: `method: boltzgen` primary, `secondary_method: worst_metric_rank` when boltzgen_rank unavailable
 
 ```bash
 conda activate cd3-binder
 export PYTHONPATH=/Users/alec/kernel/cd3-binder-design
 
 python3 scripts/setup_fab_scaffolds.py             # ✅ Done - scaffolds downloaded
-python3 scripts/00_run_calibration.py              # ✅ Working
+python3 scripts/00_run_calibration.py              # ✅ Working (+ validation baselines)
 python3 scripts/02_run_denovo_design.py --config config.yaml  # ✅ VHH + Fab working
 python3 scripts/03_run_optimization.py --config config.yaml   # ✅ Working (reformats known antibodies)
-python3 scripts/04_predict_structures.py --config config.yaml # ✅ Working
-python3 scripts/05_filter_candidates.py --config config.yaml  # ✅ Working
-python3 scripts/05b_validate_candidates.py --config config.yaml # ✅ Working (affinity + Protenix)
+python3 scripts/04_predict_structures.py --config config.yaml # ✅ Working (+ dual Fab prediction)
+python3 scripts/04a_score_candidates.py --config config.yaml  # ✅ NEW: Pre-filter + scoring
+python3 scripts/05_filter_candidates.py --config config.yaml  # ✅ Working (+ validation in ranking)
+python3 scripts/05b_validate_candidates.py --config config.yaml # ✅ Refactored: cross-validation only
 python3 scripts/06_format_bispecifics.py --config config.yaml # ✅ Working
 python3 scripts/07_generate_report.py --config config.yaml    # ✅ Working
 ```
@@ -355,9 +361,10 @@ data/outputs/
 ├── validated/
 │   └── validated_candidates.json                # Candidates with affinity + Protenix scores
 ├── structures/
-│   ├── candidates_with_structures.json          # Boltz-2 predictions (192 candidates)
-│   ├── cif/                                     # Boltz-2 CIF files (future runs)
-│   └── protenix_cif/                            # Protenix CIF files (10 candidates)
+│   ├── candidates_with_structures.json          # Boltz-2 predictions (+ 3-chain for Fabs)
+│   ├── candidates_with_scores.json              # After 04a: pre-filtered + scored
+│   ├── cif/                                     # Boltz-2 CIF files
+│   └── protenix_cif/                            # Protenix CIF files
 ├── formatted/                                    # Bispecific constructs
 └── reports/
     ├── report_20260207_182011.html              # HTML report ← LATEST (with validation)
@@ -391,38 +398,66 @@ From known CD3 binder scFvs:
 
 ---
 
-## What Changed: Validation Step 05b (2026-02-07, latest)
+## What Changed: Pipeline Enhancements (2026-02-08, latest)
 
-### Problem: No Affinity Scoring or Cross-Validation
+### Problem: Validation Scores Were Informational Only
 
-The pipeline relied solely on Boltz-2 structural confidence metrics (ipTM, pTM, interface_area). No affinity proxies were available, and predictions were not cross-validated with an orthogonal structure predictor.
+The pipeline ran ProteinMPNN, AntiFold, and Protenix only on the final 10 candidates (step 05b) and didn't use the scores for ranking. Fab designs were only predicted as scFv (2-chain), missing native VH+VL+target (3-chain) structural information.
 
-### Solution: Step 05b — Candidate Validation
+### Solution: Compute Everything, Store Everything, Defer Decisions
 
-Added `scripts/05b_validate_candidates.py` that runs after filtering (step 05):
+Five changes to the pipeline:
 
-1. **ProteinMPNN log-likelihood** (MIT) — best-validated affinity proxy for de novo antibodies (Spearman r=0.27-0.41 on AbBiBench). Runs locally on CPU.
-2. **AntiFold log-likelihood** (BSD-3) — antibody-specific inverse folding with explicit nanobody support. Runs locally on CPU.
-3. **Protenix re-prediction** (Apache 2.0) — cross-validates Boltz-2 structure predictions on Modal H100. Flags candidates where ipTM disagrees by >0.1.
+1. **New Step 04a: Pre-filter + Scoring** — Hard pre-filter (binding, humanness, CDR liabilities) reduces ~200 → ~30-50 candidates, then runs ProteinMPNN + AntiFold + Protenix on survivors. All scores stored in `candidates_with_scores.json`.
 
-**Results are informational only** — not used for filtering or ranking. They provide additional context for experimental candidate selection.
+2. **Dual Fab Prediction (Step 04)** — For Fab designs, predicts both scFv (2-chain) and native VH+VL+target (3-chain). Stores both in `structure_prediction` and `structure_prediction_3chain`. New Modal function `predict_complex_multichain()` handles 3-chain predictions.
+
+3. **Validation Scores in Ranking (Step 05)** — `proteinmpnn_ll`, `antifold_ll`, `protenix_iptm` are now ranking metrics in `worst_metric_rank` (weighted: proteinmpnn_ll=1, antifold_ll=2, protenix_iptm=1). None-safe: metrics with no data are skipped entirely.
+
+4. **Calibration Validation Baselines (Step 00)** — Runs ProteinMPNN, AntiFold, and Protenix on known controls to establish baselines. Saved in `calibration.json` under `validation_baselines`.
+
+5. **Step 05b Refactored** — Now lightweight cross-validation only. Runs Protenix on candidates not already scored in 04a, computes Boltz-2 vs Protenix ipTM deltas, flags disagreements. No longer runs ProteinMPNN/AntiFold (moved to 04a).
+
+### Pipeline Steps (Updated)
+```
+00 → 01 → 02 → 03 → 04 → 04a → 05 → 05b → 06 → 07
+                              ↑ NEW
+```
 
 ### Files Created
-- `modal/protenix_app.py` — Protenix Modal deployment (replaced stub)
-- `src/analysis/affinity_scoring.py` — ProteinMPNN + AntiFold scoring
-- `scripts/05b_validate_candidates.py` — Validation pipeline step
+- `scripts/04a_score_candidates.py` — Pre-filter + ProteinMPNN/AntiFold/Protenix scoring
 
 ### Files Modified
-- `src/pipeline/config.py` — Added `ValidationConfig`
-- `src/pipeline/filter_cascade.py` — Added validation fields to `CandidateScore`
-- `config.yaml` — Added `validation:` section
-- `scripts/run_full_pipeline.py` — Inserted step 05b (now 9 total steps)
-- `scripts/07_generate_report.py` — Loads validated data, passes to report
-- `src/pipeline/report_generator.py` — Validation Scores table in HTML report
-- `src/analysis/antipasti_scoring.py` — Deprecated, redirects to affinity_scoring
+- `modal/boltz2_app.py` — Added `predict_complex_multichain()` + `calculate_interface_metrics_multichain()`
+- `src/structure/boltz_complex.py` — Added `predict_complex_3chain()`, `prediction_mode` field, `cif_strings` return from calibration
+- `scripts/00_run_calibration.py` — Validation baselines (ProteinMPNN, AntiFold, Protenix on controls)
+- `scripts/04_predict_structures.py` — Dual Fab prediction (scFv + 3-chain)
+- `scripts/05_filter_candidates.py` — Reads scored input, wires validation into ranking, BoltzGen primary + fallback
+- `scripts/05b_validate_candidates.py` — Refactored to cross-validation only
+- `src/pipeline/ranking.py` — Added `proteinmpnn_ll`, `antifold_ll`, `protenix_iptm` to `RankedCandidate` + metric accessors
+- `src/pipeline/config.py` — Added `secondary_method`, `run_validation_baselines`, updated metric weights
+- `config.yaml` — Updated ranking config with validation metrics
+- `scripts/run_full_pipeline.py` — Inserted step 04a (now 10 total steps)
 
 ### Config
 ```yaml
+ranking:
+  method: boltzgen
+  secondary_method: worst_metric_rank
+  metric_weights:
+    iptm: 1
+    ptm: 1
+    interface_area: 1
+    humanness: 1
+    num_contacts: 2
+    plddt: 2
+    proteinmpnn_ll: 1
+    antifold_ll: 2
+    protenix_iptm: 1
+
+calibration:
+  run_validation_baselines: true
+
 validation:
   enabled: true
   run_protenix: true          # Modal GPU
@@ -435,6 +470,7 @@ validation:
 ```bash
 pip install proteinmpnn antifold     # Local (conda env)
 modal deploy modal/protenix_app.py   # Modal GPU (uses CUDA devel image)
+modal deploy modal/boltz2_app.py     # Redeploy for predict_complex_multichain()
 modal run modal/protenix_app.py --warmup-flag  # Pre-download weights via minimal prediction
 ```
 

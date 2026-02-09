@@ -143,11 +143,17 @@ DESIGN GENERATION
 
 STRUCTURE PREDICTION
 ├── ABodyBuilder2 (antibody structure)
-└── Boltz-2 (complex with CD3ε)
+├── Boltz-2 (complex with CD3ε)
+│   ├── scFv prediction (all candidates)
+│   └── 3-chain prediction (Fabs: VH + VL + target)
+└── Step 04a: Pre-filter + score survivors
+    ├── ProteinMPNN + AntiFold (local CPU)
+    └── Protenix cross-validation (Modal GPU)
 
 CALIBRATION (run first!)
-└── Set filter thresholds using known binder scFvs
-    (see docs/reference/calibration-methodology.md)
+├── Set filter thresholds using known binder scFvs
+│   (see docs/reference/calibration-methodology.md)
+└── Validation baselines (ProteinMPNN, AntiFold, Protenix on controls)
 
 FILTERING CASCADE
 ├── Binding quality (interface area, contacts)
@@ -158,12 +164,12 @@ FILTERING CASCADE
 
 RANKING (BoltzGen native rank + diversity selection)
 ├── BoltzGen decision tree: ipTM, pTM, PAE, H-bonds, salt bridges, SASA
+├── Validation metrics: proteinmpnn_ll, antifold_ll, protenix_iptm
+├── Auto-fallback: worst_metric_rank when boltzgen_rank unavailable
 └── Greedy maximin diversity selection (alpha=0.001)
 
-VALIDATION (step 05b, informational only)
-├── ProteinMPNN log-likelihood (affinity proxy)
-├── AntiFold log-likelihood (antibody-specific)
-└── Protenix re-prediction (cross-validation vs Boltz-2)
+CROSS-VALIDATION (step 05b)
+└── Boltz-2 vs Protenix ipTM delta — flags disagreements >0.1
 
 FORMAT CONVERSION
 └── 5 bispecific formats (CrossMab, Fab+scFv, etc.)
@@ -249,9 +255,10 @@ python scripts/run_full_pipeline.py --config config.yaml
 python scripts/01_setup_targets.py      # Download CD3 structures (1XIW, 1SY6)
 python scripts/02_run_denovo_design.py  # BoltzGen VHH + Fab CDR redesign (Modal GPU)
 python scripts/03_run_optimization.py   # Reformat known antibodies as scFv
-python scripts/04_predict_structures.py # Boltz-2 complex prediction (Modal GPU)
-python scripts/05_filter_candidates.py  # Apply filtering cascade
-python scripts/05b_validate_candidates.py # Affinity scoring + Protenix cross-validation
+python scripts/04_predict_structures.py # Boltz-2 complex prediction (+ 3-chain for Fabs)
+python scripts/04a_score_candidates.py  # Pre-filter + ProteinMPNN/AntiFold/Protenix scoring
+python scripts/05_filter_candidates.py  # Apply filtering cascade + ranking with validation scores
+python scripts/05b_validate_candidates.py # Cross-validation (Boltz-2 vs Protenix ipTM)
 python scripts/06_format_bispecifics.py # Generate 5 bispecific formats
 python scripts/07_generate_report.py    # Final report with scorecards
 ```
@@ -263,11 +270,22 @@ Key sections in `config.yaml`:
 ```yaml
 # Ranking: BoltzGen native when available, worst_metric_rank as fallback
 ranking:
-  method: worst_metric_rank   # or "boltzgen" (preferred when boltzgen_rank data available)
-  diversity_alpha: 0.001      # Greedy maximin diversity weight
+  method: boltzgen              # BoltzGen native rank (preferred)
+  secondary_method: worst_metric_rank  # Auto-fallback when boltzgen_rank unavailable
+  metric_weights:               # Used by worst_metric_rank
+    iptm: 1
+    ptm: 1
+    interface_area: 1
+    humanness: 1
+    num_contacts: 2
+    plddt: 2
+    proteinmpnn_ll: 1           # From step 04a
+    antifold_ll: 2              # From step 04a
+    protenix_iptm: 1            # From step 04a
+  diversity_alpha: 0.001        # Greedy maximin diversity weight
   use_diversity_selection: true
 
-# Validation step (05b) - informational, not used for filtering
+# Validation step (05b) - cross-validation (Boltz-2 vs Protenix ipTM)
 validation:
   enabled: true
   run_protenix: true          # Cross-validate with Protenix on Modal

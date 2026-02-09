@@ -14,14 +14,15 @@ The pipeline follows this flow:
 1. **Input Preparation**: Download CD3 structures, prepare starting sequences
 2. **Design Generation**: De novo (BoltzGen) + Optimization tracks
 3. **CDR Identification**: ANARCI numbering (if ANARCI is unavailable, CDR positions are omitted and CDR-specific filters fall back to sequence-level heuristics)
-4. **Structure Prediction**: ABodyBuilder2 + Boltz-2
-5. **Calibration Phase**: Set thresholds using known binders
-6. **Filtering Cascade**: Binding quality -> Humanness -> Liabilities -> Developability -> Aggregation
-7. **Epitope Annotation**: Compare to OKT3 epitope
-8. **Candidate Ranking**: BoltzGen native rank + greedy maximin diversity selection
-9. **Candidate Validation**: ProteinMPNN + AntiFold affinity scoring, Protenix cross-validation (informational only)
-10. **Format Conversion**: Generate bispecific sequences
-11. **Final Output**: ~10 candidates with sequences, CIF structures, validation scores, and scorecards
+4. **Structure Prediction**: ABodyBuilder2 + Boltz-2 (scFv + 3-chain for Fabs)
+5. **Calibration Phase**: Set thresholds using known binders + validation baselines
+6. **Pre-filter + Scoring (Step 04a)**: Hard pre-filter → ProteinMPNN + AntiFold + Protenix on survivors
+7. **Filtering Cascade**: Binding quality -> Humanness -> Liabilities -> Developability -> Aggregation
+8. **Epitope Annotation**: Compare to OKT3 epitope
+9. **Candidate Ranking**: BoltzGen native rank (+ validation metrics) + greedy maximin diversity selection
+10. **Cross-Validation (Step 05b)**: Boltz-2 vs Protenix ipTM deltas, flag disagreements
+11. **Format Conversion**: Generate bispecific sequences
+12. **Final Output**: ~10 candidates with sequences, CIF structures, validation scores, and scorecards
 
 ## Filter Cascade Order
 
@@ -53,22 +54,44 @@ This prevents near-duplicate sequences from occupying multiple slots. At alpha=0
 
 **Fallback: Worst-metric-rank** (`method: worst_metric_rank`)
 
-Each candidate is ranked independently across 6 metrics (ipTM, pTM, pLDDT, interface area, contacts, humanness). Quality key = max weighted rank. Sort ascending.
+Each candidate is ranked independently across 9 metrics (ipTM, pTM, pLDDT, interface area, contacts, humanness, proteinmpnn_ll, antifold_ll, protenix_iptm). Quality key = max weighted rank. Sort ascending. None-safe: metrics with no data are skipped; individual None values get worst rank.
+
+**Auto-fallback**: If `method: boltzgen` but no candidates have `boltzgen_rank`, automatically falls back to `secondary_method` (default: `worst_metric_rank`).
 
 **Legacy: Composite score** (`method: composite`)
 
 Available for backwards compatibility. Uses 30% pDockQ + 25% humanness + 25% liabilities + 20% developability. Not recommended because pDockQ is always 0.0 from Boltz-2.
 
-## Candidate Validation (Step 05b)
+## Pre-filter + Scoring (Step 04a)
 
-After filtering, top candidates are validated with additional scoring and cross-prediction. **Results are informational only** — included in reports but not used for filtering or ranking.
+After structure prediction, applies hard pre-filters to reduce ~200 candidates to ~30-50, then runs scoring on survivors:
 
 - **ProteinMPNN log-likelihood** (MIT): Inverse folding affinity proxy (Spearman r=0.27-0.41 on AbBiBench). Higher = better structural fit.
 - **AntiFold log-likelihood** (BSD-3): Antibody-specific inverse folding with nanobody support.
-- **Protenix re-prediction** (Apache 2.0): Cross-validates Boltz-2 predictions. Flags ipTM disagreements >0.1.
+- **Protenix re-prediction** (Apache 2.0): Cross-validates Boltz-2 structure predictions.
+
+For Fabs with dual predictions, scores BOTH scFv and 3-chain CIF files. All scores stored in `validation_scores` dict and **used for ranking** (not just informational).
+
+## Cross-Validation (Step 05b)
+
+Lightweight step after filtering. Runs Protenix on candidates not scored in 04a, computes Boltz-2 vs Protenix ipTM deltas, flags disagreements >0.1.
 
 Configuration:
 ```yaml
+ranking:
+  method: boltzgen
+  secondary_method: worst_metric_rank
+  metric_weights:
+    iptm: 1
+    ptm: 1
+    interface_area: 1
+    humanness: 1
+    num_contacts: 2
+    plddt: 2
+    proteinmpnn_ll: 1
+    antifold_ll: 2
+    protenix_iptm: 1
+
 validation:
   enabled: true
   run_protenix: true          # Requires Modal deployment
@@ -90,8 +113,9 @@ When insufficient candidates survive filtering (< 10), fallback is triggered:
 
 ```yaml
 ranking:
-  method: worst_metric_rank       # or "composite" for legacy behavior
-  diversity_alpha: 0.001          # Greedy maximin diversity weight
+  method: boltzgen                  # or "worst_metric_rank", "composite" (legacy)
+  secondary_method: worst_metric_rank  # Auto-fallback when boltzgen_rank unavailable
+  diversity_alpha: 0.001            # Greedy maximin diversity weight
   use_diversity_selection: true
 
 filtering:

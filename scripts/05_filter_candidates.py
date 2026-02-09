@@ -47,13 +47,18 @@ def main():
     else:
         config = PipelineConfig()
 
-    # Find input
+    # Find input — prefer scored output from step 04a, fall back to step 04
     if args.input:
         input_path = Path(args.input)
     else:
+        scored_path = Path("data/outputs/structures/candidates_with_scores.json")
         structures_path = Path("data/outputs/structures/candidates_with_structures.json")
-        if structures_path.exists():
+        if scored_path.exists():
+            input_path = scored_path
+            print("  (Using scored candidates from step 04a)")
+        elif structures_path.exists():
             input_path = structures_path
+            print("  (Using unscored candidates from step 04 — run step 04a for validation scores)")
         else:
             print("ERROR: No input found. Run step 04 first or specify --input")
             return 1
@@ -117,20 +122,40 @@ def main():
         )
 
         # Add structure prediction metrics
+        # For Fabs with dual predictions, use the prediction with better ipTM
         sp = c.get("structure_prediction", {})
-        if sp:
-            score.iptm = sp.get("iptm") or sp.get("ipTM") or 0.0
-            score.pdockq = sp.get("pdockq")
-            score.interface_area = sp.get("interface_area")
-            score.num_contacts = sp.get("num_contacts")
+        sp_3chain = c.get("structure_prediction_3chain", {})
+
+        # Choose best prediction mode for primary metrics (if both available)
+        if sp and sp_3chain:
+            iptm_scfv = sp.get("iptm") or sp.get("ipTM") or 0.0
+            iptm_3chain = sp_3chain.get("iptm") or sp_3chain.get("ipTM") or 0.0
+            primary_sp = sp_3chain if iptm_3chain > iptm_scfv else sp
+        else:
+            primary_sp = sp or {}
+
+        if primary_sp:
+            score.iptm = primary_sp.get("iptm") or primary_sp.get("ipTM") or 0.0
+            score.pdockq = primary_sp.get("pdockq")
+            score.interface_area = primary_sp.get("interface_area")
+            score.num_contacts = primary_sp.get("num_contacts")
 
             # Epitope annotation
-            if sp.get("interface_residues_target"):
+            if primary_sp.get("interface_residues_target"):
                 epitope_class, overlap = interface_analyzer.annotate_epitope_class(
-                    sp["interface_residues_target"]
+                    primary_sp["interface_residues_target"]
                 )
                 score.epitope_class = epitope_class
                 score.okt3_overlap = overlap
+
+        # Populate validation scores from step 04a
+        vs = c.get("validation_scores", {})
+        # Use scFv scores by default; fall back to 3-chain for Fabs
+        score.proteinmpnn_ll = vs.get("proteinmpnn_ll_scfv") or vs.get("proteinmpnn_ll_3chain")
+        score.antifold_ll = vs.get("antifold_ll_scfv") or vs.get("antifold_ll_3chain")
+        score.protenix_iptm = vs.get("protenix_iptm")
+        score.protenix_ptm = vs.get("protenix_ptm")
+        score.protenix_ranking_score = vs.get("protenix_ranking_score")
 
         # Liability analysis - scan with CDR detection for accurate filtering
         try:
@@ -218,7 +243,17 @@ def main():
 
     # --- Ranking ---
     ranking_method = config.ranking.method
-    print(f"\nRanking method: {ranking_method}")
+
+    # Auto-fallback: if boltzgen is selected but no candidates have boltzgen_rank, use secondary
+    if ranking_method == "boltzgen" and filtered:
+        has_rank = sum(1 for s in filtered if s.boltzgen_rank is not None)
+        if has_rank == 0:
+            ranking_method = config.ranking.secondary_method
+            print(f"\nNo candidates have boltzgen_rank — falling back to: {ranking_method}")
+        else:
+            print(f"\nRanking method: {ranking_method}")
+    else:
+        print(f"\nRanking method: {ranking_method}")
 
     # Build a lookup from candidate_id to raw data for ptm/plddt extraction
     raw_lookup = {}
@@ -289,6 +324,9 @@ def main():
                 interface_area=score.interface_area or 0.0,
                 num_contacts=score.num_contacts or 0,
                 humanness=score.oasis_score_mean or score.oasis_score_vh or 0.0,
+                proteinmpnn_ll=score.proteinmpnn_ll,
+                antifold_ll=score.antifold_ll,
+                protenix_iptm=score.protenix_iptm,
                 _score_ref=score,
             )
             ranked_candidates.append(rc)
