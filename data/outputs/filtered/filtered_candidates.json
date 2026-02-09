@@ -1,103 +1,30 @@
 {
   "candidates": [
     {
-      "candidate_id": "fab_1XIW_0040",
-      "sequence": "QVQLQESGPGLVKPSQTLSLTCTVSGFSISTSSAYWSWIRQPPGKGLEWIGYISPSGSTDYNPSLKSRVTMSVDTSKNQFSLKVNSVTAADTAVYYCARGGASGGTGGSGGGGGAGTLDYWGQGTLVTVSS",
+      "candidate_id": "fab_1SY6_0004",
+      "sequence": "VQLVESGGGLVQPGRSLRLSCAASGFTFSSYAMHWVRQAPGKGLEWVSGIGTGGGGGGIGYADSVKGRFTISRDNAENSLFLQMNGLRAEDTALYYCAKGGSGFDYWGQGTMVTVSS",
       "sequence_vl": null,
       "binder_type": "fab",
       "source": "unknown",
       "binding": {
-        "iptm": 0.0,
-        "pdockq": 0.0,
-        "pdockq_note": "Structural confidence, NOT affinity predictor",
-        "interface_area": 3040.0,
-        "num_contacts": 60
-      },
-      "epitope": {
-        "epitope_class": "novel_epitope",
-        "okt3_overlap": 0.2
-      },
-      "humanness": {
-        "oasis_score_vh": null,
-        "oasis_score_vl": null,
-        "oasis_score_mean": 0.8066481742936805,
-        "has_back_mutation_variant": false
-      },
-      "liabilities": {
-        "deamidation_sites": [
-          84
-        ],
-        "isomerization_sites": [
-          73,
-          90
-        ],
-        "glycosylation_sites": [],
-        "oxidation_sites": [
-          70,
-          35,
-          37,
-          48,
-          120
-        ],
-        "unpaired_cys": 0,
-        "cdr_deamidation_count": 0,
-        "cdr_isomerization_count": 0,
-        "cdr_glycosylation_count": 0,
-        "cdr_oxidation_count": 0
-      },
-      "developability": {
-        "cdr_h3_length": null,
-        "net_charge": 1.9084755838002412,
-        "isoelectric_point": 8.79443359375,
-        "hydrophobic_patches": 0
-      },
-      "boltzgen_rank": null,
-      "validation": {
-        "proteinmpnn_ll": null,
-        "antifold_ll": null,
-        "protenix_iptm": null,
-        "protenix_ptm": null,
-        "protenix_ranking_score": null
-      },
-      "filter_results": {
-        "binding": "pass",
-        "humanness": "pass",
-        "liabilities": "soft_fail",
-        "developability": "pass",
-        "aggregation": "pass"
-      },
-      "risk_flags": [
-        "liabilities_soft_fail"
-      ],
-      "composite_score": 6.0,
-      "rank": 1
-    },
-    {
-      "candidate_id": "fab_1XIW_0011",
-      "sequence": "EVQLVESGGGLEQPGGSLRLSCAGSGFSFTSGGYAMTWVRQAPGKGLEWVSSISSSGSTYYADSVKGRFTISRDNSKNTLYLQMNSLRAEDTAVYYCAKNYYGYSIGAMDYWGQGTTVTVSS",
-      "sequence_vl": null,
-      "binder_type": "fab",
-      "source": "unknown",
-      "binding": {
-        "iptm": 0.0,
+        "iptm": 0.7172538638114929,
         "pdockq": 0.0,
         "pdockq_note": "Structural confidence, NOT affinity predictor",
         "interface_area": 2720.0,
-        "num_contacts": 49
+        "num_contacts": 45
       },
       "epitope": {
         "epitope_class": "novel_epitope",
-        "okt3_overlap": 0.1111111111111111
+        "okt3_overlap": 0.038461538461538464
       },
       "humanness": {
         "oasis_score_vh": null,
         "oasis_score_vl": null,
-        "oasis_score_mean": 0.8199793671670018,
+        "oasis_score_mean": 0.815563399472043,
         "has_back_mutation_variant": false
       },
       "liabilities": {
         "deamidation_sites": [
-          74,
           84,
           77
         ],
@@ -108,196 +35,45 @@
         ],
         "glycosylation_sites": [],
         "oxidation_sites": [
-          35,
+          32,
           83,
-          108,
-          37,
-          48,
-          111
-        ],
-        "unpaired_cys": 0,
-        "cdr_deamidation_count": 0,
-        "cdr_isomerization_count": 0,
-        "cdr_glycosylation_count": 0,
-        "cdr_oxidation_count": 1
-      },
-      "developability": {
-        "cdr_h3_length": null,
-        "net_charge": -0.08931229358407841,
-        "isoelectric_point": 6.52490234375,
-        "hydrophobic_patches": 0
-      },
-      "boltzgen_rank": null,
-      "validation": {
-        "proteinmpnn_ll": null,
-        "antifold_ll": null,
-        "protenix_iptm": null,
-        "protenix_ptm": null,
-        "protenix_ranking_score": null
-      },
-      "filter_results": {
-        "binding": "pass",
-        "humanness": "pass",
-        "liabilities": "soft_fail",
-        "developability": "pass",
-        "aggregation": "pass"
-      },
-      "risk_flags": [
-        "liabilities_soft_fail"
-      ],
-      "composite_score": 7.0,
-      "rank": 2
-    },
-    {
-      "candidate_id": "fab_1SY6_0015",
-      "sequence": "EVQLVESGGGLVQPGGSLRLSCAASGSYTFSDYWMNWVRQAPGKGLEWVAAISSSGDYKYYVGSVKGRFTISRDNAKNSLYLQMNSLRVEDTAVYYCVRETGIYGALDYWGRGTLVTVSS",
-      "sequence_vl": null,
-      "binder_type": "fab",
-      "source": "unknown",
-      "binding": {
-        "iptm": 0.0,
-        "pdockq": 0.0,
-        "pdockq_note": "Structural confidence, NOT affinity predictor",
-        "interface_area": 4800.0,
-        "num_contacts": 83
-      },
-      "epitope": {
-        "epitope_class": "novel_epitope",
-        "okt3_overlap": 0.09523809523809523
-      },
-      "humanness": {
-        "oasis_score_vh": null,
-        "oasis_score_vl": null,
-        "oasis_score_mean": 0.8144960524824758,
-        "has_back_mutation_variant": false
-      },
-      "liabilities": {
-        "deamidation_sites": [
-          77,
-          84
-        ],
-        "isomerization_sites": [
-          90,
-          73
-        ],
-        "glycosylation_sites": [],
-        "oxidation_sites": [
+          111,
           34,
-          83,
-          33,
-          36,
-          47,
-          109
+          45,
+          106
         ],
         "unpaired_cys": 0,
         "cdr_deamidation_count": 0,
-        "cdr_isomerization_count": 0,
-        "cdr_glycosylation_count": 0,
-        "cdr_oxidation_count": 1
-      },
-      "developability": {
-        "cdr_h3_length": null,
-        "net_charge": 0.9114049953479517,
-        "isoelectric_point": 8.17919921875,
-        "hydrophobic_patches": 1
-      },
-      "boltzgen_rank": null,
-      "validation": {
-        "proteinmpnn_ll": null,
-        "antifold_ll": null,
-        "protenix_iptm": null,
-        "protenix_ptm": null,
-        "protenix_ranking_score": null
-      },
-      "filter_results": {
-        "binding": "pass",
-        "humanness": "pass",
-        "liabilities": "soft_fail",
-        "developability": "pass",
-        "aggregation": "pass"
-      },
-      "risk_flags": [
-        "liabilities_soft_fail"
-      ],
-      "composite_score": 8.0,
-      "rank": 3
-    },
-    {
-      "candidate_id": "vhh_1XIW_0008",
-      "sequence": "EVQLVESGGGLVQAGGSLRLSEAASGFTFSSYYMSWVRQAPGKGWEFVASISSSGNTNYADSVKGRFTISRDNAKNTLYLQMNSLKPEDTAVYYWVAGKGSTDYWGQGTLVTVSS",
-      "sequence_vl": null,
-      "binder_type": "vhh",
-      "source": "unknown",
-      "binding": {
-        "iptm": 0.0,
-        "pdockq": 0.0,
-        "pdockq_note": "Structural confidence, NOT affinity predictor",
-        "interface_area": 2400.0,
-        "num_contacts": 37
-      },
-      "epitope": {
-        "epitope_class": "novel_epitope",
-        "okt3_overlap": 0.16666666666666666
-      },
-      "humanness": {
-        "oasis_score_vh": null,
-        "oasis_score_vl": null,
-        "oasis_score_mean": 0.7846889296668055,
-        "has_back_mutation_variant": false
-      },
-      "liabilities": {
-        "deamidation_sites": [
-          82,
-          55,
-          75
-        ],
-        "isomerization_sites": [
-          60,
-          88,
-          71
-        ],
-        "glycosylation_sites": [],
-        "oxidation_sites": [
-          33,
-          81,
-          35,
-          44,
-          94,
-          104
-        ],
-        "unpaired_cys": 0,
-        "cdr_deamidation_count": 1,
         "cdr_isomerization_count": 0,
         "cdr_glycosylation_count": 0,
         "cdr_oxidation_count": 0
       },
       "developability": {
         "cdr_h3_length": null,
-        "net_charge": 0.002314245262701597,
-        "isoelectric_point": 7.04443359375,
+        "net_charge": 1.0043654682225212,
+        "isoelectric_point": 8.23388671875,
         "hydrophobic_patches": 0
       },
       "boltzgen_rank": null,
       "validation": {
-        "proteinmpnn_ll": null,
-        "antifold_ll": null,
-        "protenix_iptm": null,
-        "protenix_ptm": null,
-        "protenix_ranking_score": null
+        "proteinmpnn_ll": 1.104947566986084,
+        "antifold_ll": -0.38506188882812553,
+        "protenix_iptm": 0.2886556386947632,
+        "protenix_ptm": 0.6608272194862366,
+        "protenix_ranking_score": 0.36308997869491577
       },
       "filter_results": {
         "binding": "pass",
-        "humanness": "fail",
-        "liabilities": "fail",
+        "humanness": "pass",
+        "liabilities": "soft_fail",
         "developability": "pass",
-        "aggregation": "soft_fail"
+        "aggregation": "pass"
       },
       "risk_flags": [
-        "aggregation_soft_fail",
-        "ACCEPTED_VIA_FALLBACK_THRESHOLD_10PCT"
+        "liabilities_soft_fail"
       ],
-      "composite_score": 8.0,
-      "rank": 4
+      "composite_score": 5.0,
+      "rank": 1
     },
     {
       "candidate_id": "fab_1SY6_0044",
@@ -306,20 +82,20 @@
       "binder_type": "fab",
       "source": "unknown",
       "binding": {
-        "iptm": 0.0,
+        "iptm": 0.6865497827529907,
         "pdockq": 0.0,
         "pdockq_note": "Structural confidence, NOT affinity predictor",
-        "interface_area": 5200.0,
-        "num_contacts": 97
+        "interface_area": 5280.0,
+        "num_contacts": 99
       },
       "epitope": {
         "epitope_class": "novel_epitope",
-        "okt3_overlap": 0.1
+        "okt3_overlap": 0.07142857142857142
       },
       "humanness": {
         "oasis_score_vh": null,
         "oasis_score_vl": null,
-        "oasis_score_mean": 0.8104279559930084,
+        "oasis_score_mean": 0.8104279488172443,
         "has_back_mutation_variant": false
       },
       "liabilities": {
@@ -357,11 +133,11 @@
       },
       "boltzgen_rank": null,
       "validation": {
-        "proteinmpnn_ll": null,
-        "antifold_ll": null,
-        "protenix_iptm": null,
-        "protenix_ptm": null,
-        "protenix_ranking_score": null
+        "proteinmpnn_ll": 1.319314956665039,
+        "antifold_ll": -0.6474545568539767,
+        "protenix_iptm": 0.24513915181159973,
+        "protenix_ptm": 0.6442346572875977,
+        "protenix_ranking_score": 0.32495826482772827
       },
       "filter_results": {
         "binding": "pass",
@@ -374,161 +150,8 @@
         "liabilities_soft_fail",
         "developability_soft_fail"
       ],
-      "composite_score": 8.0,
-      "rank": 5
-    },
-    {
-      "candidate_id": "vhh_1XIW_0006",
-      "sequence": "EVQLVESGGGLVQPGGSLRLSEAASGFTFSSYSMGWFRQAPGKEREFVAGISSDGSYTYYADSVKGRFTISRDNAKNTLYLQMNSLKAEDTAVYYEAAASNDQDLDDAAAGDYSSFDYWGQGTQVTVSSA",
-      "sequence_vl": null,
-      "binder_type": "vhh",
-      "source": "unknown",
-      "binding": {
-        "iptm": 0.0,
-        "pdockq": 0.0,
-        "pdockq_note": "Structural confidence, NOT affinity predictor",
-        "interface_area": 3440.0,
-        "num_contacts": 69
-      },
-      "epitope": {
-        "epitope_class": "novel_epitope",
-        "okt3_overlap": 0.1935483870967742
-      },
-      "humanness": {
-        "oasis_score_vh": null,
-        "oasis_score_vl": null,
-        "oasis_score_mean": 0.7556548944835623,
-        "has_back_mutation_variant": false
-      },
-      "liabilities": {
-        "deamidation_sites": [
-          83,
-          76,
-          100
-        ],
-        "isomerization_sites": [
-          53,
-          61,
-          89,
-          105,
-          72
-        ],
-        "glycosylation_sites": [],
-        "oxidation_sites": [
-          33,
-          82,
-          35,
-          118
-        ],
-        "unpaired_cys": 0,
-        "cdr_deamidation_count": 1,
-        "cdr_isomerization_count": 2,
-        "cdr_glycosylation_count": 0,
-        "cdr_oxidation_count": 0
-      },
-      "developability": {
-        "cdr_h3_length": null,
-        "net_charge": -7.991201145935375,
-        "isoelectric_point": 4.07763671875,
-        "hydrophobic_patches": 0
-      },
-      "boltzgen_rank": null,
-      "validation": {
-        "proteinmpnn_ll": null,
-        "antifold_ll": null,
-        "protenix_iptm": null,
-        "protenix_ptm": null,
-        "protenix_ranking_score": null
-      },
-      "filter_results": {
-        "binding": "pass",
-        "humanness": "fail",
-        "liabilities": "fail",
-        "developability": "soft_fail",
-        "aggregation": "pass"
-      },
-      "risk_flags": [
-        "developability_soft_fail",
-        "ACCEPTED_VIA_FALLBACK_THRESHOLD_10PCT"
-      ],
-      "composite_score": 9.0,
-      "rank": 6
-    },
-    {
-      "candidate_id": "vhh_1XIW_0005",
-      "sequence": "QVQLVESGGGLVQAGGSLRLSEAASGFTFSSYGMGWFRQAPGKGREFVAYISSSGSTSYADSVKGRFTISRDNSKNTLYLQMNSLKPEDTAVYYEARGRGGAFDYWGQGTQVTVS",
-      "sequence_vl": null,
-      "binder_type": "vhh",
-      "source": "unknown",
-      "binding": {
-        "iptm": 0.0,
-        "pdockq": 0.0,
-        "pdockq_note": "Structural confidence, NOT affinity predictor",
-        "interface_area": 2320.0,
-        "num_contacts": 40
-      },
-      "epitope": {
-        "epitope_class": "novel_epitope",
-        "okt3_overlap": 0.038461538461538464
-      },
-      "humanness": {
-        "oasis_score_vh": null,
-        "oasis_score_vl": null,
-        "oasis_score_mean": 0.7888176125960181,
-        "has_back_mutation_variant": false
-      },
-      "liabilities": {
-        "deamidation_sites": [
-          72,
-          82,
-          75
-        ],
-        "isomerization_sites": [
-          60,
-          88,
-          71
-        ],
-        "glycosylation_sites": [],
-        "oxidation_sites": [
-          33,
-          81,
-          35,
-          105
-        ],
-        "unpaired_cys": 0,
-        "cdr_deamidation_count": 0,
-        "cdr_isomerization_count": 0,
-        "cdr_glycosylation_count": 0,
-        "cdr_oxidation_count": 0
-      },
-      "developability": {
-        "cdr_h3_length": null,
-        "net_charge": 2.0025993452139548,
-        "isoelectric_point": 9.44384765625,
-        "hydrophobic_patches": 0
-      },
-      "boltzgen_rank": null,
-      "validation": {
-        "proteinmpnn_ll": null,
-        "antifold_ll": null,
-        "protenix_iptm": null,
-        "protenix_ptm": null,
-        "protenix_ranking_score": null
-      },
-      "filter_results": {
-        "binding": "pass",
-        "humanness": "fail",
-        "liabilities": "soft_fail",
-        "developability": "soft_fail",
-        "aggregation": "pass"
-      },
-      "risk_flags": [
-        "liabilities_soft_fail",
-        "developability_soft_fail",
-        "ACCEPTED_VIA_FALLBACK_THRESHOLD_10PCT"
-      ],
-      "composite_score": 9.0,
-      "rank": 7
+      "composite_score": 5.0,
+      "rank": 2
     },
     {
       "candidate_id": "fab_1XIW_0008",
@@ -537,20 +160,20 @@
       "binder_type": "fab",
       "source": "unknown",
       "binding": {
-        "iptm": 0.0,
+        "iptm": 0.2842409610748291,
         "pdockq": 0.0,
         "pdockq_note": "Structural confidence, NOT affinity predictor",
         "interface_area": 2160.0,
-        "num_contacts": 28
+        "num_contacts": 32
       },
       "epitope": {
         "epitope_class": "novel_epitope",
-        "okt3_overlap": 0.07142857142857142
+        "okt3_overlap": 0.08
       },
       "humanness": {
         "oasis_score_vh": null,
         "oasis_score_vl": null,
-        "oasis_score_mean": 0.867401029725196,
+        "oasis_score_mean": 0.8674010117932901,
         "has_back_mutation_variant": false
       },
       "liabilities": {
@@ -583,11 +206,11 @@
       },
       "boltzgen_rank": null,
       "validation": {
-        "proteinmpnn_ll": null,
-        "antifold_ll": null,
-        "protenix_iptm": null,
-        "protenix_ptm": null,
-        "protenix_ranking_score": null
+        "proteinmpnn_ll": 1.3511292934417725,
+        "antifold_ll": -0.25299105262658567,
+        "protenix_iptm": 0.213731050491333,
+        "protenix_ptm": 0.6316161751747131,
+        "protenix_ranking_score": 0.297308087348938
       },
       "filter_results": {
         "binding": "pass",
@@ -600,98 +223,21 @@
         "liabilities_soft_fail",
         "aggregation_soft_fail"
       ],
-      "composite_score": 10.0,
-      "rank": 8
+      "composite_score": 5.0,
+      "rank": 3
     },
     {
-      "candidate_id": "vhh_1XIW_0001",
-      "sequence": "EVQLVESGGGLVQAGGSLRLSEAASGFTFSSYAMGWFRQAPGKEREFVAAISSSGSSTYYADSVKGRFTISRDNAKNTLYLQMNSLKPEDTAVYYAARGPALSDSDLLSATMDDFDYWGQGTQVTVSS",
-      "sequence_vl": null,
-      "binder_type": "vhh",
-      "source": "unknown",
-      "binding": {
-        "iptm": 0.0,
-        "pdockq": 0.0,
-        "pdockq_note": "Structural confidence, NOT affinity predictor",
-        "interface_area": 2480.0,
-        "num_contacts": 43
-      },
-      "epitope": {
-        "epitope_class": "novel_epitope",
-        "okt3_overlap": 0.16
-      },
-      "humanness": {
-        "oasis_score_vh": null,
-        "oasis_score_vl": null,
-        "oasis_score_mean": 0.7555926195655047,
-        "has_back_mutation_variant": false
-      },
-      "liabilities": {
-        "deamidation_sites": [
-          83,
-          76
-        ],
-        "isomerization_sites": [
-          61,
-          103,
-          89,
-          112,
-          72
-        ],
-        "glycosylation_sites": [],
-        "oxidation_sites": [
-          33,
-          82,
-          111,
-          35,
-          117
-        ],
-        "unpaired_cys": 0,
-        "cdr_deamidation_count": 0,
-        "cdr_isomerization_count": 2,
-        "cdr_glycosylation_count": 0,
-        "cdr_oxidation_count": 1
-      },
-      "developability": {
-        "cdr_h3_length": null,
-        "net_charge": -3.992726574609868,
-        "isoelectric_point": 4.44677734375,
-        "hydrophobic_patches": 1
-      },
-      "boltzgen_rank": null,
-      "validation": {
-        "proteinmpnn_ll": null,
-        "antifold_ll": null,
-        "protenix_iptm": null,
-        "protenix_ptm": null,
-        "protenix_ranking_score": null
-      },
-      "filter_results": {
-        "binding": "pass",
-        "humanness": "fail",
-        "liabilities": "fail",
-        "developability": "soft_fail",
-        "aggregation": "pass"
-      },
-      "risk_flags": [
-        "developability_soft_fail",
-        "ACCEPTED_VIA_FALLBACK_THRESHOLD_10PCT"
-      ],
-      "composite_score": 10.0,
-      "rank": 9
-    },
-    {
-      "candidate_id": "fab_1SY6_0011",
-      "sequence": "QVQLQESGPGLVKPSQTLSLTCTVSGFSLTSGYYWSWIRQPPGKGLEWIGYISSKYSPPYTDYNPSLKSRVTMSVDTSKNQFSLKVNSVTAADTAVYYCARDWKYWGQGTLVTVSS",
+      "candidate_id": "fab_1SY6_0015",
+      "sequence": "EVQLVESGGGLVQPGGSLRLSCAASGSYTFSDYWMNWVRQAPGKGLEWVAAISSSGDYKYYVGSVKGRFTISRDNAKNSLYLQMNSLRVEDTAVYYCVRETGIYGALDYWGRGTLVTVSS",
       "sequence_vl": null,
       "binder_type": "fab",
       "source": "unknown",
       "binding": {
-        "iptm": 0.0,
+        "iptm": 0.2519780993461609,
         "pdockq": 0.0,
         "pdockq_note": "Structural confidence, NOT affinity predictor",
-        "interface_area": 2720.0,
-        "num_contacts": 43
+        "interface_area": 2160.0,
+        "num_contacts": 34
       },
       "epitope": {
         "epitope_class": "novel_epitope",
@@ -700,25 +246,26 @@
       "humanness": {
         "oasis_score_vh": null,
         "oasis_score_vl": null,
-        "oasis_score_mean": 0.8152474517741337,
+        "oasis_score_mean": 0.8144960593432188,
         "has_back_mutation_variant": false
       },
       "liabilities": {
         "deamidation_sites": [
-          86
+          77,
+          84
         ],
         "isomerization_sites": [
-          75,
-          92
+          90,
+          73
         ],
         "glycosylation_sites": [],
         "oxidation_sites": [
-          72,
           34,
+          83,
+          33,
           36,
           47,
-          102,
-          105
+          109
         ],
         "unpaired_cys": 0,
         "cdr_deamidation_count": 0,
@@ -728,47 +275,116 @@
       },
       "developability": {
         "cdr_h3_length": null,
-        "net_charge": 3.905334273441294,
-        "isoelectric_point": 9.34814453125,
-        "hydrophobic_patches": 0
+        "net_charge": 0.9114049953479517,
+        "isoelectric_point": 8.17919921875,
+        "hydrophobic_patches": 1
       },
       "boltzgen_rank": null,
       "validation": {
-        "proteinmpnn_ll": null,
-        "antifold_ll": null,
-        "protenix_iptm": null,
-        "protenix_ptm": null,
-        "protenix_ranking_score": null
+        "proteinmpnn_ll": 1.2941210269927979,
+        "antifold_ll": -0.5611837424598993,
+        "protenix_iptm": 0.3433252274990082,
+        "protenix_ptm": 0.6545484066009521,
+        "protenix_ranking_score": 0.4055698812007904
       },
       "filter_results": {
         "binding": "pass",
         "humanness": "pass",
         "liabilities": "soft_fail",
-        "developability": "soft_fail",
-        "aggregation": "soft_fail"
+        "developability": "pass",
+        "aggregation": "pass"
       },
       "risk_flags": [
-        "liabilities_soft_fail",
-        "developability_soft_fail",
-        "aggregation_soft_fail"
+        "liabilities_soft_fail"
       ],
-      "composite_score": 10.0,
-      "rank": 10
+      "composite_score": 5.0,
+      "rank": 4
+    },
+    {
+      "candidate_id": "fab_1XIW_0011",
+      "sequence": "EVQLVESGGGLEQPGGSLRLSCAGSGFSFTSGGYAMTWVRQAPGKGLEWVSSISSSGSTYYADSVKGRFTISRDNSKNTLYLQMNSLRAEDTAVYYCAKNYYGYSIGAMDYWGQGTTVTVSS",
+      "sequence_vl": null,
+      "binder_type": "fab",
+      "source": "unknown",
+      "binding": {
+        "iptm": 0.2271115928888321,
+        "pdockq": 0.0,
+        "pdockq_note": "Structural confidence, NOT affinity predictor",
+        "interface_area": 2880.0,
+        "num_contacts": 40
+      },
+      "epitope": {
+        "epitope_class": "novel_epitope",
+        "okt3_overlap": 0.16
+      },
+      "humanness": {
+        "oasis_score_vh": null,
+        "oasis_score_vl": null,
+        "oasis_score_mean": 0.819979403534385,
+        "has_back_mutation_variant": false
+      },
+      "liabilities": {
+        "deamidation_sites": [
+          74,
+          84,
+          77
+        ],
+        "isomerization_sites": [
+          62,
+          90,
+          73
+        ],
+        "glycosylation_sites": [],
+        "oxidation_sites": [
+          35,
+          83,
+          108,
+          37,
+          48,
+          111
+        ],
+        "unpaired_cys": 0,
+        "cdr_deamidation_count": 0,
+        "cdr_isomerization_count": 0,
+        "cdr_glycosylation_count": 0,
+        "cdr_oxidation_count": 1
+      },
+      "developability": {
+        "cdr_h3_length": null,
+        "net_charge": -0.08931229358407841,
+        "isoelectric_point": 6.52490234375,
+        "hydrophobic_patches": 0
+      },
+      "boltzgen_rank": null,
+      "validation": {
+        "proteinmpnn_ll": 1.3601654767990112,
+        "antifold_ll": -0.4549916159718024,
+        "protenix_iptm": 0.24509213864803314,
+        "protenix_ptm": 0.6438024640083313,
+        "protenix_ranking_score": 0.3248342275619507
+      },
+      "filter_results": {
+        "binding": "pass",
+        "humanness": "pass",
+        "liabilities": "soft_fail",
+        "developability": "pass",
+        "aggregation": "pass"
+      },
+      "risk_flags": [
+        "liabilities_soft_fail"
+      ],
+      "composite_score": 5.0,
+      "rank": 5
     }
   ],
-  "count": 10,
+  "count": 5,
   "filter_stats": {
-    "total_input": 192,
-    "passing_first_pass": 6,
-    "failing_first_pass": 186,
-    "relaxations_applied": [
-      "vhh_1XIW_0001: threshold relaxation (10%)",
-      "vhh_1XIW_0005: threshold relaxation (10%)",
-      "vhh_1XIW_0006: threshold relaxation (10%)",
-      "vhh_1XIW_0008: threshold relaxation (10%)"
-    ],
-    "final_passing": 10,
-    "used_fallback": true,
+    "total_input": 5,
+    "passing_first_pass": 5,
+    "failing_first_pass": 0,
+    "relaxations_applied": [],
+    "final_passing": 5,
+    "used_fallback": false,
     "ranking_method": "worst_metric_rank",
     "diversity_selection": true
   }

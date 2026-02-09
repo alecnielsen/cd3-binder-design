@@ -230,7 +230,7 @@ modal deploy modal/boltzgen_app.py
 modal deploy modal/boltz2_app.py
 modal deploy modal/protenix_app.py       # For validation step
 
-# Optional: affinity scoring tools (for step 05b validation)
+# Affinity scoring tools (required for step 04a scoring)
 pip install proteinmpnn                   # MIT, inverse folding
 pip install antifold                      # BSD-3, antibody-specific
 ```

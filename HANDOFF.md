@@ -1,10 +1,10 @@
 # Handoff Notes - CD3 Binder Design Pipeline
 
-## Current Status (2026-02-08)
+## Current Status (2026-02-09)
 
-### Pipeline: ENHANCED FOR NEXT RUN
+### Pipeline: ENHANCED AND VALIDATED
 
-100x scale run completed previously (192 designs → 10 candidates). Pipeline now enhanced with:
+100x scale run completed previously (192 designs → 10 candidates). Pipeline enhanced and test-validated with:
 - **Step 04a** (pre-filter + scoring): Hard pre-filter → ProteinMPNN + AntiFold + Protenix scoring before ranking
 - **Dual Fab prediction**: Fabs predicted as both scFv (2-chain) and VH+VL+target (3-chain)
 - **Validation scores in ranking**: ProteinMPNN, AntiFold, Protenix ipTM now used as ranking metrics (not just informational)
@@ -190,7 +190,24 @@ All 10 candidates re-predicted with Protenix on Modal H100:
 
 **Key finding**: `vhh_1XIW_0006` scored 0.570 ipTM on Protenix — very strong for de novo design. All 10 candidates had ipTM disagreement >0.1 between Boltz-2 and Protenix, which is expected for de novo designs (different models weight different structural features).
 
-**ProteinMPNN/AntiFold**: Not scored (CIF files from original Boltz-2 runs were not saved to disk; only available for future pipeline runs with `export_cif: true`).
+**ProteinMPNN/AntiFold**: Not scored in 100x run (CIF files from original runs were not saved). Now working — see test run below.
+
+### Test Run: Enhanced Pipeline (2026-02-09)
+
+Small test run (5 VHH + 5 Fab) to validate all pipeline enhancements. Full end-to-end with all scoring tools.
+
+| Step | Result |
+|------|--------|
+| Design | 12 designs (6 VHH + 6 Fab) |
+| Structure prediction | 250 candidates (12 new + 238 from previous runs) |
+| Hard pre-filter (04a) | 5/250 passed (131 rejected humanness, 43 interface area) |
+| ProteinMPNN | 5/5 scored (LL range: 1.10 - 1.36) |
+| AntiFold | 5/5 scored (LL range: -0.25 to -0.65) |
+| Protenix | 5/5 scored (ipTM range: 0.21 - 0.34) |
+| Ranking | worst_metric_rank (no boltzgen_rank in old data) |
+| Cross-validation | 2/5 ipTM disagreements flagged |
+
+**Key finding**: All scoring tools working end-to-end. ProteinMPNN required CIF→PDB conversion (parse_PDB doesn't handle CIF). AntiFold required `custom_chain_mode=True` for single-chain (scFv) structures.
 
 ### Key Observations
 
@@ -198,6 +215,7 @@ All 10 candidates re-predicted with Protenix on Modal H100:
 2. **Scaling improved quality** - Top score increased 11%, more diverse candidates
 3. **Modal timeouts manageable** - 86% success rate, plenty of candidates despite failures
 4. **Protenix cross-validation complete** - All 10 candidates predicted, vhh_1XIW_0006 strongest
+5. **All scoring tools validated** - ProteinMPNN, AntiFold, Protenix all working in step 04a
 
 ---
 
@@ -260,7 +278,17 @@ Step 04 re-runs Boltz-2 to extract these interface metrics. It also processes th
 
 ## Fixes Applied
 
-### Session 2026-02-07 (Latest)
+### Session 2026-02-09 (Latest)
+
+1. **affinity_scoring.py rewritten with real APIs** - Previous version used non-existent placeholder imports (`from proteinmpnn import score_complex`). Rewritten to use actual ProteinMPNN API (`parse_PDB`, `tied_featurize`, model forward pass, `_scores`) and AntiFold API (`load_model`, `get_pdbs_logits`).
+2. **CIF→PDB conversion for ProteinMPNN** - `parse_PDB` only handles PDB format. Added `_cif_to_pdb()` using BioPython `MMCIFParser` + `PDBIO` with temp file cleanup.
+3. **AntiFold custom_chain_mode** - For VHH/scFv (single binder chain), AntiFold requires `custom_chain_mode=True` and `Lchain=None`. Without this, it errors on missing Lchain column.
+4. **AntiFold residue column** - Logits DataFrame uses `pdb_res` column (not `wt`). Fixed NLL computation to check both.
+5. **Step 05b display fix** - ProteinMPNN/AntiFold count now checks both `proteinmpnn_ll` and `proteinmpnn_ll_scfv` key patterns (step 05 stores without `_scfv` suffix).
+6. **ProteinMPNN + AntiFold installed** - `pip install proteinmpnn antifold` in conda env. Note: downgrades torch 2.8.0→2.3.1.
+7. **Test run validated** - Full pipeline with all scoring tools: 5 candidates × 3 scoring tools = 15 successful scores.
+
+### Session 2026-02-07
 
 1. **Protenix CUDA devel image** - Protenix JIT-compiles CUDA kernels (e.g., `fast_layer_norm_cuda_v2`), requiring `nvcc`. Switched from `debian_slim` to `nvidia/cuda:12.4.1-devel-ubuntu22.04` base image.
 2. **Protenix warmup replaces download** - Protenix auto-downloads weights on first prediction; no `download_weights` module exists. Added `warmup()` function that runs a minimal 2-chain prediction to cache weights.
@@ -468,11 +496,13 @@ validation:
 
 ### Dependencies
 ```bash
-pip install proteinmpnn antifold     # Local (conda env)
-modal deploy modal/protenix_app.py   # Modal GPU (uses CUDA devel image)
-modal deploy modal/boltz2_app.py     # Redeploy for predict_complex_multichain()
+pip install proteinmpnn antifold     # Local (conda env) — ✅ installed, working
+modal deploy modal/protenix_app.py   # Modal GPU (uses CUDA devel image) — ✅ deployed
+modal deploy modal/boltz2_app.py     # Redeploy for predict_complex_multichain() — ✅ deployed
 modal run modal/protenix_app.py --warmup-flag  # Pre-download weights via minimal prediction
 ```
+
+**Note**: `pip install proteinmpnn antifold` downgrades torch to 2.3.1. This is fine for local CPU scoring but not for Modal GPU (Modal images have their own torch).
 
 ---
 

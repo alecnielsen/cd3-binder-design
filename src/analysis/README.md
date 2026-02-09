@@ -138,13 +138,19 @@ for r in results:
     print(f"{r.design_id}: MPNN={r.proteinmpnn_ll}, AF={r.antifold_ll}")
 ```
 
+### Implementation Details
+
+- **ProteinMPNN** uses `parse_PDB` → `tied_featurize` → model forward pass → `_scores`. Since `parse_PDB` only handles PDB format, CIF files are converted via `_cif_to_pdb()` (BioPython `MMCIFParser` + `PDBIO`). Model weights: `v_48_020.pt` (vanilla, 48 edges, 0.2Å noise). Cached globally to avoid reloading per candidate.
+- **AntiFold** uses `load_model()` → `get_pdbs_logits()` with a DataFrame specifying chain mappings. For VHH/scFv (single binder chain B), requires `custom_chain_mode=True` and `Lchain=None`. For 3-chain Fab files, uses standard mode with `Hchain="B"`, `Lchain="C"`. NLL computed from `pdb_res` column and amino acid logit columns.
+
 ### Important Caveats
 
 - Log-likelihoods are NOT direct affinity predictors
 - Higher values indicate better structural complementarity, which correlates with binding
 - ProteinMPNN operates on the Boltz-2 predicted structure, so errors in prediction propagate
-- Both tools run locally on CPU; no Modal/GPU required for 10 candidates
+- Both tools run locally on CPU; no Modal/GPU required
 - If a tool is not installed, `batch_score_affinity()` returns an error message (not an exception)
+- `pip install proteinmpnn antifold` downgrades torch to 2.3.1 — no impact on CPU scoring
 
 ### ANTIPASTI (Deprecated)
 

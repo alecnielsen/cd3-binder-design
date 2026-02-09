@@ -1,0 +1,105 @@
+design:
+  num_vhh_designs: 5
+  num_fab_designs: 5
+  target_structures:
+  - data/targets/1XIW.pdb
+  - data/targets/1SY6.pdb
+  fab_scaffolds:
+  - adalimumab
+  - belimumab
+  - dupilumab
+  fab_scaffold_dir: data/fab_scaffolds
+  starting_sequences:
+  - teplizumab
+  - sp34
+  - ucht1
+  affinity_variants:
+  - wild_type
+  - 10x_weaker
+  - 100x_weaker
+calibration:
+  positive_controls:
+  - teplizumab
+  - sp34
+  - ucht1
+  pdockq_margin: 0.05
+  interface_area_margin: 100
+  contacts_margin: 2
+  run_validation_baselines: true
+filtering:
+  min_pdockq: 0.5
+  min_interface_area: 800
+  min_contacts: 10
+  use_calibrated: true
+  min_oasis_score: 0.8
+  generate_back_mutations: true
+  allow_deamidation_cdr: false
+  allow_isomerization_cdr: false
+  allow_glycosylation_cdr: false
+  max_oxidation_sites: 2
+  cdr_h3_length_range:
+  - 8
+  - 20
+  net_charge_range:
+  - -2
+  - 4
+  pi_range:
+  - 6.0
+  - 9.0
+  max_hydrophobic_patches: 2
+  min_candidates: 5
+  relax_soft_filters_first: true
+  max_threshold_relaxation: 0.1
+formatting:
+  tumor_target: trastuzumab
+  formats:
+  - crossmab
+  - fab_scfv
+  - fab_vhh
+  - igg_scfv
+  - igg_vhh
+  scfv_linker: GGGGSGGGGSGGGGS
+  fc_fusion_linker: GGGGSGGGGS
+ranking:
+  method: boltzgen
+  secondary_method: worst_metric_rank
+  metric_weights:
+    iptm: 1
+    ptm: 1
+    interface_area: 1
+    humanness: 1
+    num_contacts: 2
+    plddt: 2
+    proteinmpnn_ll: 1
+    antifold_ll: 2
+    protenix_iptm: 1
+  diversity_alpha: 0.001
+  use_diversity_selection: true
+output:
+  num_final_candidates: 5
+  include_structures: true
+  generate_report: true
+  include_provenance: true
+  output_dir: data/outputs
+  export_cif: true
+reproducibility:
+  boltzgen_seed: 42
+  sampling_seed: 12345
+  clustering_seed: 0
+epitope:
+  okt3_epitope_residues: null
+  overlap_threshold: 0.5
+validation:
+  enabled: true
+  run_protenix: true
+  run_proteinmpnn: true
+  run_antifold: true
+  protenix_model: protenix_base_default_v1.0.0
+  protenix_use_msa: false
+  protenix_seeds:
+  - 101
+  iptm_disagreement_threshold: 0.1
+calibrated_thresholds:
+  min_pdockq: 0.0
+  min_interface_area: 2060.0
+  min_contacts: 28

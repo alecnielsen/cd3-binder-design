@@ -22,6 +22,89 @@
       "notes": "Wild-type (no mutations)"
     },
     {
+      "name": "teplizumab_original_VH:Y55A",
+      "parent_name": "teplizumab_original",
+      "vh": "QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGAINPSRGYTNYNQKFKD KATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTLTVSS",
+      "vl": "QIVLTQSPAIMSASPGEKVTMTCSASSSVSYMNWYQQKSGTSPKRWIYDTSKLASGVPAHFRGSGS GTSYSLTISGMEAEDAATYYCQQWSSNPFTFGSGTKLEINR",
+      "mutations": [
+        {
+          "position": 55,
+          "chain": "VH",
+          "wild_type": "Y",
+          "mutant": "A",
+          "effect": "weaker",
+          "fold_change": 10,
+          "source": "literature",
+          "notes": "Tyrosine at IMGT 55 (just before CDR-H2) makes key contact with CD3\u03b5"
+        }
+      ],
+      "mutation_strings": [
+        "VH:Y55A"
+      ],
+      "predicted_fold_change": 10,
+      "affinity_class": "10x_weaker",
+      "notes": "Single mutation: VH:Y55A"
+    },
+    {
+      "name": "teplizumab_original_VH:R62A",
+      "parent_name": "teplizumab_original",
+      "vh": "QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPSAGYTNYNQKFKD KATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTLTVSS",
+      "vl": "QIVLTQSPAIMSASPGEKVTMTCSASSSVSYMNWYQQKSGTSPKRWIYDTSKLASGVPAHFRGSGS GTSYSLTISGMEAEDAATYYCQQWSSNPFTFGSGTKLEINR",
+      "mutations": [
+        {
+          "position": 62,
+          "chain": "VH",
+          "wild_type": "R",
+          "mutant": "A",
+          "effect": "weaker",
+          "fold_change": 5,
+          "source": "literature",
+          "notes": "Arginine at IMGT 62 contributes to electrostatic interactions"
+        }
+      ],
+      "mutation_strings": [
+        "VH:R62A"
+      ],
+      "predicted_fold_change": 5,
+      "affinity_class": "10x_weaker",
+      "notes": "Single mutation: VH:R62A"
+    },
+    {
+      "name": "teplizumab_original_A55_A62",
+      "parent_name": "teplizumab_original",
+      "vh": "QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGAINPSAGYTNYNQKFKD KATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTLTVSS",
+      "vl": "QIVLTQSPAIMSASPGEKVTMTCSASSSVSYMNWYQQKSGTSPKRWIYDTSKLASGVPAHFRGSGS GTSYSLTISGMEAEDAATYYCQQWSSNPFTFGSGTKLEINR",
+      "mutations": [
+        {
+          "position": 55,
+          "chain": "VH",
+          "wild_type": "Y",
+          "mutant": "A",
+          "effect": "weaker",
+          "fold_change": 10,
+          "source": "literature",
+          "notes": "Tyrosine at IMGT 55 (just before CDR-H2) makes key contact with CD3\u03b5"
+        },
+        {
+          "position": 62,
+          "chain": "VH",
+          "wild_type": "R",
+          "mutant": "A",
+          "effect": "weaker",
+          "fold_change": 5,
+          "source": "literature",
+          "notes": "Arginine at IMGT 62 contributes to electrostatic interactions"
+        }
+      ],
+      "mutation_strings": [
+        "VH:Y55A",
+        "VH:R62A"
+      ],
+      "predicted_fold_change": 50.0,
+      "affinity_class": "100x_weaker",
+      "notes": "Combination: VH:Y55A, VH:R62A. EPISTASIS WARNING: Fold change is estimated assuming mutation independence. Actual affinity may differ significantly due to synergistic or antagonistic interactions between mutations."
+    },
+    {
       "name": "sp34_original",
       "parent_name": "sp34",
       "vh": "QVQLQQPGAELVKPGASVKLSCKASGYTFTDYNMHWVKQTPGQGLEWIGVIHPNYGGTSYNQKFKG KATLTVDKSSSTAYMELRSLTSEDSAVYYCARDYYGSSHYAMDYWGQGTSVTVSS",
@@ -49,7 +132,7 @@
       "vl": "DIQMTQSPASLSASVGETVTITCRASENIYSYLAWYQQKQGKSPQLLVYNTKTLAEGVPSRFSGSGS GTQFSLKINSLQPEDFGSYYCQHHYGTPFTFGSGTKLEIK",
       "variant_type": "humanized",
       "mutations": [],
-      "humanness_score": null,
+      "humanness_score": 0.7261463519166323,
       "notes": "Humanized with sapiens"
     },
     {
@@ -91,7 +174,7 @@
       "vl": "DIQMTQSPSSLSASLGERVSLTCRASQDIRNYLNWYQQKPDGTVKLLIYYTSRLHSGVPSRFSGSGS GTDYSLTISNLEQEDIATYFCQQGNTLPWTFGGGTKLEIK",
       "variant_type": "humanized",
       "mutations": [],
-      "humanness_score": null,
+      "humanness_score": 0.7226714483184485,
       "notes": "Humanized with sapiens"
     },
     {
@@ -106,5 +189,5 @@
       "notes": "Wild-type (no mutations)"
     }
   ],
-  "count": 10
+  "count": 13
 }

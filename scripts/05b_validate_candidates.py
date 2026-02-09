@@ -213,9 +213,11 @@ def main():
     n_with_protenix = sum(1 for c in validated_candidates
                           if c.get("validation", {}).get("protenix_iptm") is not None)
     n_with_mpnn = sum(1 for c in validated_candidates
-                       if c.get("validation", {}).get("proteinmpnn_ll_scfv") is not None)
+                       if c.get("validation", {}).get("proteinmpnn_ll") is not None
+                       or c.get("validation", {}).get("proteinmpnn_ll_scfv") is not None)
     n_with_af = sum(1 for c in validated_candidates
-                     if c.get("validation", {}).get("antifold_ll_scfv") is not None)
+                     if c.get("validation", {}).get("antifold_ll") is not None
+                     or c.get("validation", {}).get("antifold_ll_scfv") is not None)
 
     print(f"\n  ProteinMPNN scores: {n_with_mpnn}/{len(validated_candidates)}")
     print(f"  AntiFold scores: {n_with_af}/{len(validated_candidates)}")

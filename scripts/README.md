@@ -160,7 +160,7 @@ For Fabs with dual predictions, scores BOTH scFv and 3-chain CIF files.
 
 **Output**: `data/outputs/structures/candidates_with_scores.json` — candidates with full `validation_scores` dict.
 
-**Prerequisite**: Deploy Protenix on Modal (`modal deploy modal/protenix_app.py`). ProteinMPNN and AntiFold are optional (`pip install proteinmpnn antifold`); missing tools produce error messages but don't fail the step.
+**Prerequisites**: Deploy Protenix on Modal (`modal deploy modal/protenix_app.py`). Install ProteinMPNN and AntiFold (`pip install proteinmpnn antifold`); missing tools produce error messages but don't fail the step. Note: ProteinMPNN requires CIF→PDB conversion (handled automatically via BioPython). AntiFold uses `custom_chain_mode=True` for VHH/scFv single-chain structures.
 
 ### Candidate Cross-Validation (Step 5b)
 
