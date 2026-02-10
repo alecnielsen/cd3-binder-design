@@ -201,8 +201,8 @@ Small test run (5 VHH + 5 Fab) to validate all pipeline enhancements. Full end-t
 | Design | 12 designs (6 VHH + 6 Fab) |
 | Structure prediction | 250 candidates (12 new + 238 from previous runs) |
 | Hard pre-filter (04a) | 5/250 passed (131 rejected humanness, 43 interface area) |
-| ProteinMPNN | 5/5 scored (LL range: 1.10 - 1.36) |
-| AntiFold | 5/5 scored (LL range: -0.25 to -0.65) |
+| ProteinMPNN | 5/5 scored (NLL range: 1.10 - 1.36, lower=better) |
+| AntiFold | 5/5 scored (NLL range: 0.25 - 0.65, lower=better) |
 | Protenix | 5/5 scored (ipTM range: 0.21 - 0.34) |
 | Ranking | worst_metric_rank (no boltzgen_rank in old data) |
 | Cross-validation | 2/5 ipTM disagreements flagged |
@@ -287,6 +287,11 @@ Step 04 re-runs Boltz-2 to extract these interface metrics. It also processes th
 5. **Step 05b display fix** - ProteinMPNN/AntiFold count now checks both `proteinmpnn_ll` and `proteinmpnn_ll_scfv` key patterns (step 05 stores without `_scfv` suffix).
 6. **ProteinMPNN + AntiFold installed** - `pip install proteinmpnn antifold` in conda env. Note: downgrades torch 2.8.0→2.3.1.
 7. **Test run validated** - Full pipeline with all scoring tools: 5 candidates × 3 scoring tools = 15 successful scores.
+8. **AntiFold NLL negation removed** - `score_antifold()` was negating the NLL (`-mean_nll`) to make higher=better. Removed: now consistently lower=better like ProteinMPNN.
+9. **Ranking lower_is_better** - `worst_metric_rank()` in `ranking.py` now has `lower_is_better = {"proteinmpnn_ll", "antifold_ll"}` set. These metrics are sorted ascending (lower=better) instead of the default descending.
+10. **Protenix output parsing fixed** - `_parse_protenix_output()` in `modal/protenix_app.py` now uses exact path `output_dir/<name>/seed_<seed>/predictions/` (Protenix v1.0+ structure). Also fixed pLDDT key from `"plddt_mean"` to `"plddt"` (0-100 scale, normalized to 0-1).
+11. **YAML sequence whitespace stripped** - `load_starting_sequence()` in `optimization.py` now strips spaces/newlines from VH/VL sequences. YAML `>-` folded scalars convert line breaks to spaces, which Protenix silently rejects.
+12. **Calibration baselines complete** - All 3 validation tools (ProteinMPNN, AntiFold, Protenix) now scored on all 3 controls. Teplizumab Protenix ipTM=0.855. Stored in `calibration.json` under `validation_baselines`.
 
 ### Session 2026-02-07
 
@@ -414,15 +419,15 @@ data/outputs/
 
 ## Calibration Results (Reference)
 
-From known CD3 binder scFvs:
+From known CD3 binder scFvs (sequences space-stripped from YAML):
 
-| Binder | pTM | pLDDT | Contacts | Interface Area |
-|--------|-----|-------|----------|----------------|
-| Teplizumab-scFv | 0.944 | 96.4 | 42 | 2560 Å² |
-| SP34-scFv | 0.753 | 91.7 | 30 | 2160 Å² |
-| UCHT1-scFv | 0.784 | 94.1 | 32 | 2240 Å² |
+| Binder | pTM | pLDDT | Contacts | Interface Area | MPNN NLL | AntiFold NLL | Protenix ipTM |
+|--------|-----|-------|----------|----------------|----------|-------------|---------------|
+| Teplizumab-scFv | 0.944 | 96.4 | 42 | 2640 Å² | 1.307 | 0.485 | **0.855** |
+| SP34-scFv | 0.753 | 91.7 | 29 | 2000 Å² | 1.384 | 0.467 | 0.376 |
+| UCHT1-scFv | 0.784 | 94.1 | 32 | 2400 Å² | 1.335 | 0.499 | 0.389 |
 
-**Important**: These are VH-linker-VL scFvs, NOT full IgG. pTM/pLDDT are structural confidence scores, NOT binding affinity predictors.
+**Important**: These are VH-linker-VL scFvs, NOT full IgG. pTM/pLDDT are structural confidence scores, NOT binding affinity predictors. NLL scores are lower=better. Teplizumab's high Protenix ipTM (0.855) is consistent with its known strong CD3 binding.
 
 ---
 

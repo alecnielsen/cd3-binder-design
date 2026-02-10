@@ -1,12 +1,14 @@
 {
   "known_binder_results": [
     {
-      "binder_sequence": "QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPSRGYTNYNQKFKD KATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTLTVSSGGGGSGGGGSGGGGSQIVLTQSPAIMSASPGEKVTMTCSASSSVSYMNWYQQKSGTSPKRWIYDTSKLASGVPAHFRGSGS GTSYSLTISGMEAEDAATYYCQQWSSNPFTFGSGTKLEINR",
+      "binder_sequence": "QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPSRGYTNYNQKFKDKATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTLTVSSGGGGSGGGGSGGGGSQIVLTQSPAIMSASPGEKVTMTCSASSSVSYMNWYQQKSGTSPKRWIYDTSKLASGVPAHFRGSGSGTSYSLTISGMEAEDAATYYCQQWSSNPFTFGSGTKLEINR",
       "target_sequence": "QTPYKVSISGTTVILTCPQYPGSEILWQHNDKNIGGDEDDKNIGSDEDHLSLKEFSELEQSGYYVCYPRGSKPEDANFYLYLRARVCENCM",
+      "prediction_mode": "scfv",
+      "iptm": 0.8597213625907898,
       "pdockq": 0.0,
       "pdockq_note": "Structural confidence, NOT affinity predictor",
-      "ptm": 0.9446747303009033,
-      "plddt_mean": 0.9641907215118408,
+      "ptm": 0.9364493489265442,
+      "plddt_mean": 0.9653223752975464,
       "ipae": 0.0,
       "interface_residues_binder": [
         33,
@@ -16,16 +18,16 @@
         55,
         57,
         59,
-        75,
-        100,
-        102,
-        105,
+        74,
+        99,
+        101,
+        104,
+        164,
         165,
-        166,
-        184,
-        226,
-        227,
-        229
+        183,
+        224,
+        225,
+        227
       ],
       "interface_residues_target": [
         22,
@@ -34,6 +36,7 @@
         26,
         35,
         36,
+        37,
         38,
         45,
         46,
@@ -45,41 +48,46 @@
         75
       ],
       "num_contacts": 42,
-      "interface_area": 2560.0,
+      "interface_area": 2640.0,
       "model_version": "boltz2",
       "seed": 42
     },
     {
-      "binder_sequence": "QVQLQQPGAELVKPGASVKLSCKASGYTFTDYNMHWVKQTPGQGLEWIGVIHPNYGGTSYNQKFKG KATLTVDKSSSTAYMELRSLTSEDSAVYYCARDYYGSSHYAMDYWGQGTSVTVSSGGGGSGGGGSGGGGSDIQMTQSPASLSASVGETVTITCRASENIYSYLAWYQQKQGKSPQLLVYNTKTLAEGVPSRFSGSGS GTQFSLKINSLQPEDFGSYYCQHHYGTPFTFGSGTKLEIK",
+      "binder_sequence": "QVQLQQPGAELVKPGASVKLSCKASGYTFTDYNMHWVKQTPGQGLEWIGVIHPNYGGTSYNQKFKGKATLTVDKSSSTAYMELRSLTSEDSAVYYCARDYYGSSHYAMDYWGQGTSVTVSSGGGGSGGGGSGGGGSDIQMTQSPASLSASVGETVTITCRASENIYSYLAWYQQKQGKSPQLLVYNTKTLAEGVPSRFSGSGSGTQFSLKINSLQPEDFGSYYCQHHYGTPFTFGSGTKLEIK",
       "target_sequence": "QTPYKVSISGTTVILTCPQYPGSEILWQHNDKNIGGDEDDKNIGSDEDHLSLKEFSELEQSGYYVCYPRGSKPEDANFYLYLRARVCENCM",
+      "prediction_mode": "scfv",
+      "iptm": 0.21617507934570312,
       "pdockq": 0.0,
       "pdockq_note": "Structural confidence, NOT affinity predictor",
-      "ptm": 0.7530123591423035,
-      "plddt_mean": 0.917229413986206,
+      "ptm": 0.746630847454071,
+      "plddt_mean": 0.8901090621948242,
       "ipae": 0.0,
       "interface_residues_binder": [
         30,
         31,
-        33,
-        50,
         52,
+        54,
         55,
-        56,
-        57,
-        58,
-        59,
+        101,
         102,
-        107,
-        231,
+        103,
+        104,
+        106,
+        135,
+        136,
+        163,
+        168,
+        227,
+        228,
+        229,
         232
       ],
       "interface_residues_target": [
-        22,
-        23,
         24,
-        26,
         28,
-        67,
+        31,
+        38,
+        39,
         69,
         70,
         71,
@@ -88,37 +96,36 @@
         74,
         75
       ],
-      "num_contacts": 30,
-      "interface_area": 2160.0,
+      "num_contacts": 33,
+      "interface_area": 2400.0,
       "model_version": "boltz2",
       "seed": 42
     },
     {
-      "binder_sequence": "EVKLDETGGGLVQPGRPMKLSCVASGFTFSDYWMNWVRQSPEKGLEWVAEIRLKSNNYATHYAESVK GRFTISRDDSKSSVYLQMNNLRVEDTGIYYCTGSYYGMDYWGQGTSVTVSSGGGGSGGGGSGGGGSDIQMTQSPSSLSASLGERVSLTCRASQDIRNYLNWYQQKPDGTVKLLIYYTSRLHSGVPSRFSGSGS GTDYSLTISNLEQEDIATYFCQQGNTLPWTFGGGTKLEIK",
+      "binder_sequence": "EVKLDETGGGLVQPGRPMKLSCVASGFTFSDYWMNWVRQSPEKGLEWVAEIRLKSNNYATHYAESVKGRFTISRDDSKSSVYLQMNNLRVEDTGIYYCTGSYYGMDYWGQGTSVTVSSGGGGSGGGGSGGGGSDIQMTQSPSSLSASLGERVSLTCRASQDIRNYLNWYQQKPDGTVKLLIYYTSRLHSGVPSRFSGSGSGTDYSLTISNLEQEDIATYFCQQGNTLPWTFGGGTKLEIK",
       "target_sequence": "QTPYKVSISGTTVILTCPQYPGSEILWQHNDKNIGGDEDDKNIGSDEDHLSLKEFSELEQSGYYVCYPRGSKPEDANFYLYLRARVCENCM",
+      "prediction_mode": "scfv",
+      "iptm": 0.35215529799461365,
       "pdockq": 0.0,
       "pdockq_note": "Structural confidence, NOT affinity predictor",
-      "ptm": 0.7844691872596741,
-      "plddt_mean": 0.9407231211662292,
+      "ptm": 0.7874449491500854,
+      "plddt_mean": 0.9358353614807129,
       "ipae": 0.0,
       "interface_residues_binder": [
-        31,
         33,
         52,
-        53,
         55,
         56,
         57,
+        102,
         103,
-        104,
-        164,
-        166,
+        163,
+        165,
+        182,
         183,
-        184,
-        187
+        186
       ],
       "interface_residues_target": [
-        20,
         21,
         22,
         23,
@@ -133,16 +140,16 @@
         72,
         75
       ],
-      "num_contacts": 32,
-      "interface_area": 2240.0,
+      "num_contacts": 29,
+      "interface_area": 2000.0,
       "model_version": "boltz2",
       "seed": 42
     }
   ],
   "calibrated_thresholds": {
     "min_pdockq": 0.0,
-    "min_interface_area": 2060.0,
-    "min_contacts": 28
+    "min_interface_area": 1900.0,
+    "min_contacts": 27
   },
   "margins_used": {
     "pdockq_margin": 0.05,
@@ -156,14 +163,46 @@
       "mean": 0.0
     },
     "interface_area": {
-      "min": 2160.0,
-      "max": 2560.0,
-      "mean": 2320.0
+      "min": 2000.0,
+      "max": 2640.0,
+      "mean": 2346.6666666666665
     },
     "contacts": {
-      "min": 30,
+      "min": 29,
       "max": 42,
       "mean": 34.666666666666664
+    }
+  },
+  "validation_baselines": {
+    "proteinmpnn_ll": {
+      "min": 1.306949257850647,
+      "max": 1.3837954998016357,
+      "mean": 1.3420477310816448,
+      "by_control": {
+        "teplizumab": 1.306949257850647,
+        "sp34": 1.3837954998016357,
+        "ucht1": 1.3353984355926514
+      }
+    },
+    "antifold_ll": {
+      "min": 0.46673324734022986,
+      "max": 0.49904058084355163,
+      "mean": 0.4836718177296011,
+      "by_control": {
+        "teplizumab": 0.4852416250050218,
+        "sp34": 0.46673324734022986,
+        "ucht1": 0.49904058084355163
+      }
+    },
+    "protenix_iptm": {
+      "min": 0.3760049045085907,
+      "max": 0.8548054099082947,
+      "mean": 0.5398269097010294,
+      "by_control": {
+        "teplizumab": 0.8548054099082947,
+        "sp34": 0.3760049045085907,
+        "ucht1": 0.388670414686203
+      }
     }
   }
 }

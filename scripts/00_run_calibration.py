@@ -180,7 +180,7 @@ def main():
                 protenix_scores = {}
                 for i, name in enumerate(config.calibration.positive_controls):
                     seq = known_sequences[i]
-                    print(f"  Running Protenix on {name}...")
+                    print(f"  Running Protenix on {name} ({len(seq)} aa)...")
                     try:
                         pred = protenix_fn.remote(
                             binder_sequence=seq,
@@ -188,9 +188,13 @@ def main():
                             binder_type="scfv",
                             seed=config.validation.protenix_seeds[0],
                         )
+                        if pred.get("error"):
+                            print(f"    Protenix error: {pred['error']}")
                         if pred.get("iptm") is not None:
                             protenix_scores[name] = pred["iptm"]
-                            print(f"    ipTM={pred['iptm']}")
+                            print(f"    ipTM={pred['iptm']:.3f}, ptm={pred.get('ptm')}, plddt={pred.get('plddt_mean')}, ranking={pred.get('ranking_score')}")
+                        else:
+                            print(f"    No ipTM returned. Full result keys: {[k for k, v in pred.items() if v is not None]}")
                     except Exception as e:
                         print(f"    Error: {e}")
 

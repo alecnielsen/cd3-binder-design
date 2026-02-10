@@ -22,8 +22,8 @@ class AffinityResult:
     """Result from inverse folding affinity scoring."""
 
     design_id: str
-    proteinmpnn_ll: Optional[float] = None  # Neg log-likelihood (lower = better fit)
-    antifold_ll: Optional[float] = None  # Neg log-likelihood (lower = better fit)
+    proteinmpnn_ll: Optional[float] = None  # NLL per residue (lower = better fit)
+    antifold_ll: Optional[float] = None  # NLL per residue (lower = better fit)
     error: Optional[str] = None
 
 
@@ -288,7 +288,7 @@ def score_antifold(cif_path: str, design_id: str, binder_type: str = "vhh") -> A
             return AffinityResult(design_id=design_id, error="No valid residues for scoring")
 
         mean_nll = total_nll / count
-        return AffinityResult(design_id=design_id, antifold_ll=-mean_nll)  # Negate: higher = better
+        return AffinityResult(design_id=design_id, antifold_ll=mean_nll)
 
     except Exception as e:
         return AffinityResult(design_id=design_id, error=f"AntiFold error: {e}")

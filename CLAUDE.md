@@ -153,7 +153,12 @@ design:
 72. **AntiFold requires custom_chain_mode for single-chain** — For VHH/scFv (single binder chain B), AntiFold needs `custom_chain_mode=True` and `Lchain=None` in the DataFrame. Without this, AntiFold errors on missing Lchain column. For 3-chain Fab files, use standard mode with `Hchain="B"`, `Lchain="C"`.
 73. **AntiFold residue column is pdb_res** — AntiFold logits DataFrame uses `pdb_res` column for residue identity (not `wt`). NLL computed by indexing into amino acid logit columns per residue.
 74. **ProteinMPNN + AntiFold installed in conda env** — `pip install proteinmpnn antifold` in cd3-binder env. Note: this downgrades torch to 2.3.1 (from 2.8.0) — no impact on local CPU scoring.
-75. **Test run validated (2026-02-09)** — 5 VHH + 5 Fab → 250 candidates → 5 passed hard filters → all 5 scored with MPNN (1.10-1.36) + AntiFold (-0.25 to -0.65) + Protenix (0.21-0.34). Full pipeline end-to-end with all scoring tools working.
+75. **Test run validated (2026-02-09)** — 5 VHH + 5 Fab → 250 candidates → 5 passed hard filters → all 5 scored with MPNN (1.10-1.36) + AntiFold (0.25-0.65) + Protenix (0.21-0.34). Full pipeline end-to-end with all scoring tools working.
+76. **NLL metrics are lower=better** — Both ProteinMPNN and AntiFold output negative log-likelihood per residue. Lower values indicate better structural fit. The ranking code has a `lower_is_better` set for `{"proteinmpnn_ll", "antifold_ll"}` that reverses sort direction.
+77. **AntiFold NLL is NOT negated** — `score_antifold()` returns raw NLL (positive values ~0.3-0.5 for controls). Previously was negated to make "higher=better" but this was inconsistent with ProteinMPNN. Now both are consistently lower=better.
+78. **YAML sequences have whitespace** — Starting sequence YAML files use `>-` folded scalar format, which converts newlines to spaces. `load_starting_sequence()` strips all whitespace from sequences. Without this, Protenix silently fails (Boltz-2 tolerates spaces).
+79. **Protenix output path** — Protenix v1.0+ outputs to `output_dir/<name>/seed_<seed>/predictions/`. Files: `<name>_summary_confidence_sample_0.json` (metrics) and `<name>_sample_0.cif` (structure). The pLDDT key is `"plddt"` (0-100 scale), normalized to 0-1 in our parsing.
+80. **Calibration baselines complete** — All 3 validation tools scored on 3 controls. Teplizumab Protenix ipTM=0.855 (strong, consistent with high-affinity known binder). Baselines in `calibration.json` under `validation_baselines` with `proteinmpnn_ll`, `antifold_ll`, `protenix_iptm`.
 
 ### Future: Affinity Prediction Tools (Not Yet Integrated)
 - **Boltz-2 IC50** - Enable with `--sampling_steps_affinity 200` (MIT, not antibody-validated)

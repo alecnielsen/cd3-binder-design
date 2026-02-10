@@ -123,6 +123,12 @@ def predict_complex(
         print(f"Running Protenix: {' '.join(cmd)}")
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=25 * 60)
 
+        # Log stdout/stderr for debugging
+        if result.stdout:
+            print(f"Protenix stdout (last 2000 chars): {result.stdout[-2000:]}")
+        if result.stderr:
+            print(f"Protenix stderr (last 2000 chars): {result.stderr[-2000:]}")
+
         # Commit volume to persist any newly-downloaded weights
         protenix_cache_volume.commit()
 
@@ -139,12 +145,22 @@ def predict_complex(
                 "cif_string": None,
             }
 
+        # Debug: list all files in output directory
+        print(f"Protenix output directory contents:")
+        for p in sorted(output_dir.rglob("*")):
+            print(f"  {p.relative_to(output_dir)}")
+
         # Parse output
         return _parse_protenix_output(output_dir, seed)
 
 
 def _parse_protenix_output(output_dir: Path, seed: int) -> dict:
-    """Parse Protenix output files for metrics and structure."""
+    """Parse Protenix output files for metrics and structure.
+
+    Protenix v1.0+ output structure:
+        output_dir/<name>/seed_<seed>/predictions/<name>_summary_confidence_sample_0.json
+        output_dir/<name>/seed_<seed>/predictions/<name>_sample_0.cif
+    """
     result = {
         "iptm": None,
         "ptm": None,
@@ -155,39 +171,51 @@ def _parse_protenix_output(output_dir: Path, seed: int) -> dict:
         "error": None,
     }
 
-    # Find output files - Protenix outputs to output_dir/complex/seed_N/
-    complex_dir = output_dir / "complex"
-    if not complex_dir.exists():
-        # Try flat structure
-        complex_dir = output_dir
+    # Try exact expected path first: output_dir/complex/seed_<seed>/predictions/
+    predictions_dir = output_dir / "complex" / f"seed_{seed}" / "predictions"
+    if not predictions_dir.exists():
+        # Fall back to recursive search from output_dir
+        predictions_dir = output_dir
 
-    # Look for confidence JSON
-    confidence_files = list(complex_dir.rglob("*confidence*.json")) + list(complex_dir.rglob("*summary*.json"))
+    # Look for confidence JSON — best sample is sample_0 (sorted by ranking_score)
+    confidence_files = sorted(predictions_dir.rglob("*summary_confidence*.json"))
+    if not confidence_files:
+        # Broader fallback
+        confidence_files = sorted(output_dir.rglob("*summary_confidence*.json"))
+    if not confidence_files:
+        confidence_files = sorted(output_dir.rglob("*confidence*.json"))
+
+    print(f"Found {len(confidence_files)} confidence files: {[str(f.name) for f in confidence_files]}")
+
     for conf_file in confidence_files:
         try:
             with open(conf_file) as f:
                 conf = json.load(f)
 
-            # Protenix outputs these fields
+            if isinstance(conf, list) and conf:
+                conf = conf[0]
+
             if isinstance(conf, dict):
-                result["iptm"] = conf.get("iptm", conf.get("interface_ptm"))
+                result["iptm"] = conf.get("iptm")
                 result["ptm"] = conf.get("ptm")
-                result["plddt_mean"] = conf.get("plddt_mean", conf.get("mean_plddt"))
+                # Protenix uses "plddt" (0-100 scale), not "plddt_mean"
+                plddt = conf.get("plddt")
+                if plddt is not None:
+                    result["plddt_mean"] = plddt / 100.0  # Normalize to 0-1 for consistency
                 result["ranking_score"] = conf.get("ranking_score")
                 result["chain_pair_iptm"] = conf.get("chain_pair_iptm")
-            elif isinstance(conf, list) and conf:
-                c = conf[0]
-                result["iptm"] = c.get("iptm", c.get("interface_ptm"))
-                result["ptm"] = c.get("ptm")
-                result["plddt_mean"] = c.get("plddt_mean", c.get("mean_plddt"))
-                result["ranking_score"] = c.get("ranking_score")
-                result["chain_pair_iptm"] = c.get("chain_pair_iptm")
             break
-        except (json.JSONDecodeError, KeyError):
+        except (json.JSONDecodeError, KeyError) as e:
+            print(f"Error parsing {conf_file}: {e}")
             continue
 
-    # Find CIF output
-    cif_files = list(complex_dir.rglob("*.cif"))
+    # Find CIF output — sample_0 is best
+    cif_files = sorted(predictions_dir.rglob("*.cif"))
+    if not cif_files:
+        cif_files = sorted(output_dir.rglob("*.cif"))
+
+    print(f"Found {len(cif_files)} CIF files: {[str(f.name) for f in cif_files]}")
+
     if cif_files:
         try:
             result["cif_string"] = cif_files[0].read_text()

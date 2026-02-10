@@ -128,10 +128,14 @@ class SequenceOptimizer:
         else:
             seq_data = data
 
+        # Strip whitespace from sequences — YAML >- folded scalars introduce spaces
+        vh_raw = seq_data.get("vh", seq_data.get("VH", seq_data.get("vh_sequence", "")))
+        vl_raw = seq_data.get("vl", seq_data.get("VL", seq_data.get("vl_sequence")))
+
         sequences = AntibodySequences(
             name=name,
-            vh=seq_data.get("vh", seq_data.get("VH", seq_data.get("vh_sequence", ""))),
-            vl=seq_data.get("vl", seq_data.get("VL", seq_data.get("vl_sequence"))),
+            vh=vh_raw.replace(" ", "").replace("\n", "") if vh_raw else "",
+            vl=vl_raw.replace(" ", "").replace("\n", "") if vl_raw else None,
             source=data.get("source", "unknown"),
             notes=data.get("notes", ""),
         )

@@ -24,8 +24,8 @@ DEFAULT_METRIC_WEIGHTS = {
     "humanness": 1,         # Critical for therapeutics
     "num_contacts": 2,      # Correlated with area, lower importance
     "plddt": 2,             # Typically high, less discriminating
-    "proteinmpnn_ll": 1,   # Inverse folding fit (higher = better)
-    "antifold_ll": 2,      # Antibody-specific inverse folding
+    "proteinmpnn_ll": 1,   # Inverse folding NLL (lower = better)
+    "antifold_ll": 2,      # Antibody-specific inverse folding NLL (lower = better)
     "protenix_iptm": 1,    # Cross-validation interface quality
 }
 
@@ -96,7 +96,7 @@ def worst_metric_rank(
 
     weights = metric_weights or DEFAULT_METRIC_WEIGHTS
 
-    # Define metric accessors (higher = better for all)
+    # Define metric accessors.
     # Validation metrics may be None — candidates without a score get worst rank.
     metric_accessors = {
         "iptm": lambda c: c.iptm,
@@ -109,6 +109,9 @@ def worst_metric_rank(
         "antifold_ll": lambda c: c.antifold_ll,
         "protenix_iptm": lambda c: c.protenix_iptm,
     }
+
+    # Metrics where lower values are better (NLL scores)
+    lower_is_better = {"proteinmpnn_ll", "antifold_ll"}
 
     n = len(candidates)
 
@@ -125,12 +128,14 @@ def worst_metric_rank(
             # No candidates have this metric — skip entirely
             continue
 
-        # Sort by metric value descending (best = rank 1)
-        # Candidates with None get worst rank (n)
+        # Sort: best = rank 1. Candidates with None get worst rank.
+        # For most metrics: higher = better (sort descending)
+        # For NLL metrics: lower = better (sort ascending)
+        descending = metric_name not in lower_is_better
         sorted_by_metric = sorted(
             candidates,
             key=lambda c, acc=accessor: (0 if acc(c) is None else 1, acc(c) if acc(c) is not None else 0),
-            reverse=True,
+            reverse=descending,
         )
 
         for rank_idx, candidate in enumerate(sorted_by_metric):

@@ -60,21 +60,6 @@ formatting:
   - igg_vhh
   scfv_linker: GGGGSGGGGSGGGGS
   fc_fusion_linker: GGGGSGGGGS
-ranking:
-  method: boltzgen
-  secondary_method: worst_metric_rank
-  metric_weights:
-    iptm: 1
-    ptm: 1
-    interface_area: 1
-    humanness: 1
-    num_contacts: 2
-    plddt: 2
-    proteinmpnn_ll: 1
-    antifold_ll: 2
-    protenix_iptm: 1
-  diversity_alpha: 0.001
-  use_diversity_selection: true
 output:
   num_final_candidates: 5
   include_structures: true
@@ -89,6 +74,21 @@ reproducibility:
 epitope:
   okt3_epitope_residues: null
   overlap_threshold: 0.5
+ranking:
+  method: boltzgen
+  secondary_method: worst_metric_rank
+  metric_weights:
+    iptm: 1
+    ptm: 1
+    interface_area: 1
+    humanness: 1
+    num_contacts: 2
+    plddt: 2
+    proteinmpnn_ll: 1
+    antifold_ll: 2
+    protenix_iptm: 1
+  use_diversity_selection: true
+  diversity_alpha: 0.001
 validation:
   enabled: true
   run_protenix: true
@@ -101,5 +101,5 @@ validation:
   iptm_disagreement_threshold: 0.1
 calibrated_thresholds:
   min_pdockq: 0.0
-  min_interface_area: 2060.0
-  min_contacts: 28
+  min_interface_area: 1900.0
+  min_contacts: 27
