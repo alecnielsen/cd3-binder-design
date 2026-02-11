@@ -1,6 +1,6 @@
 design:
-  num_vhh_designs: 5
-  num_fab_designs: 5
+  num_vhh_designs: 20
+  num_fab_designs: 20
   target_structures:
   - data/targets/1XIW.pdb
   - data/targets/1SY6.pdb
@@ -8,6 +8,9 @@ design:
   - adalimumab
   - belimumab
   - dupilumab
+  - golimumab
+  - guselkumab
+  - necitumumab
   fab_scaffold_dir: data/fab_scaffolds
   starting_sequences:
   - teplizumab
@@ -61,7 +64,7 @@ formatting:
   scfv_linker: GGGGSGGGGSGGGGS
   fc_fusion_linker: GGGGSGGGGS
 output:
-  num_final_candidates: 5
+  num_final_candidates: 10
   include_structures: true
   generate_report: true
   include_provenance: true

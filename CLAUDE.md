@@ -159,6 +159,8 @@ design:
 78. **YAML sequences have whitespace** — Starting sequence YAML files use `>-` folded scalar format, which converts newlines to spaces. `load_starting_sequence()` strips all whitespace from sequences. Without this, Protenix silently fails (Boltz-2 tolerates spaces).
 79. **Protenix output path** — Protenix v1.0+ outputs to `output_dir/<name>/seed_<seed>/predictions/`. Files: `<name>_summary_confidence_sample_0.json` (metrics) and `<name>_sample_0.cif` (structure). The pLDDT key is `"plddt"` (0-100 scale), normalized to 0-1 in our parsing.
 80. **Calibration baselines complete** — All 3 validation tools scored on 3 controls. Teplizumab Protenix ipTM=0.855 (strong, consistent with high-affinity known binder). Baselines in `calibration.json` under `validation_baselines` with `proteinmpnn_ll`, `antifold_ll`, `protenix_iptm`.
+81. **CRITICAL: BoltzGen Fab output uses vh_sequence/vl_sequence keys** — BoltzGen outputs `vh_sequence` and `vl_sequence` for Fab designs, but the rest of the pipeline expects `vh` and `vl`. Step 04 now normalizes these keys at load time. Without this fix, Fab VL sequences are silently dropped: Fabs get predicted as VH-only (not scFv), 3-chain prediction is skipped, and no scFv-based bispecific formats are generated.
+82. **Step 04 scFv construction** — When a candidate has both `vh` and `vl`, step 04 constructs scFv (VH-linker-VL) for 2-chain prediction. Previously it used the raw `sequence` field (VH-only for Fabs) which produced incorrect single-chain predictions for paired antibodies.
 
 ### Future: Affinity Prediction Tools (Not Yet Integrated)
 - **Boltz-2 IC50** - Enable with `--sampling_steps_affinity 200` (MIT, not antibody-validated)

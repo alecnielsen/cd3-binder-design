@@ -70,10 +70,15 @@ def main():
         else:
             file_candidates = data if isinstance(data, list) else [data]
 
-        # Tag source file for traceability
+        # Tag source file and normalize keys
         for c in file_candidates:
             if "source_file" not in c:
                 c["source_file"] = str(input_path)
+            # Normalize vh_sequence/vl_sequence → vh/vl (BoltzGen output uses _sequence suffix)
+            if "vh_sequence" in c and "vh" not in c:
+                c["vh"] = c["vh_sequence"]
+            if "vl_sequence" in c and "vl" not in c:
+                c["vl"] = c["vl_sequence"]
 
         candidates.extend(file_candidates)
         print(f"  Loaded {len(file_candidates)} candidates from {input_path.name}")
@@ -106,16 +111,15 @@ def main():
     results = []
     for i, candidate in enumerate(candidates):
         # Get binder sequence - handle vh/vl pairs by creating scFv
-        if "sequence" in candidate and candidate["sequence"]:
+        vh = candidate.get("vh")
+        vl = candidate.get("vl")
+        if vh and vl:
+            # Fab/paired: Create scFv (VH-linker-VL) for 2-chain prediction
+            binder_sequence = vh + scfv_linker + vl
+        elif "sequence" in candidate and candidate["sequence"]:
             binder_sequence = candidate["sequence"]
-        elif "vh" in candidate:
-            vh = candidate["vh"]
-            vl = candidate.get("vl")
-            if vl:
-                # Create scFv: VH-linker-VL
-                binder_sequence = vh + scfv_linker + vl
-            else:
-                binder_sequence = vh
+        elif vh:
+            binder_sequence = vh
         else:
             print(f"  Warning: No sequence found for candidate {i}")
             candidate["structure_prediction"] = None

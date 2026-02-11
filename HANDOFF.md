@@ -209,6 +209,23 @@ Small test run (5 VHH + 5 Fab) to validate all pipeline enhancements. Full end-t
 
 **Key finding**: All scoring tools working end-to-end. ProteinMPNN required CIF→PDB conversion (parse_PDB doesn't handle CIF). AntiFold required `custom_chain_mode=True` for single-chain (scFv) structures.
 
+### Validation Run: 20+20 Enhanced Pipeline (2026-02-10)
+
+20 VHH + 20 Fab run to validate all pipeline enhancements end-to-end. Uncovered Fab VL key-mapping bug (see Fixes).
+
+| Step | Result |
+|------|--------|
+| Design | 39 designs (20 VHH + 19 Fab — 1 failed RMSD filter) |
+| Structure prediction | 292 candidates (39 new + 253 previous), ~10% Modal timeouts |
+| Hard pre-filter (04a) | 11/292 passed (151 humanness, 28 interface area, 15 CDR deamidation) |
+| ProteinMPNN | 11/11 scored (NLL range: 1.16 - 1.41) |
+| AntiFold | 11/11 scored (NLL range: 0.41 - 1.04) |
+| Protenix | 10/11 scored (1 timeout; ipTM range: 0.24 - 0.57) |
+| Ranking | BoltzGen native (5/11 have boltzgen_rank from new designs) |
+| Bispecifics | 20 constructs (10 fab_vhh + 10 igg_vhh; **0 scFv-based** — VL was lost) |
+
+**Bug found**: Fab VL sequences dropped due to `vh_sequence`→`vh` key mismatch in step 04. All Fab candidates were predicted as VH-only. Fixed post-run. Next run will have correct scFv predictions and scFv-based bispecific formats.
+
 ### Key Observations
 
 1. **Fab designs dominate at scale** - Better humanness scores, larger interfaces
@@ -292,6 +309,7 @@ Step 04 re-runs Boltz-2 to extract these interface metrics. It also processes th
 10. **Protenix output parsing fixed** - `_parse_protenix_output()` in `modal/protenix_app.py` now uses exact path `output_dir/<name>/seed_<seed>/predictions/` (Protenix v1.0+ structure). Also fixed pLDDT key from `"plddt_mean"` to `"plddt"` (0-100 scale, normalized to 0-1).
 11. **YAML sequence whitespace stripped** - `load_starting_sequence()` in `optimization.py` now strips spaces/newlines from VH/VL sequences. YAML `>-` folded scalars convert line breaks to spaces, which Protenix silently rejects.
 12. **Calibration baselines complete** - All 3 validation tools (ProteinMPNN, AntiFold, Protenix) now scored on all 3 controls. Teplizumab Protenix ipTM=0.855. Stored in `calibration.json` under `validation_baselines`.
+13. **CRITICAL: Fab VL key mapping** - BoltzGen outputs `vh_sequence`/`vl_sequence` but step 04 looked for `vh`/`vl`. VL was silently dropped: Fabs predicted as VH-only, no 3-chain prediction, no scFv bispecifics. Fixed by normalizing keys at load time in step 04. Also fixed scFv construction to prioritize vh+vl over raw `sequence` (which is VH-only for Fabs).
 
 ### Session 2026-02-07
 
