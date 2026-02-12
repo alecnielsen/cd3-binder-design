@@ -165,6 +165,10 @@ design:
 84. **Step 04 processes all cumulative denovo results** — Structure prediction loads ALL `denovo_results_*.json` files and predicts/re-predicts everything. This ensures consistent metrics but is slow for large cumulative sets. Archive old result files if only new designs are needed.
 85. **BoltzGen ranking now primary** — As of Feb 11 run, all designs have `boltzgen_rank` data. Config uses `method: boltzgen` with no fallback needed. BoltzGen's decision tree (ipTM, pTM, PAE, H-bonds, salt bridges, SASA) is experimentally validated at 66% nanobody hit rate.
 86. **Config reduced to 50+50** — `num_vhh_designs: 50`, `num_fab_designs: 50`. Produces ~95 designs (~10% Fab RMSD filter failures), plenty for 10 final candidates.
+87. **Humanness is the yield bottleneck** — 88% of new designs pass binding filters, but only 17% pass humanness ≥0.8. BoltzGen CDR redesign on fully-human scaffolds still introduces non-human CDR motifs. Many near-misses at 0.78–0.80. Lowering threshold to 0.78 would recover ~11 additional candidates per 50+50 run.
+88. **Protenix ipTM 0.69 for Fabs** — Feb 11 run Fab candidates scored 0.686 and 0.693 Protenix ipTM, the highest observed across all runs (previous best: 0.570 VHH). This suggests the VL fix + scFv construction produces better-quality predictions.
+89. **Filtering uses scFv metrics, not 3-chain** — Step 04a hard filter checks `structure_prediction` (scFv/2-chain mode). 3-chain predictions are supplementary scoring only. Both Fabs in final candidates pass binding on scFv alone.
+90. **Feb 11 run: 3 final candidates** — 387 cumulative candidates → 3 passed all hard filters (2 Fab, 1 VHH). Bottleneck: 152 rejected for humanness, 27 for interface area, 18 for CDR deamidation.
 
 ### Future: Affinity Prediction Tools (Not Yet Integrated)
 - **Boltz-2 IC50** - Enable with `--sampling_steps_affinity 200` (MIT, not antibody-validated)

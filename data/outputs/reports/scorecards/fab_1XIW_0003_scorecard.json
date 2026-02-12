@@ -1,6 +1,6 @@
 {
   "candidate_id": "fab_1XIW_0003",
-  "sequence": "EVQLVESGGGLEQPGGSLRLSCAGSGFGFGSGNYAMTWVRQAPGKGLEWVSSISGSGGYTYYADSVKGRFTISRDNSKNTLYLQMNSLRAEDTAVYYCAKAGSTGSTPGFGPLDYWGQGTTVTVSS",
+  "sequence": "VQLVESGGGLVQPGRSLRLSCAASGFTLSNYAMHWVRQAPGKGLEWVSGISSSGSNIGYADSVKGRFTISRDNAENSLFLQMNGLRAEDTALYYCAKGGDADVYGFDYWGQGTMVTVSS",
   "sequence_vl": null,
   "binder_type": "fab",
   "source": "unknown",
@@ -8,33 +8,35 @@
     "iptm": null,
     "pdockq": 0.0,
     "pdockq_note": "Structural confidence, NOT affinity predictor",
-    "interface_area": 3520.0,
-    "num_contacts": 57
+    "interface_area": 2640.0,
+    "num_contacts": 41
   },
   "epitope": {
     "epitope_class": "novel_epitope",
-    "okt3_overlap": 0.13333333333333333
+    "okt3_overlap": 0.08
   },
   "humanness": {
     "oasis_score_vh": null,
     "oasis_score_vl": null,
-    "oasis_score_mean": 0.8089595805587513,
+    "oasis_score_mean": 0.8301218434208726,
     "has_back_mutation_variant": false
   },
   "liabilities": {
     "deamidation_sites": [
-      75,
-      85,
-      78
+      82,
+      75
     ],
     "isomerization_sites": [],
     "glycosylation_sites": [],
     "oxidation_sites": [
-      35,
-      84,
-      37,
-      48,
-      115
+      32,
+      81,
+      113,
+      34,
+      45,
+      108,
+      122,
+      153
     ],
     "unpaired_cys": 0,
     "cdr_deamidation_count": 0,
@@ -50,11 +52,11 @@
   },
   "boltzgen_rank": null,
   "validation": {
-    "proteinmpnn_ll": 1.1564732789993286,
-    "antifold_ll": 0.4953785181600909,
-    "protenix_iptm": 0.23736989498138428,
-    "protenix_ptm": 0.63758784532547,
-    "protenix_ranking_score": 0.31741347908973694
+    "proteinmpnn_ll": 1.2330689430236816,
+    "antifold_ll": 0.6230996347428525,
+    "protenix_iptm": 0.6862272620201111,
+    "protenix_ptm": 0.7874088287353516,
+    "protenix_ranking_score": 0.706463634967804
   },
   "filter_results": {
     "binding": "pass",
@@ -67,11 +69,11 @@
     "liabilities_soft_fail"
   ],
   "composite_score": 4.0,
-  "rank": 5,
+  "rank": 2,
   "_provenance": {
     "pipeline_version": "1.0.0",
-    "run_timestamp": "2026-02-10T16:55:49.689252",
-    "git_commit": "7414b1b15713",
-    "config_hash": "8c392388c4f6"
+    "run_timestamp": "2026-02-11T20:48:13.441233",
+    "git_commit": "831e4a4aeaf8",
+    "config_hash": "c89bd72de37d"
   }
 }

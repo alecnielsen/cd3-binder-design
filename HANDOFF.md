@@ -2,19 +2,41 @@
 
 ## Current Status (2026-02-11)
 
-### Pipeline: PRODUCTION RE-RUN IN PROGRESS
+### Pipeline: 50+50 PRODUCTION RUN COMPLETE
 
-50+50 production run launched with all fixes applied:
+50+50 production run completed with all fixes applied:
 - **Fab VL fix active** — `vh_sequence`/`vl_sequence` → `vh`/`vl` normalization in step 04, enabling proper scFv + 3-chain dual prediction
-- **BoltzGen native ranking** — All 95 designs have `boltzgen_rank` data; `method: boltzgen` is now primary (no fallback needed)
+- **BoltzGen native ranking** — All 95 new designs have `boltzgen_rank` data; `method: boltzgen` is primary
 - **Design counts reduced to 50+50** — Previous 100+100 caused Modal gRPC deadline timeout on Fab design. 50+50 completed reliably
-- **Step 04 processes all cumulative designs** — Re-predicts structures for all denovo result files (Feb 5, 8, 9, 11 runs)
+- **Step 04 processed all cumulative designs** — 387 candidates from all denovo result files (Feb 5, 8, 9, 11 runs)
+- **3 final candidates** — 2 Fab + 1 VHH, with strong Protenix ipTM (0.69 for Fabs)
 
-### Run Progress (Feb 11)
-- Step 02 (design): **95 designs** (50 VHH + 45 Fab, 5 failed RMSD filter) — all with `boltzgen_rank` and VL sequences
-- Step 03 (optimization): Complete
-- Step 04 (structure prediction): **In progress** — ~316 CIF files, processing cumulative design set via Modal
-- Steps 04a–07: Pending
+### Run Results (Feb 11)
+
+| Step | Result |
+|------|--------|
+| Design | **95 designs** (50 VHH + 45 Fab) — all with `boltzgen_rank` and VL sequences |
+| Structure prediction | **387 candidates** processed (95 new + 292 cumulative), 2 Modal timeouts |
+| Hard pre-filter (04a) | **3/387 passed** (152 humanness, 27 interface area, 18 CDR deamidation) |
+| Scoring | 3/3 scored: MPNN + AntiFold + Protenix (+ 3-chain for Fabs) |
+| Ranking | BoltzGen native (2/3 have rank data) |
+| Bispecifics | 15 constructs (3 candidates × 5 formats) |
+
+### Filter Funnel Analysis (New Designs Only)
+
+Of the 95 new designs from Feb 11 run:
+- **84 (88%)** pass binding filters (area ≥2060, contacts ≥28) — excellent structural quality
+- **16 (17%)** pass humanness ≥0.8 — the hard gate
+- **15 pass both** binding + humanness
+- **11 near-misses** pass binding but humanness 0.78–0.80
+- After CDR liability filters → only a handful survive
+
+**Key insight**: Humanness is the binding bottleneck, not structural quality. BoltzGen CDR redesign on fully-human scaffolds achieves ≥0.8 humanness only ~17% of the time because redesigned CDR loops introduce non-human motifs. Both Fab candidates that passed have Protenix ipTM ~0.69 — the highest observed across all runs.
+
+**Options to increase yield**:
+1. Lower humanness threshold to 0.78 — recovers 11+ candidates with strong binding
+2. Scale up (100+100) — at ~15% pass rate yields ~30 candidates pre-liability filtering
+3. Post-hoc humanization — accept lower humanness, apply back-mutations later
 
 ### Previous Enhancements (still active)
 - **Step 04a** (pre-filter + scoring): Hard pre-filter → ProteinMPNN + AntiFold + Protenix scoring before ranking
@@ -221,17 +243,33 @@ Small test run (5 VHH + 5 Fab) to validate all pipeline enhancements. Full end-t
 
 **Key finding**: All scoring tools working end-to-end. ProteinMPNN required CIF→PDB conversion (parse_PDB doesn't handle CIF). AntiFold required `custom_chain_mode=True` for single-chain (scFv) structures.
 
-### Production Run: 50+50 with VL Fix (2026-02-11) — IN PROGRESS
+### Production Run: 50+50 with VL Fix (2026-02-11) — COMPLETE
 
 First full run with Fab VL fix and BoltzGen native ranking.
 
 | Step | Result |
 |------|--------|
 | Design | **95 designs** (50 VHH + 45 Fab — 5 failed RMSD filter) |
-| BoltzGen rank | **95/95** have `boltzgen_rank` — no fallback needed |
+| BoltzGen rank | **95/95** have `boltzgen_rank` |
 | Fab VL sequences | **45/45** have both VH + VL — fix verified |
-| Structure prediction | **In progress** — processing all cumulative designs with dual Fab prediction |
-| Steps 04a–07 | Pending |
+| Structure prediction | **387 candidates** (95 new + 292 cumulative), 2 Modal timeouts |
+| Hard pre-filter (04a) | **3/387 passed** (152 humanness, 27 interface area, 18 CDR deamidation) |
+| Scoring (04a) | 3/3 MPNN + AntiFold + Protenix; 2/2 Fab 3-chain predictions |
+| Ranking | BoltzGen native — sorted by `boltzgen_rank` |
+| Cross-validation | 3/3 Protenix scored, 1 ipTM disagreement |
+| Bispecifics | 15 constructs (3 × 5 formats, including scFv-based — VL fix confirmed) |
+
+### Top 3 Candidates (Feb 11)
+
+| Rank | ID | Type | Interface | Contacts | Humanness | Protenix ipTM | MPNN NLL | AntiFold NLL |
+|------|-----|------|-----------|----------|-----------|---------------|----------|-------------|
+| 1 | vhh_1XIW_0001 | VHH | 2,080 Å² | 30 | 0.816 | 0.299 | 1.33 | 0.99 |
+| 2 | fab_1XIW_0003 | Fab | 2,640 Å² | 41 | 0.830 | **0.686** | 1.23 | 0.62 |
+| 3 | fab_1SY6_0011 | Fab | 3,520 Å² | 53 | 0.821 | **0.693** | 1.27 | 0.58 |
+
+**Protenix ipTM of 0.686–0.693 for Fabs** is the strongest observed across all runs (previous best: 0.570 for a VHH). Both Fab candidates also scored with 3-chain (VH+VL+target) prediction, confirming the VL fix is active.
+
+**Note**: Filtering uses scFv (2-chain) metrics, not 3-chain. Both Fabs pass binding filters on scFv alone (area 2480/3120, contacts 34/44). 3-chain predictions are supplementary scoring only.
 
 **Note**: 100+100 was attempted first but failed with Modal gRPC `Deadline exceeded` during Fab design. Reduced to 50+50 which completed reliably.
 

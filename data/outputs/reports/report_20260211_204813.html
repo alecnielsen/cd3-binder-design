@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CD3 Binder Design Report</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        h1 { color: #333; }
+        h2 { color: #666; border-bottom: 1px solid #ccc; padding-bottom: 5px; }
+        table { border-collapse: collapse; width: 100%; margin: 20px 0; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #4CAF50; color: white; }
+        tr:nth-child(even) { background-color: #f2f2f2; }
+        .pass { color: green; }
+        .fail { color: red; }
+        .soft-fail { color: orange; }
+        .warning { background-color: #fff3cd; padding: 10px; border-radius: 5px; margin: 10px 0; }
+        .info { background-color: #cce5ff; padding: 10px; border-radius: 5px; margin: 10px 0; }
+        .metric { display: inline-block; margin: 10px; padding: 15px; background: #f5f5f5; border-radius: 5px; }
+        .metric-value { font-size: 24px; font-weight: bold; color: #333; }
+        .metric-label { font-size: 12px; color: #666; }
+    </style>
+</head>
+<body>
+    <h1>CD3 Binder Design Report</h1>
+
+    <div class="warning">
+        <strong>Important:</strong> pDockQ is a structural confidence score, NOT an affinity predictor.
+        All candidates require experimental validation.
+    </div>
+
+    <h2>Summary</h2>
+    <div>
+        <div class="metric">
+            <div class="metric-value">3</div>
+            <div class="metric-label">Final Candidates</div>
+        </div>
+        <div class="metric">
+            <div class="metric-value">3</div>
+            <div class="metric-label">Total Designs</div>
+        </div>
+        <div class="metric">
+            <div class="metric-value">0.000</div>
+            <div class="metric-label">Mean pDockQ</div>
+        </div>
+        <div class="metric">
+            <div class="metric-value">0.822</div>
+            <div class="metric-label">Mean Humanness</div>
+        </div>
+    </div>
+
+    <h2>Candidate Rankings</h2>
+    <table>
+        <tr>
+            <th>Rank</th>
+            <th>ID</th>
+            <th>Type</th>
+            <th>Source</th>
+            <th>pDockQ</th>
+            <th>Humanness</th>
+            <th>Epitope</th>
+            <th>Score</th>
+            <th>Flags</th>
+        </tr>
+        <tr>
+            <td>1</td>
+            <td>vhh_1XIW_0001</td>
+            <td>vhh</td>
+            <td>unknown</td>
+            <td>0.000</td>
+            <td>0.816</td>
+            <td>novel_epitope</td>
+            <td>2.000</td>
+            <td>liabilities_soft_fail, developability_soft_fail</td>
+        </tr>
+        <tr>
+            <td>2</td>
+            <td>fab_1XIW_0003</td>
+            <td>fab</td>
+            <td>unknown</td>
+            <td>0.000</td>
+            <td>0.830</td>
+            <td>novel_epitope</td>
+            <td>4.000</td>
+            <td>liabilities_soft_fail</td>
+        </tr>
+        <tr>
+            <td>3</td>
+            <td>fab_1SY6_0011</td>
+            <td>fab</td>
+            <td>unknown</td>
+            <td>0.000</td>
+            <td>0.821</td>
+            <td>novel_epitope</td>
+            <td>0.000</td>
+            <td>liabilities_soft_fail, aggregation_soft_fail</td>
+        </tr>
+    </table>
+
+    <h2>Distributions</h2>
+    <h3>By Epitope Class</h3>
+    <ul>
+        <li>novel_epitope: 3</li>
+    </ul>
+
+    <h3>By Binder Type</h3>
+    <ul>
+        <li>vhh: 1</li>
+        <li>fab: 2</li>
+    </ul>
+
+    <h3>By Source</h3>
+    <ul>
+        <li>unknown: 3</li>
+    </ul>
+
+    <h2>Individual Scorecards</h2>
+    <h3>vhh_1XIW_0001 (Rank 1)</h3>
+    <div class="info">
+        <strong>Composite Score:</strong> 2.000<br>
+        <strong>Sequence:</strong> <code>QVQLVESGGGLVQAGGSLRLSEAASGFTFSSYAMGWFRQAPGKGREWVAS...</code><br>
+    </div>
+    <table>
+        <tr><th>Metric</th><th>Value</th><th>Status</th></tr>
+        <tr>
+            <td>pDockQ</td>
+            <td>0.000</td>
+            <td class="pass">PASS</td>
+        </tr>
+        <tr>
+            <td>Humanness (OASis)</td>
+            <td>0.816</td>
+            <td class="pass">PASS</td>
+        </tr>
+        <tr>
+            <td>Epitope Class</td>
+            <td>novel_epitope</td>
+            <td>OKT3 overlap: 8.3%</td>
+        </tr>
+        <tr>
+            <td>Liabilities</td>
+            <td>Deam: 3, Glyc: 0, Ox: 5</td>
+            <td class="fail">SOFT_FAIL</td>
+        </tr>
+    </table>
+    <h3>fab_1XIW_0003 (Rank 2)</h3>
+    <div class="info">
+        <strong>Composite Score:</strong> 4.000<br>
+        <strong>Sequence:</strong> <code>VQLVESGGGLVQPGRSLRLSCAASGFTLSNYAMHWVRQAPGKGLEWVSGI...</code><br>
+    </div>
+    <table>
+        <tr><th>Metric</th><th>Value</th><th>Status</th></tr>
+        <tr>
+            <td>pDockQ</td>
+            <td>0.000</td>
+            <td class="pass">PASS</td>
+        </tr>
+        <tr>
+            <td>Humanness (OASis)</td>
+            <td>0.830</td>
+            <td class="pass">PASS</td>
+        </tr>
+        <tr>
+            <td>Epitope Class</td>
+            <td>novel_epitope</td>
+            <td>OKT3 overlap: 8.0%</td>
+        </tr>
+        <tr>
+            <td>Liabilities</td>
+            <td>Deam: 2, Glyc: 0, Ox: 8</td>
+            <td class="fail">SOFT_FAIL</td>
+        </tr>
+    </table>
+    <h3>fab_1SY6_0011 (Rank 3)</h3>
+    <div class="info">
+        <strong>Composite Score:</strong> 0.000<br>
+        <strong>Sequence:</strong> <code>QVQLQESGPGLVKPSQTLSLTCTVSGFSLTSGYYWSWIRQPPGKGLEWIG...</code><br>
+    </div>
+    <table>
+        <tr><th>Metric</th><th>Value</th><th>Status</th></tr>
+        <tr>
+            <td>pDockQ</td>
+            <td>0.000</td>
+            <td class="pass">PASS</td>
+        </tr>
+        <tr>
+            <td>Humanness (OASis)</td>
+            <td>0.821</td>
+            <td class="pass">PASS</td>
+        </tr>
+        <tr>
+            <td>Epitope Class</td>
+            <td>novel_epitope</td>
+            <td>OKT3 overlap: 0.0%</td>
+        </tr>
+        <tr>
+            <td>Liabilities</td>
+            <td>Deam: 1, Glyc: 0, Ox: 8</td>
+            <td class="fail">SOFT_FAIL</td>
+        </tr>
+    </table>
+    <h2>Validation Scores</h2>
+    <div class="info">
+        <strong>Note:</strong> Validation scores are informational only — not used for filtering or ranking.
+        ProteinMPNN/AntiFold log-likelihoods are affinity proxies (higher = better structural fit).
+        Protenix provides cross-validation vs Boltz-2.
+    </div>
+    <table>
+        <tr>
+            <th>ID</th>
+            <th>ProteinMPNN LL</th>
+            <th>AntiFold LL</th>
+            <th>Protenix ipTM</th>
+            <th>Boltz-2 ipTM</th>
+            <th>ipTM Delta</th>
+            <th>Flags</th>
+        </tr>
+        <tr>
+            <td>vhh_1XIW_0001</td>
+            <td>1.331</td>
+            <td>0.993</td>
+            <td>0.299</td>
+            <td>N/A</td>
+            <td class="">N/A</td>
+            <td>—</td>
+        </tr>
+        <tr>
+            <td>fab_1XIW_0003</td>
+            <td>1.233</td>
+            <td>0.623</td>
+            <td>0.686</td>
+            <td>N/A</td>
+            <td class="">N/A</td>
+            <td>—</td>
+        </tr>
+        <tr>
+            <td>fab_1SY6_0011</td>
+            <td>1.273</td>
+            <td>0.581</td>
+            <td>0.693</td>
+            <td>N/A</td>
+            <td class="">N/A</td>
+            <td>—</td>
+        </tr>
+    </table>
+    <h3>Validation Summary</h3>
+    <ul>
+        <li><strong>proteinmpnn_scored:</strong> 3</li>
+        <li><strong>antifold_scored:</strong> 3</li>
+        <li><strong>protenix_predicted:</strong> 3</li>
+        <li><strong>iptm_disagreements:</strong> 1</li>
+        <li><strong>iptm_disagreement_threshold:</strong> 0.1</li>
+    </ul>
+    <h2>Provenance</h2>
+    <ul>
+        <li><strong>pipeline_version:</strong> 1.0.0</li>
+        <li><strong>run_timestamp:</strong> 2026-02-11T20:48:13.441233</li>
+        <li><strong>git_commit:</strong> 831e4a4aeaf8</li>
+        <li><strong>config_hash:</strong> c89bd72de37d</li>
+    </ul>
+
+    <hr>
+    <p><em>Generated: 2026-02-11T20:48:13.452966</em></p>
+</body>
+</html>
