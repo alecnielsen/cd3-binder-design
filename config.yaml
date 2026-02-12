@@ -108,6 +108,14 @@ validation:
   protenix_seeds:
   - 101
   iptm_disagreement_threshold: 0.1
+humanization:
+  enabled: true
+  min_humanness_for_humanization: 0.70
+  max_humanness_for_humanization: 0.80
+  num_variants_per_candidate: 5
+  sample_method: FR
+  repredict_structures: true
+  rescore_validation: true
 calibrated_thresholds:
   min_pdockq: 0.0
   min_interface_area: 2060.0

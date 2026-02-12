@@ -8,6 +8,7 @@ This script orchestrates all pipeline steps:
 3. Optimization
 4. Structure prediction
 4a. Score candidates (ProteinMPNN + AntiFold + Protenix)
+4b. Post-hoc humanization (HuDiff)
 5. Filtering
 5b. Cross-validation
 6. Bispecific formatting
@@ -75,6 +76,7 @@ def main():
         ("03_run_optimization.py", "Optimization"),
         ("04_predict_structures.py", "Structure prediction"),
         ("04a_score_candidates.py", "Score candidates (ProteinMPNN + AntiFold + Protenix)"),
+        ("04b_humanize_candidates.py", "Post-hoc humanization (HuDiff)"),
         ("05_filter_candidates.py", "Filtering"),
         ("05b_validate_candidates.py", "Cross-validation"),
         ("06_format_bispecifics.py", "Bispecific formatting"),

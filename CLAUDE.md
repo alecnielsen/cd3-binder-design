@@ -105,6 +105,8 @@ modal deploy modal/boltzgen_app.py      # Deploy BoltzGen to Modal
 modal run modal/boltzgen_app.py --download  # Download model weights
 modal deploy modal/protenix_app.py      # Deploy Protenix to Modal
 modal run modal/protenix_app.py --warmup-flag  # Pre-cache Protenix weights
+modal deploy modal/hudiff_app.py        # Deploy HuDiff to Modal
+modal run modal/hudiff_app.py --download  # Download HuDiff checkpoints (~2 GB)
 python scripts/setup_fab_scaffolds.py   # Download Fab scaffolds
 
 # Run pipeline
@@ -135,10 +137,11 @@ design:
 
 ### Pipeline Steps (Updated)
 ```
-00 → 01 → 02 → 03 → 04 → 04a → 05 → 05b → 06 → 07
+00 → 01 → 02 → 03 → 04 → 04a → 04b → 05 → 05b → 06 → 07
 ```
 - **Step 04a** (`scripts/04a_score_candidates.py`): Hard pre-filter → ProteinMPNN + AntiFold + Protenix scoring on survivors. Output: `candidates_with_scores.json`.
-- **Step 05** now reads scored input from 04a and uses validation metrics (proteinmpnn_ll, antifold_ll, protenix_iptm) in worst_metric_rank ranking.
+- **Step 04b** (`scripts/04b_humanize_candidates.py`): Post-hoc humanization of near-miss candidates (humanness 0.70-0.80) using HuDiff on Modal. Re-scores humanness, re-predicts structures, re-scores with validation tools. Output: `candidates_humanized.json`.
+- **Step 05** now reads humanized output from 04b (or scored from 04a) and uses validation metrics (proteinmpnn_ll, antifold_ll, protenix_iptm) in worst_metric_rank ranking.
 - **Step 05b** is now lightweight cross-validation only (no longer runs affinity scoring — moved to 04a).
 - **Dual Fab prediction**: Step 04 predicts Fabs as BOTH scFv (2-chain) and VH+VL+target (3-chain). Both metric sets stored.
 - **Ranking auto-fallback**: `method: boltzgen` with `secondary_method: worst_metric_rank`. Falls back automatically if no boltzgen_rank data.
@@ -169,6 +172,13 @@ design:
 88. **Protenix ipTM 0.69 for Fabs** — Feb 11 run Fab candidates scored 0.686 and 0.693 Protenix ipTM, the highest observed across all runs (previous best: 0.570 VHH). This suggests the VL fix + scFv construction produces better-quality predictions.
 89. **Filtering uses scFv metrics, not 3-chain** — Step 04a hard filter checks `structure_prediction` (scFv/2-chain mode). 3-chain predictions are supplementary scoring only. Both Fabs in final candidates pass binding on scFv alone.
 90. **Feb 11 run: 3 final candidates** — 387 cumulative candidates → 3 passed all hard filters (2 Fab, 1 VHH). Bottleneck: 152 rejected for humanness, 27 for interface area, 18 for CDR deamidation.
+91. **HuDiff post-hoc humanization integrated** — Step 04b uses HuDiff (AFL-3.0, Tencent AI4S) to humanize near-miss candidates (humanness 0.70-0.80). Diffusion-based framework regeneration preserves CDRs while replacing non-human framework residues. Deployed on Modal (A100). Config: `humanization.enabled: true`.
+92. **HuDiff has separate Ab/Nb models** — `hudiffab.pt` for VH+VL pairs (antibody), `hudiffnb.pt` for VHH (nanobody). Both downloaded from `cloud77/HuDiff` on HuggingFace (~2 GB tar.gz). Deploy: `modal deploy modal/hudiff_app.py && modal run modal/hudiff_app.py --download`.
+97. **HuDiff-Ab has no internal humanness scorer** — The antibody model is pure diffusion (relies on learned human framework distribution from OAS training data). Only HuDiff-Nb bundles AbNatiV for explicit humanness guidance. This means HuDiff-Ab outputs are *likely* human but not *guaranteed* to pass any threshold — Sapiens re-scoring in step 04b is essential.
+93. **HuDiff requires ANARCI** — Uses `abnumber` for IMGT numbering of input sequences. ANARCI is installed in the Modal image (not in local conda env). All HuDiff inference runs on Modal.
+94. **Step 04b loads full candidate pool** — Reads `candidates_with_structures.json` (all candidates) to find near-misses, not just `candidates_with_scores.json` (hard-filter survivors). Near-misses are candidates that failed humanness but may have passed binding.
+95. **Humanized candidates tagged** — `source: "hudiff_humanized"`, `parent_design_id` linking to original, `humanization_mutations` list with position/chain/original/mutated. These go through full re-prediction and re-scoring before merging.
+96. **Step 05 prefers humanized input** — If `candidates_humanized.json` exists (from 04b), step 05 loads it instead of `candidates_with_scores.json`. The humanized file contains both original scored candidates and new humanized variants.
 
 ### Future: Affinity Prediction Tools (Not Yet Integrated)
 - **Boltz-2 IC50** - Enable with `--sampling_steps_affinity 200` (MIT, not antibody-validated)

@@ -47,13 +47,17 @@ def main():
     else:
         config = PipelineConfig()
 
-    # Find input — prefer scored output from step 04a, fall back to step 04
+    # Find input — prefer humanized from 04b, then scored from 04a, then 04
     if args.input:
         input_path = Path(args.input)
     else:
+        humanized_path = Path("data/outputs/structures/candidates_humanized.json")
         scored_path = Path("data/outputs/structures/candidates_with_scores.json")
         structures_path = Path("data/outputs/structures/candidates_with_structures.json")
-        if scored_path.exists():
+        if humanized_path.exists():
+            input_path = humanized_path
+            print("  (Using humanized candidates from step 04b)")
+        elif scored_path.exists():
             input_path = scored_path
             print("  (Using scored candidates from step 04a)")
         elif structures_path.exists():

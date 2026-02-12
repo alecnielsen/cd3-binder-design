@@ -162,6 +162,19 @@ class ValidationConfig:
 
 
 @dataclass
+class HumanizationConfig:
+    """Configuration for post-hoc humanization (step 04b)."""
+
+    enabled: bool = False
+    min_humanness_for_humanization: float = 0.70
+    max_humanness_for_humanization: float = 0.80
+    num_variants_per_candidate: int = 5
+    sample_method: str = "FR"  # Framework-only regeneration (preserves CDRs)
+    repredict_structures: bool = True
+    rescore_validation: bool = True
+
+
+@dataclass
 class PipelineConfig:
     """Complete pipeline configuration."""
 
@@ -174,6 +187,7 @@ class PipelineConfig:
     epitope: EpitopeConfig = field(default_factory=EpitopeConfig)
     ranking: RankingConfig = field(default_factory=RankingConfig)
     validation: ValidationConfig = field(default_factory=ValidationConfig)
+    humanization: HumanizationConfig = field(default_factory=HumanizationConfig)
 
     # Calibrated thresholds (set after calibration)
     calibrated_min_pdockq: Optional[float] = None
@@ -257,6 +271,15 @@ class PipelineConfig:
                 "protenix_use_msa": self.validation.protenix_use_msa,
                 "protenix_seeds": self.validation.protenix_seeds,
                 "iptm_disagreement_threshold": self.validation.iptm_disagreement_threshold,
+            },
+            "humanization": {
+                "enabled": self.humanization.enabled,
+                "min_humanness_for_humanization": self.humanization.min_humanness_for_humanization,
+                "max_humanness_for_humanization": self.humanization.max_humanness_for_humanization,
+                "num_variants_per_candidate": self.humanization.num_variants_per_candidate,
+                "sample_method": self.humanization.sample_method,
+                "repredict_structures": self.humanization.repredict_structures,
+                "rescore_validation": self.humanization.rescore_validation,
             },
             "calibrated_thresholds": {
                 "min_pdockq": self.calibrated_min_pdockq,
@@ -442,6 +465,17 @@ class PipelineConfig:
             config.validation.protenix_use_msa = v.get("protenix_use_msa", False)
             config.validation.protenix_seeds = v.get("protenix_seeds", [101])
             config.validation.iptm_disagreement_threshold = v.get("iptm_disagreement_threshold", 0.1)
+
+        # Humanization
+        if "humanization" in data:
+            h = data["humanization"]
+            config.humanization.enabled = h.get("enabled", False)
+            config.humanization.min_humanness_for_humanization = h.get("min_humanness_for_humanization", 0.70)
+            config.humanization.max_humanness_for_humanization = h.get("max_humanness_for_humanization", 0.80)
+            config.humanization.num_variants_per_candidate = h.get("num_variants_per_candidate", 5)
+            config.humanization.sample_method = h.get("sample_method", "FR")
+            config.humanization.repredict_structures = h.get("repredict_structures", True)
+            config.humanization.rescore_validation = h.get("rescore_validation", True)
 
         # Calibrated thresholds
         if "calibrated_thresholds" in data:
