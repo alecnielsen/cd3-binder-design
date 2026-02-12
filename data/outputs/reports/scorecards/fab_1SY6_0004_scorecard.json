@@ -50,11 +50,11 @@
   },
   "boltzgen_rank": null,
   "validation": {
-    "proteinmpnn_ll": 1.104947566986084,
-    "antifold_ll": -0.38506188882812553,
-    "protenix_iptm": 0.2886556386947632,
-    "protenix_ptm": 0.6608272194862366,
-    "protenix_ranking_score": 0.36308997869491577
+    "proteinmpnn_ll": 1.2466249465942383,
+    "antifold_ll": 0.4540886987801217,
+    "protenix_iptm": 0.29734739661216736,
+    "protenix_ptm": 0.6577483415603638,
+    "protenix_ranking_score": 0.3694275915622711
   },
   "filter_results": {
     "binding": "pass",
@@ -66,12 +66,12 @@
   "risk_flags": [
     "liabilities_soft_fail"
   ],
-  "composite_score": 5.0,
-  "rank": 1,
+  "composite_score": 0.0,
+  "rank": 8,
   "_provenance": {
     "pipeline_version": "1.0.0",
-    "run_timestamp": "2026-02-09T08:21:26.339789",
-    "git_commit": "0866fb6ee1e1",
-    "config_hash": "edb764ae8301"
+    "run_timestamp": "2026-02-10T16:55:49.689252",
+    "git_commit": "7414b1b15713",
+    "config_hash": "8c392388c4f6"
   }
 }

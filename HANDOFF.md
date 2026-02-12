@@ -1,10 +1,22 @@
 # Handoff Notes - CD3 Binder Design Pipeline
 
-## Current Status (2026-02-09)
+## Current Status (2026-02-11)
 
-### Pipeline: ENHANCED AND VALIDATED
+### Pipeline: PRODUCTION RE-RUN IN PROGRESS
 
-100x scale run completed previously (192 designs → 10 candidates). Pipeline enhanced and test-validated with:
+50+50 production run launched with all fixes applied:
+- **Fab VL fix active** — `vh_sequence`/`vl_sequence` → `vh`/`vl` normalization in step 04, enabling proper scFv + 3-chain dual prediction
+- **BoltzGen native ranking** — All 95 designs have `boltzgen_rank` data; `method: boltzgen` is now primary (no fallback needed)
+- **Design counts reduced to 50+50** — Previous 100+100 caused Modal gRPC deadline timeout on Fab design. 50+50 completed reliably
+- **Step 04 processes all cumulative designs** — Re-predicts structures for all denovo result files (Feb 5, 8, 9, 11 runs)
+
+### Run Progress (Feb 11)
+- Step 02 (design): **95 designs** (50 VHH + 45 Fab, 5 failed RMSD filter) — all with `boltzgen_rank` and VL sequences
+- Step 03 (optimization): Complete
+- Step 04 (structure prediction): **In progress** — ~316 CIF files, processing cumulative design set via Modal
+- Steps 04a–07: Pending
+
+### Previous Enhancements (still active)
 - **Step 04a** (pre-filter + scoring): Hard pre-filter → ProteinMPNN + AntiFold + Protenix scoring before ranking
 - **Dual Fab prediction**: Fabs predicted as both scFv (2-chain) and VH+VL+target (3-chain)
 - **Validation scores in ranking**: ProteinMPNN, AntiFold, Protenix ipTM now used as ranking metrics (not just informational)
@@ -209,6 +221,20 @@ Small test run (5 VHH + 5 Fab) to validate all pipeline enhancements. Full end-t
 
 **Key finding**: All scoring tools working end-to-end. ProteinMPNN required CIF→PDB conversion (parse_PDB doesn't handle CIF). AntiFold required `custom_chain_mode=True` for single-chain (scFv) structures.
 
+### Production Run: 50+50 with VL Fix (2026-02-11) — IN PROGRESS
+
+First full run with Fab VL fix and BoltzGen native ranking.
+
+| Step | Result |
+|------|--------|
+| Design | **95 designs** (50 VHH + 45 Fab — 5 failed RMSD filter) |
+| BoltzGen rank | **95/95** have `boltzgen_rank` — no fallback needed |
+| Fab VL sequences | **45/45** have both VH + VL — fix verified |
+| Structure prediction | **In progress** — processing all cumulative designs with dual Fab prediction |
+| Steps 04a–07 | Pending |
+
+**Note**: 100+100 was attempted first but failed with Modal gRPC `Deadline exceeded` during Fab design. Reduced to 50+50 which completed reliably.
+
 ### Validation Run: 20+20 Enhanced Pipeline (2026-02-10)
 
 20 VHH + 20 Fab run to validate all pipeline enhancements end-to-end. Uncovered Fab VL key-mapping bug (see Fixes).
@@ -224,7 +250,7 @@ Small test run (5 VHH + 5 Fab) to validate all pipeline enhancements. Full end-t
 | Ranking | BoltzGen native (5/11 have boltzgen_rank from new designs) |
 | Bispecifics | 20 constructs (10 fab_vhh + 10 igg_vhh; **0 scFv-based** — VL was lost) |
 
-**Bug found**: Fab VL sequences dropped due to `vh_sequence`→`vh` key mismatch in step 04. All Fab candidates were predicted as VH-only. Fixed post-run. Next run will have correct scFv predictions and scFv-based bispecific formats.
+**Bug found**: Fab VL sequences dropped due to `vh_sequence`→`vh` key mismatch in step 04. All Fab candidates were predicted as VH-only. Fixed post-run. The 50+50 production run (above) is the first run with this fix active.
 
 ### Key Observations
 
@@ -397,31 +423,31 @@ After computational pipeline:
 
 ```
 data/outputs/
-├── calibration.json                              # Calibration thresholds
+├── calibration.json                              # Calibration thresholds + validation baselines
+├── calibration_cif/                              # CIF files from calibration controls
+├── analysis/                                     # Metric distribution analysis + plots
 ├── denovo/
-│   ├── denovo_results_20260205_173718.json      # 100x run (192 designs) ← LATEST
-│   ├── denovo_results_20260205_101836.json      # 10x validation (19 designs)
-│   ├── denovo_results_20260203_063803.json      # Early validation (10 VHH)
-│   └── denovo_results_20260126_090617.json      # Initial trial (2 VHH)
+│   ├── denovo_results_20260211_072023.json      # 50+50 production run (95 designs) ← LATEST
+│   ├── denovo_results_20260209_221522.json      # 20+20 validation (39 designs)
+│   ├── denovo_results_20260208_204032.json      # Small test run
+│   ├── denovo_results_20260205_173718.json      # 100x run (192 designs)
+│   └── denovo_results_20260205_101836.json      # 10x validation (19 designs)
 ├── optimized/                                    # Known antibody scFvs
-├── structures/
-│   ├── candidates_with_structures.json          # Boltz-2 predictions (192 candidates)
-│   └── cif/                                     # CIF structure files (future runs)
-├── filtered/
-│   └── filtered_candidates.json                 # 10 final candidates
-├── validated/
-│   └── validated_candidates.json                # Candidates with affinity + Protenix scores
 ├── structures/
 │   ├── candidates_with_structures.json          # Boltz-2 predictions (+ 3-chain for Fabs)
 │   ├── candidates_with_scores.json              # After 04a: pre-filtered + scored
-│   ├── cif/                                     # Boltz-2 CIF files
+│   ├── cif/                                     # Boltz-2 CIF files (~316 files)
 │   └── protenix_cif/                            # Protenix CIF files
+├── filtered/
+│   └── filtered_candidates.json                 # Final candidates after ranking
+├── validated/
+│   └── validated_candidates.json                # Cross-validated candidates
 ├── formatted/                                    # Bispecific constructs
 └── reports/
-    ├── report_20260207_182011.html              # HTML report ← LATEST (with validation)
-    ├── report_20260207_182011.json              # JSON report
-    ├── report_20260206_085031.html              # Previous report
-    └── report_20260206_085031.json
+    ├── report_20260210_165549.html              # HTML report ← LATEST
+    ├── report_20260210_165549.json              # JSON report
+    ├── scorecards/                               # Per-candidate scorecards
+    └── (earlier reports)
 ```
 
 ---
@@ -650,7 +676,13 @@ Protenix deployed on Modal for structure cross-validation:
 
 ## Known Issues
 
-### Modal Timeouts at Scale
+### Modal gRPC Deadline on Large Fab Designs
+
+100+100 design requests cause Modal gRPC `Deadline exceeded` on the Fab design call (`run_boltzgen_fab`). The function has a 90-min server-side timeout, but the client-side gRPC deadline is exceeded when 100 Fab designs across 12 scaffolds run sequentially on one A100 GPU.
+
+**Workaround**: Reduce to 50+50 designs. This completes reliably and still produces enough candidates (95 designs → 10 final).
+
+### Modal Timeouts During Structure Prediction
 
 When running >100 predictions, expect ~10-15% failure rate due to:
 - H100 GPU resource contention
@@ -661,3 +693,9 @@ When running >100 predictions, expect ~10-15% failure rate due to:
 - Use batch endpoint (`predict_complex_batch`) for better efficiency
 - Retry failed candidates separately
 - Run during off-peak hours
+
+### Step 04 Processes All Cumulative Designs
+
+Structure prediction re-predicts ALL designs from all denovo result files, not just the latest run. This is intentional (ensures consistent metrics) but slow: the Feb 11 run processes ~300+ designs from 5 denovo result files.
+
+**Mitigation**: If only new designs are needed, archive old denovo result files before running.

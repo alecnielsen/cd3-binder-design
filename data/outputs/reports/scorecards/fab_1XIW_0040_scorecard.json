@@ -8,17 +8,17 @@
     "iptm": null,
     "pdockq": 0.0,
     "pdockq_note": "Structural confidence, NOT affinity predictor",
-    "interface_area": 3040.0,
-    "num_contacts": 60
+    "interface_area": 2320.0,
+    "num_contacts": 38
   },
   "epitope": {
     "epitope_class": "novel_epitope",
-    "okt3_overlap": 0.2
+    "okt3_overlap": 0.0
   },
   "humanness": {
     "oasis_score_vh": null,
     "oasis_score_vl": null,
-    "oasis_score_mean": 0.8066481742936805,
+    "oasis_score_mean": 0.8066481721893181,
     "has_back_mutation_variant": false
   },
   "liabilities": {
@@ -48,11 +48,11 @@
   },
   "boltzgen_rank": null,
   "validation": {
-    "proteinmpnn_ll": null,
-    "antifold_ll": null,
-    "protenix_iptm": 0.45119741559028625,
-    "protenix_ptm": 0.7035910487174988,
-    "protenix_ranking_score": 0.5016761422157288
+    "proteinmpnn_ll": 1.3114356994628906,
+    "antifold_ll": 0.5951549627913998,
+    "protenix_iptm": 0.568748414516449,
+    "protenix_ptm": 0.7601609826087952,
+    "protenix_ranking_score": 0.6070309281349182
   },
   "filter_results": {
     "binding": "pass",
@@ -64,12 +64,12 @@
   "risk_flags": [
     "liabilities_soft_fail"
   ],
-  "composite_score": 6.0,
-  "rank": 1,
+  "composite_score": 0.0,
+  "rank": 6,
   "_provenance": {
     "pipeline_version": "1.0.0",
-    "run_timestamp": "2026-02-07T18:20:11.111710",
-    "git_commit": "3519df1db400",
-    "config_hash": "66d7eba20328"
+    "run_timestamp": "2026-02-10T16:55:49.689252",
+    "git_commit": "7414b1b15713",
+    "config_hash": "8c392388c4f6"
   }
 }

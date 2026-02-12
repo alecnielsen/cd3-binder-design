@@ -1,6 +1,6 @@
 {
-  "candidate_id": "fab_1XIW_0011",
-  "sequence": "EVQLVESGGGLEQPGGSLRLSCAGSGFSFTSGGYAMTWVRQAPGKGLEWVSSISSSGSTYYADSVKGRFTISRDNSKNTLYLQMNSLRAEDTAVYYCAKNYYGYSIGAMDYWGQGTTVTVSS",
+  "candidate_id": "fab_1XIW_0003",
+  "sequence": "EVQLVESGGGLEQPGGSLRLSCAGSGFGFGSGNYAMTWVRQAPGKGLEWVSSISGSGGYTYYADSVKGRFTISRDNSKNTLYLQMNSLRAEDTAVYYCAKAGSTGSTPGFGPLDYWGQGTTVTVSS",
   "sequence_vl": null,
   "binder_type": "fab",
   "source": "unknown",
@@ -8,34 +8,33 @@
     "iptm": null,
     "pdockq": 0.0,
     "pdockq_note": "Structural confidence, NOT affinity predictor",
-    "interface_area": 2880.0,
-    "num_contacts": 40
+    "interface_area": 3520.0,
+    "num_contacts": 57
   },
   "epitope": {
     "epitope_class": "novel_epitope",
-    "okt3_overlap": 0.16
+    "okt3_overlap": 0.13333333333333333
   },
   "humanness": {
     "oasis_score_vh": null,
     "oasis_score_vl": null,
-    "oasis_score_mean": 0.819979403534385,
+    "oasis_score_mean": 0.8089595805587513,
     "has_back_mutation_variant": false
   },
   "liabilities": {
     "deamidation_sites": [
-      74,
-      84,
-      77
+      75,
+      85,
+      78
     ],
     "isomerization_sites": [],
     "glycosylation_sites": [],
     "oxidation_sites": [
       35,
-      83,
-      108,
+      84,
       37,
       48,
-      111
+      115
     ],
     "unpaired_cys": 0,
     "cdr_deamidation_count": 0,
@@ -51,11 +50,11 @@
   },
   "boltzgen_rank": null,
   "validation": {
-    "proteinmpnn_ll": 1.3601654767990112,
-    "antifold_ll": 0.4549916159718024,
-    "protenix_iptm": null,
-    "protenix_ptm": null,
-    "protenix_ranking_score": null
+    "proteinmpnn_ll": 1.1564732789993286,
+    "antifold_ll": 0.4953785181600909,
+    "protenix_iptm": 0.23736989498138428,
+    "protenix_ptm": 0.63758784532547,
+    "protenix_ranking_score": 0.31741347908973694
   },
   "filter_results": {
     "binding": "pass",
@@ -67,8 +66,8 @@
   "risk_flags": [
     "liabilities_soft_fail"
   ],
-  "composite_score": 0.0,
-  "rank": 7,
+  "composite_score": 4.0,
+  "rank": 5,
   "_provenance": {
     "pipeline_version": "1.0.0",
     "run_timestamp": "2026-02-10T16:55:49.689252",

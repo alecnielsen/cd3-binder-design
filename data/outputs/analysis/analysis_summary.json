@@ -1,0 +1,143 @@
+{
+  "total_designs": 192,
+  "with_structures": 167,
+  "top10_count": 10,
+  "type_breakdown": {
+    "vhh": 100,
+    "fab": 92
+  },
+  "metrics": {
+    "iptm": {
+      "mean": 0.1970966467065868,
+      "std": 0.06754349966147008,
+      "median": 0.18959,
+      "min": 0.0883,
+      "max": 0.49716,
+      "q25": 0.1473,
+      "q75": 0.231225
+    },
+    "interface_area": {
+      "mean": 2736.7664670658683,
+      "std": 981.6369838312913,
+      "median": 2640.0,
+      "min": 800.0,
+      "max": 6800.0,
+      "q25": 2160.0,
+      "q75": 3040.0
+    },
+    "num_contacts": {
+      "mean": 43.131736526946106,
+      "std": 18.97257084732245,
+      "median": 41.0,
+      "min": 6.0,
+      "max": 123.0,
+      "q25": 30.0,
+      "q75": 52.5
+    },
+    "ptm": {
+      "mean": 0.6579636365710618,
+      "std": 0.10065618528394246,
+      "median": 0.6513445973396301,
+      "min": 0.46581315994262695,
+      "max": 0.9147414565086365,
+      "q25": 0.5865940749645233,
+      "q75": 0.7203335762023926
+    },
+    "plddt": {
+      "mean": 0.8532775415631826,
+      "std": 0.03541845432377953,
+      "median": 0.8530498147010803,
+      "min": 0.7703381180763245,
+      "max": 0.9333466291427612,
+      "q25": 0.826432853937149,
+      "q75": 0.8799251914024353
+    }
+  },
+  "top10": [
+    {
+      "design_id": "fab_1XIW_0040",
+      "binder_type": "fab",
+      "composite_score": 0.4116620435734202,
+      "interface_area": 3040.0,
+      "num_contacts": 60,
+      "humanness": 0.8066481742936805
+    },
+    {
+      "design_id": "fab_1XIW_0011",
+      "binder_type": "fab",
+      "composite_score": 0.36499484179175046,
+      "interface_area": 2720.0,
+      "num_contacts": 49,
+      "humanness": 0.8199793671670018
+    },
+    {
+      "design_id": "fab_1SY6_0015",
+      "binder_type": "fab",
+      "composite_score": 0.363624013120619,
+      "interface_area": 4800.0,
+      "num_contacts": 83,
+      "humanness": 0.8144960524824758
+    },
+    {
+      "design_id": "fab_1XIW_0008",
+      "binder_type": "fab",
+      "composite_score": 0.36185025743129895,
+      "interface_area": 2160.0,
+      "num_contacts": 28,
+      "humanness": 0.867401029725196
+    },
+    {
+      "design_id": "vhh_1XIW_0008",
+      "binder_type": "vhh",
+      "composite_score": 0.3561722324167014,
+      "interface_area": 2400.0,
+      "num_contacts": 37,
+      "humanness": 0.7846889296668055
+    },
+    {
+      "design_id": "vhh_1XIW_0006",
+      "binder_type": "vhh",
+      "composite_score": 0.34891372362089057,
+      "interface_area": 3440.0,
+      "num_contacts": 69,
+      "humanness": 0.7556548944835623
+    },
+    {
+      "design_id": "vhh_1XIW_0001",
+      "binder_type": "vhh",
+      "composite_score": 0.3488981548913762,
+      "interface_area": 2480.0,
+      "num_contacts": 43,
+      "humanness": 0.7555926195655047
+    },
+    {
+      "design_id": "fab_1SY6_0044",
+      "binder_type": "fab",
+      "composite_score": 0.32260698899825213,
+      "interface_area": 5200.0,
+      "num_contacts": 97,
+      "humanness": 0.8104279559930084
+    },
+    {
+      "design_id": "vhh_1XIW_0005",
+      "binder_type": "vhh",
+      "composite_score": 0.31720440314900455,
+      "interface_area": 2320.0,
+      "num_contacts": 40,
+      "humanness": 0.7888176125960181
+    },
+    {
+      "design_id": "fab_1SY6_0011",
+      "binder_type": "fab",
+      "composite_score": 0.3088118629435334,
+      "interface_area": 2720.0,
+      "num_contacts": 43,
+      "humanness": 0.8152474517741337
+    }
+  ],
+  "diversity": {
+    "mean_pairwise_identity": 0.304305734853896,
+    "min_pairwise_identity": 0.15267175572519084,
+    "max_pairwise_identity": 0.7652173913043478
+  }
+}

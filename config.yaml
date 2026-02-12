@@ -1,6 +1,6 @@
 design:
-  num_vhh_designs: 100
-  num_fab_designs: 100
+  num_vhh_designs: 50
+  num_fab_designs: 50
   target_structures:
   - data/targets/1XIW.pdb
   - data/targets/1SY6.pdb

@@ -90,7 +90,7 @@ Critical implementation details:
 60. **ValidationConfig in config.yaml** - `validation.enabled`, `validation.run_protenix`, `validation.run_proteinmpnn`, `validation.run_antifold`. `iptm_disagreement_threshold: 0.1` flags candidates where Boltz-2 and Protenix ipTM differ by >0.1.
 61. **Protenix requires CUDA devel image** - `nvidia/cuda:12.4.1-devel-ubuntu22.04` base image, not `debian_slim`. Protenix JIT-compiles custom CUDA kernels (e.g., `fast_layer_norm_cuda_v2`) which require `nvcc` compiler. Set `CUDA_HOME=/usr/local/cuda`.
 62. **Python 3.9 type syntax** - The conda env uses Python 3.9. Use `Optional[int]` (from `typing`) not `int | None` (requires 3.10+). This applies to all scripts run locally.
-63. **Ranking uses worst_metric_rank** - Config currently set to `worst_metric_rank` because `boltzgen_rank` data is not available in the 100x run (predates rank capture). Switch to `boltzgen` for future runs.
+63. **Ranking uses boltzgen** - Config set to `method: boltzgen` with `secondary_method: worst_metric_rank` fallback. As of Feb 11 run, all designs have `boltzgen_rank` data so primary method is active.
 64. **Protenix CIF files saved** - `data/outputs/structures/protenix_cif/` contains CIF structures from Protenix cross-validation for all 10 candidates.
 
 ## Quick Reference
@@ -161,6 +161,10 @@ design:
 80. **Calibration baselines complete** — All 3 validation tools scored on 3 controls. Teplizumab Protenix ipTM=0.855 (strong, consistent with high-affinity known binder). Baselines in `calibration.json` under `validation_baselines` with `proteinmpnn_ll`, `antifold_ll`, `protenix_iptm`.
 81. **CRITICAL: BoltzGen Fab output uses vh_sequence/vl_sequence keys** — BoltzGen outputs `vh_sequence` and `vl_sequence` for Fab designs, but the rest of the pipeline expects `vh` and `vl`. Step 04 now normalizes these keys at load time. Without this fix, Fab VL sequences are silently dropped: Fabs get predicted as VH-only (not scFv), 3-chain prediction is skipped, and no scFv-based bispecific formats are generated.
 82. **Step 04 scFv construction** — When a candidate has both `vh` and `vl`, step 04 constructs scFv (VH-linker-VL) for 2-chain prediction. Previously it used the raw `sequence` field (VH-only for Fabs) which produced incorrect single-chain predictions for paired antibodies.
+83. **Modal gRPC deadline on 100+ Fab designs** — `run_boltzgen_fab` with 100 designs × 12 scaffolds × 2 targets causes gRPC `Deadline exceeded` on the client side. 50+50 is the reliable config. The Modal function has 90-min server timeout but the gRPC client deadline is shorter.
+84. **Step 04 processes all cumulative denovo results** — Structure prediction loads ALL `denovo_results_*.json` files and predicts/re-predicts everything. This ensures consistent metrics but is slow for large cumulative sets. Archive old result files if only new designs are needed.
+85. **BoltzGen ranking now primary** — As of Feb 11 run, all designs have `boltzgen_rank` data. Config uses `method: boltzgen` with no fallback needed. BoltzGen's decision tree (ipTM, pTM, PAE, H-bonds, salt bridges, SASA) is experimentally validated at 66% nanobody hit rate.
+86. **Config reduced to 50+50** — `num_vhh_designs: 50`, `num_fab_designs: 50`. Produces ~95 designs (~10% Fab RMSD filter failures), plenty for 10 final candidates.
 
 ### Future: Affinity Prediction Tools (Not Yet Integrated)
 - **Boltz-2 IC50** - Enable with `--sampling_steps_affinity 200` (MIT, not antibody-validated)

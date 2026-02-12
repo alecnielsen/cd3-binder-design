@@ -1,41 +1,39 @@
 {
-  "candidate_id": "fab_1XIW_0011",
-  "sequence": "EVQLVESGGGLEQPGGSLRLSCAGSGFSFTSGGYAMTWVRQAPGKGLEWVSSISSSGSTYYADSVKGRFTISRDNSKNTLYLQMNSLRAEDTAVYYCAKNYYGYSIGAMDYWGQGTTVTVSS",
+  "candidate_id": "fab_1XIW_0001",
+  "sequence": "EVQLVESGGGLVQPGRSLRLSCAASGFTFSSYAMHWVRQAPGKGLEWVSAISSSGSYIDYADSVEGRFTISRDNAKNSLYLQMNSLRAEDTAVYYCAKGNYYLDYWGQGTLVTVSS",
   "sequence_vl": null,
   "binder_type": "fab",
   "source": "unknown",
   "binding": {
     "iptm": null,
-    "pdockq": 0.0,
+    "pdockq": null,
     "pdockq_note": "Structural confidence, NOT affinity predictor",
-    "interface_area": 2880.0,
-    "num_contacts": 40
+    "interface_area": null,
+    "num_contacts": null
   },
   "epitope": {
-    "epitope_class": "novel_epitope",
-    "okt3_overlap": 0.16
+    "epitope_class": "unknown",
+    "okt3_overlap": 0.0
   },
   "humanness": {
     "oasis_score_vh": null,
     "oasis_score_vl": null,
-    "oasis_score_mean": 0.819979403534385,
+    "oasis_score_mean": 0.8514209021493022,
     "has_back_mutation_variant": false
   },
   "liabilities": {
     "deamidation_sites": [
-      74,
-      84,
-      77
+      76,
+      83
     ],
     "isomerization_sites": [],
     "glycosylation_sites": [],
     "oxidation_sites": [
+      33,
+      82,
       35,
-      83,
-      108,
-      37,
-      48,
-      111
+      46,
+      105
     ],
     "unpaired_cys": 0,
     "cdr_deamidation_count": 0,
@@ -51,24 +49,26 @@
   },
   "boltzgen_rank": null,
   "validation": {
-    "proteinmpnn_ll": 1.3601654767990112,
-    "antifold_ll": 0.4549916159718024,
-    "protenix_iptm": null,
-    "protenix_ptm": null,
-    "protenix_ranking_score": null
+    "proteinmpnn_ll": 1.365194320678711,
+    "antifold_ll": 0.7465268627651273,
+    "protenix_iptm": 0.33075591921806335,
+    "protenix_ptm": 0.6810680627822876,
+    "protenix_ranking_score": 0.4008183479309082
   },
   "filter_results": {
-    "binding": "pass",
+    "binding": "soft_fail",
     "humanness": "pass",
     "liabilities": "soft_fail",
-    "developability": "pass",
+    "developability": "soft_fail",
     "aggregation": "pass"
   },
   "risk_flags": [
-    "liabilities_soft_fail"
+    "binding_soft_fail",
+    "liabilities_soft_fail",
+    "developability_soft_fail"
   ],
-  "composite_score": 0.0,
-  "rank": 7,
+  "composite_score": 2.0,
+  "rank": 3,
   "_provenance": {
     "pipeline_version": "1.0.0",
     "run_timestamp": "2026-02-10T16:55:49.689252",
