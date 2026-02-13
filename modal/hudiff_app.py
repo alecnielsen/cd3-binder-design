@@ -33,10 +33,12 @@ MINUTES = 60
 app = modal.App("hudiff-cd3")
 
 # HuDiff needs PyTorch + CUDA, abnumber (ANARCI), and the HuDiff repo itself.
-# PyTorch 1.13 is specified by HuDiff but newer versions work for inference.
+# ANARCI is notoriously hard to pip install (needs muscle v3, has dat/ directory bug).
+# Use micromamba to install ANARCI from bioconda — the only reliable method.
 hudiff_image = (
-    modal.Image.debian_slim(python_version="3.9")
-    .apt_install("git", "hmmer")
+    modal.Image.micromamba(python_version="3.9")
+    .apt_install("git")
+    .micromamba_install("anarci", channels=["bioconda", "conda-forge"])
     .pip_install(
         "torch==2.1.0",
         "numpy<2",
@@ -49,7 +51,9 @@ hudiff_image = (
         "einops",
         "biopython",
         "abnumber",
-        "anarci",
+        "lmdb",
+        "matplotlib",
+        "seaborn",
     )
     .pip_install("sequence-models==1.6.0")
     .run_commands("git clone https://github.com/TencentAI4S/HuDiff.git /opt/hudiff")
@@ -105,18 +109,20 @@ def download_model(force_download: bool = False):
 
     hudiff_model_volume.commit()
 
-    # Verify
+    # Verify and move checkpoints to expected paths
     for ckpt, name in [(ckpt_ab, "antibody"), (ckpt_nb, "nanobody")]:
         if ckpt.exists():
             size_mb = ckpt.stat().st_size / (1024 * 1024)
             print(f"  {name} checkpoint: {size_mb:.1f} MB")
         else:
-            # Try alternate paths from tar extraction
+            # Tar extracts to release_data_dir/ prefix — find and move
             alt_paths = list(models_dir.rglob(f"*{ckpt.name}"))
             if alt_paths:
-                alt_paths[0].parent.mkdir(parents=True, exist_ok=True)
-                os.rename(str(alt_paths[0]), str(ckpt))
-                print(f"  {name} checkpoint moved to {ckpt}")
+                ckpt.parent.mkdir(parents=True, exist_ok=True)
+                import shutil
+                shutil.move(str(alt_paths[0]), str(ckpt))
+                size_mb = ckpt.stat().st_size / (1024 * 1024)
+                print(f"  {name} checkpoint moved to {ckpt} ({size_mb:.1f} MB)")
             else:
                 print(f"  WARNING: {name} checkpoint not found!")
 
@@ -219,6 +225,15 @@ def humanize_antibody(
     """
     import sys
     sys.path.insert(0, "/opt/hudiff")
+    sys.path.insert(0, "/opt/hudiff/antibody_scripts")
+
+    # Mock unused imports — pymol (dead import), patent_eval/evaluation (eval-only)
+    from unittest.mock import MagicMock
+    sys.modules["pymol"] = MagicMock()
+    sys.modules["pymol.cmd"] = MagicMock()
+    sys.modules["patent_eval"] = MagicMock()
+    sys.modules["evaluation"] = MagicMock()
+    sys.modules["evaluation.T20_eval"] = MagicMock()
 
     import torch
     import numpy as np
@@ -335,6 +350,11 @@ def humanize_nanobody(
     """
     import sys
     sys.path.insert(0, "/opt/hudiff")
+
+    # Mock pymol — dead import in HuDiff's model/encoder/model.py (never called)
+    from unittest.mock import MagicMock
+    sys.modules["pymol"] = MagicMock()
+    sys.modules["pymol.cmd"] = MagicMock()
 
     import torch
     import numpy as np
