@@ -186,6 +186,9 @@ design:
 101. **Pipeline step ordering updated** — `00 → 01 → 02 → 03 → 04 → 04a → 04b → 05 → 05b → 06 → 07`. Step 04b is now included in `run_full_pipeline.py`.
 102. **Step 05 filtering: 10 final candidates** — 381 humanized pool → 130 pass all hard filters → 10 after diversity selection. 2 original candidates (vhh_1XIW_0001, fab_1XIW_0003) + 8 HuDiff-humanized variants. Pipeline goal of ~10 candidates achieved.
 103. **BoltzGen rank only on originals** — Humanized variants lack `boltzgen_rank` data (re-predicted via Boltz-2, not BoltzGen). Only 2/130 passing candidates have BoltzGen rank. Ranking falls back to `secondary_method: worst_metric_rank` for the rest, then diversity selection picks final 10.
+104. **Step 05b: 6/10 ipTM disagreement** — Cross-validation found 6/10 candidates have Boltz-2 vs Protenix ipTM disagreement >0.1. The 4 with agreement are more trustworthy for experimental prioritization.
+105. **Step 06: 26 bispecific constructs** — 5 formats (crossmab, fab_scfv, fab_vhh, igg_scfv, igg_vhh). scFv/crossmab formats only for 2 Fab candidates; VHH formats for all 10. Tumor arm: trastuzumab (HER2).
+106. **Full pipeline complete Feb 14** — Steps 00-07 all passing. 10 candidates, 26 bispecific constructs, HTML report generated. Ready for experimental validation.
 
 ### Future: Affinity Prediction Tools (Not Yet Integrated)
 - **Boltz-2 IC50** - Enable with `--sampling_steps_affinity 200` (MIT, not antibody-validated)
