@@ -184,6 +184,8 @@ design:
 99. **Humanized Protenix scores dramatically higher** — Best humanized: vhh_1XIW_0007_hudiff_2 ipTM=0.937, vhh_1XIW_0034_hudiff_0 ipTM=0.876, fab_1SY6_0007_hudiff_0 ipTM=0.812. Previous best was 0.693. Humanized framework regions may improve fold confidence.
 100. **HuDiff pymol/patent_eval mocked** — HuDiff imports `pymol.cmd` (dead import) and `patent_eval` (eval-only). Both mocked with `MagicMock` in Modal functions to avoid installing unnecessary heavy dependencies.
 101. **Pipeline step ordering updated** — `00 → 01 → 02 → 03 → 04 → 04a → 04b → 05 → 05b → 06 → 07`. Step 04b is now included in `run_full_pipeline.py`.
+102. **Step 05 filtering: 10 final candidates** — 381 humanized pool → 130 pass all hard filters → 10 after diversity selection. 2 original candidates (vhh_1XIW_0001, fab_1XIW_0003) + 8 HuDiff-humanized variants. Pipeline goal of ~10 candidates achieved.
+103. **BoltzGen rank only on originals** — Humanized variants lack `boltzgen_rank` data (re-predicted via Boltz-2, not BoltzGen). Only 2/130 passing candidates have BoltzGen rank. Ranking falls back to `secondary_method: worst_metric_rank` for the rest, then diversity selection picks final 10.
 
 ### Future: Affinity Prediction Tools (Not Yet Integrated)
 - **Boltz-2 IC50** - Enable with `--sampling_steps_affinity 200` (MIT, not antibody-validated)
