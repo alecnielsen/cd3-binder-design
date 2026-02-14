@@ -179,6 +179,11 @@ design:
 94. **Step 04b loads full candidate pool** — Reads `candidates_with_structures.json` (all candidates) to find near-misses, not just `candidates_with_scores.json` (hard-filter survivors). Near-misses are candidates that failed humanness but may have passed binding.
 95. **Humanized candidates tagged** — `source: "hudiff_humanized"`, `parent_design_id` linking to original, `humanization_mutations` list with position/chain/original/mutated. These go through full re-prediction and re-scoring before merging.
 96. **Step 05 prefers humanized input** — If `candidates_humanized.json` exists (from 04b), step 05 loads it instead of `candidates_with_scores.json`. The humanized file contains both original scored candidates and new humanized variants.
+97. **HuDiff production run complete** — 275 near-misses humanized → 1375 HuDiff variants → 378 pass humanness ≥0.8 (27.5% success rate). VHH humanization works much better than Fab (~40% vs ~15% pass rate). Total candidate pool: 381 (3 original + 378 humanized).
+98. **Protenix parallel via spawn()** — Step 04b uses `protenix_fn.spawn()` + `handle.get()` for parallel Protenix cross-validation. 378 predictions complete in ~2 hours vs ~83 hours serial. Some GPU jobs timeout at 1500s (~10% failure rate) but results are collected for the rest.
+99. **Humanized Protenix scores dramatically higher** — Best humanized: vhh_1XIW_0007_hudiff_2 ipTM=0.937, vhh_1XIW_0034_hudiff_0 ipTM=0.876, fab_1SY6_0007_hudiff_0 ipTM=0.812. Previous best was 0.693. Humanized framework regions may improve fold confidence.
+100. **HuDiff pymol/patent_eval mocked** — HuDiff imports `pymol.cmd` (dead import) and `patent_eval` (eval-only). Both mocked with `MagicMock` in Modal functions to avoid installing unnecessary heavy dependencies.
+101. **Pipeline step ordering updated** — `00 → 01 → 02 → 03 → 04 → 04a → 04b → 05 → 05b → 06 → 07`. Step 04b is now included in `run_full_pipeline.py`.
 
 ### Future: Affinity Prediction Tools (Not Yet Integrated)
 - **Boltz-2 IC50** - Enable with `--sampling_steps_affinity 200` (MIT, not antibody-validated)

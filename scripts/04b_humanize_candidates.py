@@ -362,7 +362,7 @@ def main():
             except Exception as e:
                 print(f"  Affinity scoring failed: {e}")
 
-        # Protenix (Modal GPU)
+        # Protenix (Modal GPU) — parallel via spawn
         if config.validation.run_protenix and target_sequence:
             try:
                 import modal
@@ -370,37 +370,48 @@ def main():
                 protenix_cif_dir = Path("data/outputs/structures/protenix_cif")
                 protenix_cif_dir.mkdir(parents=True, exist_ok=True)
 
+                # Spawn all predictions in parallel
+                print(f"  Spawning {len(passing_humanized)} Protenix predictions in parallel...")
+                handles = []
                 for hc in passing_humanized:
-                    hid = hc.get("design_id", "unknown")
                     seq = hc.get("sequence") or hc.get("vh", "")
                     seq_vl = hc.get("sequence_vl") or hc.get("vl")
                     binder_type = hc.get("binder_type", "vhh")
+                    handle = protenix_fn.spawn(
+                        binder_sequence=seq,
+                        target_sequence=target_sequence,
+                        binder_type=binder_type,
+                        binder_sequence_vl=seq_vl,
+                        seed=config.validation.protenix_seeds[0],
+                        use_msa=config.validation.protenix_use_msa,
+                    )
+                    handles.append(handle)
 
-                    print(f"  Protenix: {hid}...")
+                print(f"  All {len(handles)} jobs spawned, collecting results...")
+                for i, (hc, handle) in enumerate(zip(passing_humanized, handles)):
+                    hid = hc.get("design_id", "unknown")
                     try:
-                        pred = protenix_fn.remote(
-                            binder_sequence=seq,
-                            target_sequence=target_sequence,
-                            binder_type=binder_type,
-                            binder_sequence_vl=seq_vl,
-                            seed=config.validation.protenix_seeds[0],
-                            use_msa=config.validation.protenix_use_msa,
-                        )
+                        pred = handle.get()
                         vs = hc.setdefault("validation_scores", {})
                         if not pred.get("error"):
                             vs["protenix_iptm"] = pred.get("iptm")
                             vs["protenix_ptm"] = pred.get("ptm")
                             vs["protenix_ranking_score"] = pred.get("ranking_score")
-                            print(f"    ipTM={pred.get('iptm')}, pTM={pred.get('ptm')}")
+                            print(f"  {hid}: ipTM={pred.get('iptm', 0):.3f}, pTM={pred.get('ptm', 0):.3f}")
                         else:
                             vs["protenix_error"] = pred["error"][:200]
-                            print(f"    Error: {pred['error'][:80]}")
+                            print(f"  {hid}: Error: {pred['error'][:80]}")
 
                         if pred.get("cif_string"):
                             cif_path = protenix_cif_dir / f"{hid}_protenix.cif"
                             cif_path.write_text(pred["cif_string"])
                     except Exception as e:
-                        print(f"    Error: {e}")
+                        print(f"  {hid}: Error: {e}")
+
+                    if (i + 1) % 20 == 0:
+                        print(f"    {i + 1}/{len(handles)} collected")
+
+                print(f"  All {len(handles)} Protenix predictions complete")
             except Exception as e:
                 print(f"  Protenix not available: {e}")
 
