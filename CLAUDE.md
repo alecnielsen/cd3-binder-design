@@ -189,6 +189,10 @@ design:
 104. **Step 05b: 6/10 ipTM disagreement** — Cross-validation found 6/10 candidates have Boltz-2 vs Protenix ipTM disagreement >0.1. The 4 with agreement are more trustworthy for experimental prioritization.
 105. **Step 06: 26 bispecific constructs** — 5 formats (crossmab, fab_scfv, fab_vhh, igg_scfv, igg_vhh). scFv/crossmab formats only for 2 Fab candidates; VHH formats for all 10. Tumor arm: trastuzumab (HER2).
 106. **Full pipeline complete Feb 14** — Steps 00-07 all passing. 10 candidates, 26 bispecific constructs, HTML report generated. Ready for experimental validation.
+107. **Boltz-2/Protenix agreement analysis** — 4/10 candidates have agreement (ipTM delta ≤0.1): fab_1XIW_0003, vhh_1XIW_0019_hudiff_0, vhh_1SY6_0013_hudiff_0, vhh_1SY6_0019_hudiff_2. These are highest-confidence for experimental prioritization.
+108. **CDR preservation verified** — ANARCI IMGT numbering confirms 57 framework mutations, 0 CDR mutations across all 8 humanized variants. HuDiff `sample_method: FR` preserves CDRs as designed.
+109. **Canonical disulfide restored by HuDiff** — Common mutations at IMGT positions 23 and 104 introduce Cys residues, restoring the canonical human VH intradomain disulfide bond absent in camelid VHH frameworks.
+110. **fab_1XIW_0003 is top candidate** — Highest ipTM from both Boltz-2 (0.720) and Protenix (0.686), best humanness (0.830), Fab format with human scaffold. Only Fab in the agreement set.
 
 ### Future: Affinity Prediction Tools (Not Yet Integrated)
 - **Boltz-2 IC50** - Enable with `--sampling_steps_affinity 200` (MIT, not antibody-validated)

@@ -1,13 +1,56 @@
 {
+  "summary": {
+    "num_candidates": 10,
+    "filter_stats": {
+      "total_input": 381,
+      "passing_first_pass": 130,
+      "failing_first_pass": 251,
+      "relaxations_applied": [],
+      "final_passing": 130,
+      "used_fallback": false,
+      "ranking_method": "boltzgen",
+      "diversity_selection": true
+    },
+    "distributions": {
+      "epitope": {
+        "novel_epitope": 10
+      },
+      "binder_type": {
+        "vhh": 9,
+        "fab": 1
+      },
+      "source": {
+        "unknown": 2,
+        "hudiff_humanized": 8
+      }
+    },
+    "score_stats": {
+      "composite": {
+        "min": 0.0,
+        "max": 4.0,
+        "mean": 0.6
+      },
+      "pdockq": {
+        "min": 0.0,
+        "max": 0.0,
+        "mean": 0.0
+      },
+      "humanness": {
+        "min": 0.8081171938820797,
+        "max": 0.8301218434208726,
+        "mean": 0.8158083550715138
+      }
+    }
+  },
   "candidates": [
     {
       "candidate_id": "vhh_1XIW_0001",
       "sequence": "QVQLVESGGGLVQAGGSLRLSEAASGFTFSSYAMGWFRQAPGKGREWVASISYSGSSTYYADSVKGRFTISRDNSKNTLYLQMNSLRAEDTAVYYAARGSSSGYFDYWGQGTQVTVS",
-      "sequence_vl": "",
+      "sequence_vl": null,
       "binder_type": "vhh",
       "source": "unknown",
       "binding": {
-        "iptm": 0.6158585548400879,
+        "iptm": null,
         "pdockq": 0.0,
         "pdockq_note": "Structural confidence, NOT affinity predictor",
         "interface_area": 2080.0,
@@ -29,11 +72,7 @@
           83,
           76
         ],
-        "isomerization_sites": [
-          61,
-          89,
-          72
-        ],
+        "isomerization_sites": [],
         "glycosylation_sites": [],
         "oxidation_sites": [
           33,
@@ -50,21 +89,17 @@
       },
       "developability": {
         "cdr_h3_length": null,
-        "net_charge": 1.9994184278835239,
-        "isoelectric_point": 9.36181640625,
+        "net_charge": null,
+        "isoelectric_point": null,
         "hydrophobic_patches": 0
       },
-      "boltzgen_rank": 2,
+      "boltzgen_rank": null,
       "validation": {
         "proteinmpnn_ll": 1.33110773563385,
         "antifold_ll": 0.9933032071115266,
         "protenix_iptm": 0.29939794540405273,
         "protenix_ptm": 0.6557167172431946,
-        "protenix_ranking_score": 0.3706617057323456,
-        "boltz2_protenix_iptm_delta": 0.3165,
-        "agreement_flags": [
-          "ipTM_disagreement: Boltz2=0.616 vs Protenix=0.299 (delta=0.316)"
-        ]
+        "protenix_ranking_score": 0.3706617057323456
       },
       "filter_results": {
         "binding": "pass",
@@ -78,16 +113,22 @@
         "developability_soft_fail"
       ],
       "composite_score": 2.0,
-      "rank": 1
+      "rank": 1,
+      "_provenance": {
+        "pipeline_version": "1.0.0",
+        "run_timestamp": "2026-02-14T08:01:40.615000",
+        "git_commit": "f1c231bd7113",
+        "config_hash": "899577515982"
+      }
     },
     {
       "candidate_id": "fab_1XIW_0003",
       "sequence": "VQLVESGGGLVQPGRSLRLSCAASGFTLSNYAMHWVRQAPGKGLEWVSGISSSGSNIGYADSVKGRFTISRDNAENSLFLQMNGLRAEDTALYYCAKGGDADVYGFDYWGQGTMVTVSS",
-      "sequence_vl": "DIQMTQSPSSVSASVGDRVTITCRASQSISTYLAWYQQKPGKAPKLLIYDASNLYSGVPSRFSGSGSGTDFTLTISSLQPEDFASYYCQQYYSYPSGLTFGQGTKLEIK",
+      "sequence_vl": null,
       "binder_type": "fab",
       "source": "unknown",
       "binding": {
-        "iptm": 0.7197874188423157,
+        "iptm": null,
         "pdockq": 0.0,
         "pdockq_note": "Structural confidence, NOT affinity predictor",
         "interface_area": 2640.0,
@@ -108,11 +149,7 @@
           82,
           75
         ],
-        "isomerization_sites": [
-          60,
-          88,
-          71
-        ],
+        "isomerization_sites": [],
         "glycosylation_sites": [],
         "oxidation_sites": [
           32,
@@ -132,18 +169,17 @@
       },
       "developability": {
         "cdr_h3_length": null,
-        "net_charge": -0.08637316964565313,
-        "isoelectric_point": 6.86669921875,
+        "net_charge": null,
+        "isoelectric_point": null,
         "hydrophobic_patches": 0
       },
-      "boltzgen_rank": 4,
+      "boltzgen_rank": null,
       "validation": {
         "proteinmpnn_ll": 1.2330689430236816,
         "antifold_ll": 0.6230996347428525,
         "protenix_iptm": 0.6862272620201111,
         "protenix_ptm": 0.7874088287353516,
-        "protenix_ranking_score": 0.706463634967804,
-        "boltz2_protenix_iptm_delta": 0.0336
+        "protenix_ranking_score": 0.706463634967804
       },
       "filter_results": {
         "binding": "pass",
@@ -156,7 +192,13 @@
         "liabilities_soft_fail"
       ],
       "composite_score": 4.0,
-      "rank": 2
+      "rank": 2,
+      "_provenance": {
+        "pipeline_version": "1.0.0",
+        "run_timestamp": "2026-02-14T08:01:40.615000",
+        "git_commit": "f1c231bd7113",
+        "config_hash": "899577515982"
+      }
     },
     {
       "candidate_id": "vhh_1XIW_0019_hudiff_0",
@@ -165,7 +207,7 @@
       "binder_type": "vhh",
       "source": "hudiff_humanized",
       "binding": {
-        "iptm": 0.32983893156051636,
+        "iptm": null,
         "pdockq": 0.0,
         "pdockq_note": "Structural confidence, NOT affinity predictor",
         "interface_area": 2880.0,
@@ -186,11 +228,7 @@
           83,
           76
         ],
-        "isomerization_sites": [
-          61,
-          89,
-          72
-        ],
+        "isomerization_sites": [],
         "glycosylation_sites": [],
         "oxidation_sites": [
           33,
@@ -206,8 +244,8 @@
       },
       "developability": {
         "cdr_h3_length": null,
-        "net_charge": -0.08938327659301235,
-        "isoelectric_point": 6.49755859375,
+        "net_charge": null,
+        "isoelectric_point": null,
         "hydrophobic_patches": 0
       },
       "boltzgen_rank": null,
@@ -216,8 +254,7 @@
         "antifold_ll": 0.458132103006334,
         "protenix_iptm": 0.294080525636673,
         "protenix_ptm": 0.6356254816055298,
-        "protenix_ranking_score": 0.3623895049095154,
-        "boltz2_protenix_iptm_delta": 0.0358
+        "protenix_ranking_score": 0.3623895049095154
       },
       "filter_results": {
         "binding": "pass",
@@ -230,7 +267,13 @@
         "liabilities_soft_fail"
       ],
       "composite_score": 0.0,
-      "rank": 3
+      "rank": 3,
+      "_provenance": {
+        "pipeline_version": "1.0.0",
+        "run_timestamp": "2026-02-14T08:01:40.615000",
+        "git_commit": "f1c231bd7113",
+        "config_hash": "899577515982"
+      }
     },
     {
       "candidate_id": "vhh_1SY6_0013_hudiff_0",
@@ -239,7 +282,7 @@
       "binder_type": "vhh",
       "source": "hudiff_humanized",
       "binding": {
-        "iptm": 0.35445114970207214,
+        "iptm": null,
         "pdockq": 0.0,
         "pdockq_note": "Structural confidence, NOT affinity predictor",
         "interface_area": 2560.0,
@@ -260,11 +303,7 @@
           83,
           76
         ],
-        "isomerization_sites": [
-          61,
-          89,
-          72
-        ],
+        "isomerization_sites": [],
         "glycosylation_sites": [],
         "oxidation_sites": [
           33,
@@ -280,8 +319,8 @@
       },
       "developability": {
         "cdr_h3_length": null,
-        "net_charge": -0.08817015681401033,
-        "isoelectric_point": 6.53173828125,
+        "net_charge": null,
+        "isoelectric_point": null,
         "hydrophobic_patches": 0
       },
       "boltzgen_rank": null,
@@ -290,8 +329,7 @@
         "antifold_ll": 0.46286842198342193,
         "protenix_iptm": 0.38896846771240234,
         "protenix_ptm": 0.7000367045402527,
-        "protenix_ranking_score": 0.45118212699890137,
-        "boltz2_protenix_iptm_delta": 0.0345
+        "protenix_ranking_score": 0.45118212699890137
       },
       "filter_results": {
         "binding": "pass",
@@ -304,7 +342,13 @@
         "liabilities_soft_fail"
       ],
       "composite_score": 0.0,
-      "rank": 4
+      "rank": 4,
+      "_provenance": {
+        "pipeline_version": "1.0.0",
+        "run_timestamp": "2026-02-14T08:01:40.615000",
+        "git_commit": "f1c231bd7113",
+        "config_hash": "899577515982"
+      }
     },
     {
       "candidate_id": "vhh_1SY6_0019_hudiff_2",
@@ -313,7 +357,7 @@
       "binder_type": "vhh",
       "source": "hudiff_humanized",
       "binding": {
-        "iptm": 0.3473171889781952,
+        "iptm": null,
         "pdockq": 0.0,
         "pdockq_note": "Structural confidence, NOT affinity predictor",
         "interface_area": 2320.0,
@@ -334,11 +378,7 @@
           83,
           76
         ],
-        "isomerization_sites": [
-          61,
-          89,
-          72
-        ],
+        "isomerization_sites": [],
         "glycosylation_sites": [],
         "oxidation_sites": [
           33,
@@ -354,8 +394,8 @@
       },
       "developability": {
         "cdr_h3_length": null,
-        "net_charge": 0.9117555488768053,
-        "isoelectric_point": 8.20654296875,
+        "net_charge": null,
+        "isoelectric_point": null,
         "hydrophobic_patches": 0
       },
       "boltzgen_rank": null,
@@ -364,8 +404,7 @@
         "antifold_ll": 0.5915582951311268,
         "protenix_iptm": 0.33345967531204224,
         "protenix_ptm": 0.6646921634674072,
-        "protenix_ranking_score": 0.3997061848640442,
-        "boltz2_protenix_iptm_delta": 0.0139
+        "protenix_ranking_score": 0.3997061848640442
       },
       "filter_results": {
         "binding": "pass",
@@ -378,7 +417,13 @@
         "liabilities_soft_fail"
       ],
       "composite_score": 0.0,
-      "rank": 5
+      "rank": 5,
+      "_provenance": {
+        "pipeline_version": "1.0.0",
+        "run_timestamp": "2026-02-14T08:01:40.615000",
+        "git_commit": "f1c231bd7113",
+        "config_hash": "899577515982"
+      }
     },
     {
       "candidate_id": "vhh_1XIW_0019_hudiff_2",
@@ -387,7 +432,7 @@
       "binder_type": "vhh",
       "source": "hudiff_humanized",
       "binding": {
-        "iptm": 0.6998551487922668,
+        "iptm": null,
         "pdockq": 0.0,
         "pdockq_note": "Structural confidence, NOT affinity predictor",
         "interface_area": 3920.0,
@@ -408,11 +453,7 @@
           83,
           76
         ],
-        "isomerization_sites": [
-          61,
-          89,
-          72
-        ],
+        "isomerization_sites": [],
         "glycosylation_sites": [],
         "oxidation_sites": [
           33,
@@ -428,8 +469,8 @@
       },
       "developability": {
         "cdr_h3_length": null,
-        "net_charge": -0.08938327659301235,
-        "isoelectric_point": 6.49755859375,
+        "net_charge": null,
+        "isoelectric_point": null,
         "hydrophobic_patches": 0
       },
       "boltzgen_rank": null,
@@ -438,11 +479,7 @@
         "antifold_ll": 0.5083435136535261,
         "protenix_iptm": 0.3819214403629303,
         "protenix_ptm": 0.6932988166809082,
-        "protenix_ranking_score": 0.4441969394683838,
-        "boltz2_protenix_iptm_delta": 0.3179,
-        "agreement_flags": [
-          "ipTM_disagreement: Boltz2=0.700 vs Protenix=0.382 (delta=0.318)"
-        ]
+        "protenix_ranking_score": 0.4441969394683838
       },
       "filter_results": {
         "binding": "pass",
@@ -455,7 +492,13 @@
         "liabilities_soft_fail"
       ],
       "composite_score": 0.0,
-      "rank": 6
+      "rank": 6,
+      "_provenance": {
+        "pipeline_version": "1.0.0",
+        "run_timestamp": "2026-02-14T08:01:40.615000",
+        "git_commit": "f1c231bd7113",
+        "config_hash": "899577515982"
+      }
     },
     {
       "candidate_id": "vhh_1XIW_0019_hudiff_4",
@@ -464,7 +507,7 @@
       "binder_type": "vhh",
       "source": "hudiff_humanized",
       "binding": {
-        "iptm": 0.1654260903596878,
+        "iptm": null,
         "pdockq": 0.0,
         "pdockq_note": "Structural confidence, NOT affinity predictor",
         "interface_area": 2240.0,
@@ -485,11 +528,7 @@
           83,
           76
         ],
-        "isomerization_sites": [
-          61,
-          89,
-          72
-        ],
+        "isomerization_sites": [],
         "glycosylation_sites": [],
         "oxidation_sites": [
           33,
@@ -505,8 +544,8 @@
       },
       "developability": {
         "cdr_h3_length": null,
-        "net_charge": -0.08938327659301235,
-        "isoelectric_point": 6.49755859375,
+        "net_charge": null,
+        "isoelectric_point": null,
         "hydrophobic_patches": 0
       },
       "boltzgen_rank": null,
@@ -515,11 +554,7 @@
         "antifold_ll": 0.4525449255799821,
         "protenix_iptm": 0.3163015842437744,
         "protenix_ptm": 0.6651668548583984,
-        "protenix_ranking_score": 0.38607466220855713,
-        "boltz2_protenix_iptm_delta": 0.1509,
-        "agreement_flags": [
-          "ipTM_disagreement: Boltz2=0.165 vs Protenix=0.316 (delta=0.151)"
-        ]
+        "protenix_ranking_score": 0.38607466220855713
       },
       "filter_results": {
         "binding": "pass",
@@ -532,7 +567,13 @@
         "liabilities_soft_fail"
       ],
       "composite_score": 0.0,
-      "rank": 7
+      "rank": 7,
+      "_provenance": {
+        "pipeline_version": "1.0.0",
+        "run_timestamp": "2026-02-14T08:01:40.615000",
+        "git_commit": "f1c231bd7113",
+        "config_hash": "899577515982"
+      }
     },
     {
       "candidate_id": "vhh_1SY6_0013_hudiff_4",
@@ -541,7 +582,7 @@
       "binder_type": "vhh",
       "source": "hudiff_humanized",
       "binding": {
-        "iptm": 0.2227867692708969,
+        "iptm": null,
         "pdockq": 0.0,
         "pdockq_note": "Structural confidence, NOT affinity predictor",
         "interface_area": 2240.0,
@@ -562,11 +603,7 @@
           83,
           76
         ],
-        "isomerization_sites": [
-          61,
-          89,
-          72
-        ],
+        "isomerization_sites": [],
         "glycosylation_sites": [],
         "oxidation_sites": [
           33,
@@ -582,8 +619,8 @@
       },
       "developability": {
         "cdr_h3_length": null,
-        "net_charge": -0.08817015681401033,
-        "isoelectric_point": 6.53173828125,
+        "net_charge": null,
+        "isoelectric_point": null,
         "hydrophobic_patches": 0
       },
       "boltzgen_rank": null,
@@ -592,11 +629,7 @@
         "antifold_ll": 0.5269919557693578,
         "protenix_iptm": 0.4534622132778168,
         "protenix_ptm": 0.7315708994865417,
-        "protenix_ranking_score": 0.5090839862823486,
-        "boltz2_protenix_iptm_delta": 0.2307,
-        "agreement_flags": [
-          "ipTM_disagreement: Boltz2=0.223 vs Protenix=0.453 (delta=0.231)"
-        ]
+        "protenix_ranking_score": 0.5090839862823486
       },
       "filter_results": {
         "binding": "pass",
@@ -609,7 +642,13 @@
         "liabilities_soft_fail"
       ],
       "composite_score": 0.0,
-      "rank": 8
+      "rank": 8,
+      "_provenance": {
+        "pipeline_version": "1.0.0",
+        "run_timestamp": "2026-02-14T08:01:40.615000",
+        "git_commit": "f1c231bd7113",
+        "config_hash": "899577515982"
+      }
     },
     {
       "candidate_id": "vhh_1SY6_0033_hudiff_4",
@@ -618,7 +657,7 @@
       "binder_type": "vhh",
       "source": "hudiff_humanized",
       "binding": {
-        "iptm": 0.4739284813404083,
+        "iptm": null,
         "pdockq": 0.0,
         "pdockq_note": "Structural confidence, NOT affinity predictor",
         "interface_area": 4560.0,
@@ -640,10 +679,7 @@
           83,
           76
         ],
-        "isomerization_sites": [
-          89,
-          72
-        ],
+        "isomerization_sites": [],
         "glycosylation_sites": [],
         "oxidation_sites": [
           33,
@@ -659,8 +695,8 @@
       },
       "developability": {
         "cdr_h3_length": null,
-        "net_charge": 1.9084803946893378,
-        "isoelectric_point": 8.72607421875,
+        "net_charge": null,
+        "isoelectric_point": null,
         "hydrophobic_patches": 0
       },
       "boltzgen_rank": null,
@@ -669,11 +705,7 @@
         "antifold_ll": 0.695620943669435,
         "protenix_iptm": 0.22679150104522705,
         "protenix_ptm": 0.6360890865325928,
-        "protenix_ranking_score": 0.30865103006362915,
-        "boltz2_protenix_iptm_delta": 0.2471,
-        "agreement_flags": [
-          "ipTM_disagreement: Boltz2=0.474 vs Protenix=0.227 (delta=0.247)"
-        ]
+        "protenix_ranking_score": 0.30865103006362915
       },
       "filter_results": {
         "binding": "pass",
@@ -686,7 +718,13 @@
         "liabilities_soft_fail"
       ],
       "composite_score": 0.0,
-      "rank": 9
+      "rank": 9,
+      "_provenance": {
+        "pipeline_version": "1.0.0",
+        "run_timestamp": "2026-02-14T08:01:40.615000",
+        "git_commit": "f1c231bd7113",
+        "config_hash": "899577515982"
+      }
     },
     {
       "candidate_id": "vhh_1SY6_0045_hudiff_0",
@@ -695,7 +733,7 @@
       "binder_type": "vhh",
       "source": "hudiff_humanized",
       "binding": {
-        "iptm": 0.19991585612297058,
+        "iptm": null,
         "pdockq": 0.0,
         "pdockq_note": "Structural confidence, NOT affinity predictor",
         "interface_area": 2880.0,
@@ -716,11 +754,7 @@
           82,
           75
         ],
-        "isomerization_sites": [
-          60,
-          88,
-          71
-        ],
+        "isomerization_sites": [],
         "glycosylation_sites": [],
         "oxidation_sites": [
           33,
@@ -736,8 +770,8 @@
       },
       "developability": {
         "cdr_h3_length": null,
-        "net_charge": -0.08541811716410433,
-        "isoelectric_point": 6.55224609375,
+        "net_charge": null,
+        "isoelectric_point": null,
         "hydrophobic_patches": 0
       },
       "boltzgen_rank": null,
@@ -746,11 +780,7 @@
         "antifold_ll": 0.58157083392399,
         "protenix_iptm": 0.3196461796760559,
         "protenix_ptm": 0.6685059666633606,
-        "protenix_ranking_score": 0.3894181251525879,
-        "boltz2_protenix_iptm_delta": 0.1197,
-        "agreement_flags": [
-          "ipTM_disagreement: Boltz2=0.200 vs Protenix=0.320 (delta=0.120)"
-        ]
+        "protenix_ranking_score": 0.3894181251525879
       },
       "filter_results": {
         "binding": "pass",
@@ -763,20 +793,22 @@
         "liabilities_soft_fail"
       ],
       "composite_score": 0.0,
-      "rank": 10
+      "rank": 10,
+      "_provenance": {
+        "pipeline_version": "1.0.0",
+        "run_timestamp": "2026-02-14T08:01:40.615000",
+        "git_commit": "f1c231bd7113",
+        "config_hash": "899577515982"
+      }
     }
   ],
-  "count": 10,
-  "filter_stats": {
-    "total_input": 381,
-    "passing_first_pass": 130,
-    "failing_first_pass": 251,
-    "relaxations_applied": [],
-    "final_passing": 130,
-    "used_fallback": false,
-    "ranking_method": "boltzgen",
-    "diversity_selection": true
+  "provenance": {
+    "pipeline_version": "1.0.0",
+    "run_timestamp": "2026-02-14T08:01:40.615000",
+    "git_commit": "f1c231bd7113",
+    "config_hash": "899577515982"
   },
+  "generated_at": "2026-02-14T08:01:40.628830",
   "validation_summary": {
     "proteinmpnn_scored": 10,
     "antifold_scored": 10,

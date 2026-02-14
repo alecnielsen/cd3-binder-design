@@ -74,43 +74,5 @@
       ],
       "notes": "IgG-(scFv)2 Morrison format (symmetric). Bivalent for both targets: 2x Fab(target), 2x scFv(CD3). scFv fused to C-terminus of both heavy chains. scFv linker: GGGGSGGGGSGGGGS, Fc fusion linker: GGGGSGGGGS"
     }
-  },
-  {
-    "candidate_id": "fab_1SY6_0011",
-    "format": "igg_scfv",
-    "construct": {
-      "name": "fab_1SY6_0011_igg_scfv",
-      "format_type": "igg_scfv",
-      "target_1": "HER2 (ERBB2)",
-      "target_2": "CD3",
-      "chains": [
-        {
-          "name": "HC_target_igg_scfv",
-          "sequence": "EVQLVESGGGLVQPGGSLRLSCAASGFNIKDTYIHWVRQAPGKGLEWVARIYPTNGYTRYADSVKGRFTISADTSKNTAYLQMNSLRAEDTAVYYCSRWGGDGFYAMDYWGQGTLVTVSSASTKGPSVFPLAPSSKSTSGGTAALGCLVKDYFPEPVTVSWNSGALTSGVHTFPAVLQSSGLYSLSSVVTVPSSSLGTQTYICNVNHKPSNTKVDKRVEPKSCDKTHTCPPCPAPELLGGPSVFLFPPKPKDTLMISRTPEVTCVVVDVSHEDPEVKFNWYVDGVEVHNAKTKPREEQYNSTYRVVSVLTVLHQDWLNGKEYKCKVSNKALPAPIEKTISKAKGQPREPQVYTLPPSREEMTKNQVSLTCLVKGFYPSDIAVEWESNGQPENNYKTTPPVLDSDGSFFLYSKLTVDKSRWQQGNVFSCSVMHEALHNHYTQKSLSLSPGKGGGGSGGGGSQVQLQESGPGLVKPSQTLSLTCTVSGFSLTSGYYWSWIRQPPGKGLEWIGYISSKYSPPYTDYNPSLKSRVTMSVDTSKNQFSLKVNSVTAADTAVYYCARDWKYWGQGTLVTVSSGGGGSGGGGSGGGGSEIVMTQSPATLSLSPGERATLSCRASQSISNNLAWYQQKPGQAPRLLIYYASNLASGIPARFSGSGSGTDFTLTISSLEPEDFAVYYCQQYSGVLPYTFGGGTKAEIK",
-          "chain_type": "heavy",
-          "components": [
-            "VH(target)",
-            "CH1",
-            "Hinge",
-            "CH2",
-            "CH3",
-            "Linker(10aa)",
-            "scFv(CD3)"
-          ],
-          "length": 699
-        },
-        {
-          "name": "LC_target",
-          "sequence": "DIQMTQSPSSLSASVGDRVTITCRASQDVNTAVAWYQQKPGKAPKLLIYSASFLYSGVPSRFSGSRSGTDFTLTISSLQPEDFATYYCQQHYTTPPTFGQGTKVEIKRTVAAPSVFIFPPSDEQLKSGTASVVCLLNNFYPREAKVQWKVDNALQSGNSQESVTEQDSKDSTYSLSSTLTLSKADYEKHKVYACEVTHQGLSSPVTKSFNRGEC",
-          "chain_type": "light",
-          "components": [
-            "VL(target)",
-            "CL"
-          ],
-          "length": 214
-        }
-      ],
-      "notes": "IgG-(scFv)2 Morrison format (symmetric). Bivalent for both targets: 2x Fab(target), 2x scFv(CD3). scFv fused to C-terminus of both heavy chains. scFv linker: GGGGSGGGGSGGGGS, Fc fusion linker: GGGGSGGGGS"
-    }
   }
 ]

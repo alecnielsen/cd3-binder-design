@@ -146,9 +146,14 @@ STRUCTURE PREDICTION
 ├── Boltz-2 (complex with CD3ε)
 │   ├── scFv prediction (all candidates)
 │   └── 3-chain prediction (Fabs: VH + VL + target)
-└── Step 04a: Pre-filter + score survivors
-    ├── ProteinMPNN + AntiFold (local CPU)
-    └── Protenix cross-validation (Modal GPU)
+├── Step 04a: Pre-filter + score survivors
+│   ├── ProteinMPNN + AntiFold (local CPU)
+│   └── Protenix cross-validation (Modal GPU)
+└── Step 04b: Post-hoc humanization (HuDiff on Modal GPU)
+    ├── Identify near-miss candidates (humanness 0.70-0.80)
+    ├── Diffusion-based framework regeneration (preserves CDRs)
+    ├── Re-predict structures (Boltz-2) + re-score (MPNN/AntiFold/Protenix)
+    └── Merge humanized variants into candidate pool
 
 CALIBRATION (run first!)
 ├── Set filter thresholds using known binder scFvs
@@ -193,8 +198,11 @@ All tools have permissive licenses suitable for commercial use:
 | **ProteinMPNN** | Inverse folding log-likelihood (affinity proxy) | MIT |
 | **AntiFold** | Antibody-specific inverse folding (nanobody support) | BSD 3-Clause |
 | **Protenix** | Structure prediction cross-validation | Apache 2.0 |
+| **HuDiff** | Post-hoc framework humanization (diffusion) | PolyForm Noncommercial |
 
 **Excluded (non-permissive):** IgFold (JHU Academic), NetMHCIIpan (DTU academic)
+
+> **Note**: HuDiff is PolyForm Noncommercial — acceptable for this non-commercial research use. It regenerates framework regions via diffusion while preserving CDR sequences.
 
 **Excluded (poor performance or inapplicable):** PRODIGY (r=0.16 on Ab-Ag), AttABseq (requires WT reference), Boltz-2 IC50 (small molecule only), ANTIPASTI (R dependency, no VHH support, degrades on predicted structures)
 
@@ -229,6 +237,7 @@ modal setup
 modal deploy modal/boltzgen_app.py
 modal deploy modal/boltz2_app.py
 modal deploy modal/protenix_app.py       # For validation step
+modal deploy modal/hudiff_app.py         # For humanization step 04b
 
 # Affinity scoring tools (required for step 04a scoring)
 pip install proteinmpnn                   # MIT, inverse folding
@@ -257,6 +266,7 @@ python scripts/02_run_denovo_design.py  # BoltzGen VHH + Fab CDR redesign (Modal
 python scripts/03_run_optimization.py   # Reformat known antibodies as scFv
 python scripts/04_predict_structures.py # Boltz-2 complex prediction (+ 3-chain for Fabs)
 python scripts/04a_score_candidates.py  # Pre-filter + ProteinMPNN/AntiFold/Protenix scoring
+python scripts/04b_humanize_candidates.py # HuDiff post-hoc humanization of near-misses
 python scripts/05_filter_candidates.py  # Apply filtering cascade + ranking with validation scores
 python scripts/05b_validate_candidates.py # Cross-validation (Boltz-2 vs Protenix ipTM)
 python scripts/06_format_bispecifics.py # Generate 5 bispecific formats

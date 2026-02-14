@@ -72,8 +72,8 @@
   "rank": 2,
   "_provenance": {
     "pipeline_version": "1.0.0",
-    "run_timestamp": "2026-02-11T20:48:13.441233",
-    "git_commit": "831e4a4aeaf8",
-    "config_hash": "c89bd72de37d"
+    "run_timestamp": "2026-02-14T08:01:40.615000",
+    "git_commit": "f1c231bd7113",
+    "config_hash": "899577515982"
   }
 }

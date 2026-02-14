@@ -1,49 +1,56 @@
 # Handoff Notes - CD3 Binder Design Pipeline
 
-## Current Status (2026-02-11)
+## Current Status (2026-02-14)
 
-### Pipeline: 50+50 PRODUCTION RUN COMPLETE
+### Pipeline: FULL PIPELINE COMPLETE — 10 CANDIDATES
 
-50+50 production run completed with all fixes applied:
-- **Fab VL fix active** — `vh_sequence`/`vl_sequence` → `vh`/`vl` normalization in step 04, enabling proper scFv + 3-chain dual prediction
-- **BoltzGen native ranking** — All 95 new designs have `boltzgen_rank` data; `method: boltzgen` is primary
-- **Design counts reduced to 50+50** — Previous 100+100 caused Modal gRPC deadline timeout on Fab design. 50+50 completed reliably
-- **Step 04 processed all cumulative designs** — 387 candidates from all denovo result files (Feb 5, 8, 9, 11 runs)
-- **3 final candidates** — 2 Fab + 1 VHH, with strong Protenix ipTM (0.69 for Fabs)
+Full pipeline with HuDiff post-hoc humanization completed. Humanness bottleneck resolved:
+- **HuDiff humanization (step 04b)** — 275 near-miss candidates (humanness 0.70-0.80) humanized via diffusion-based framework regeneration on Modal A100
+- **27.5% humanization success rate** — 378/1375 HuDiff variants pass humanness ≥0.8 after Sapiens re-scoring
+- **10 final candidates** — 2 original + 8 HuDiff-humanized variants, up from 3 pre-humanization
+- **CDRs fully preserved** — 57 framework mutations, 0 CDR mutations across all humanized variants (IMGT-verified)
+- **Protenix parallelized** — `spawn()`+`get()` pattern reduces 378 predictions from ~83h serial to ~2h parallel
 
-### Run Results (Feb 11)
+### Run Results (Feb 14)
 
 | Step | Result |
 |------|--------|
 | Design | **95 designs** (50 VHH + 45 Fab) — all with `boltzgen_rank` and VL sequences |
-| Structure prediction | **387 candidates** processed (95 new + 292 cumulative), 2 Modal timeouts |
-| Hard pre-filter (04a) | **3/387 passed** (152 humanness, 27 interface area, 18 CDR deamidation) |
-| Scoring | 3/3 scored: MPNN + AntiFold + Protenix (+ 3-chain for Fabs) |
-| Ranking | BoltzGen native (2/3 have rank data) |
-| Bispecifics | 15 constructs (3 candidates × 5 formats) |
+| Structure prediction | **387 candidates** processed (95 new + 292 cumulative) |
+| Hard pre-filter (04a) | **3/387 passed** original filters |
+| **Humanization (04b)** | **275 near-misses → 1375 HuDiff variants → 378 pass humanness** |
+| Structure re-prediction | 378 humanized candidates predicted with Boltz-2 |
+| Re-scoring | 378 scored: MPNN + AntiFold + Protenix (parallel) |
+| Filtering (05) | **381 → 130 pass → 10 after diversity selection** |
+| Cross-validation (05b) | 10/10 scored, 6/10 ipTM disagreement >0.1 |
+| Bispecifics (06) | **26 constructs** (10 candidates × 2-5 formats) |
+| Report (07) | HTML + JSON + 10 scorecards |
 
-### Filter Funnel Analysis (New Designs Only)
+### Top 10 Candidates (Feb 14)
 
-Of the 95 new designs from Feb 11 run:
-- **84 (88%)** pass binding filters (area ≥2060, contacts ≥28) — excellent structural quality
-- **16 (17%)** pass humanness ≥0.8 — the hard gate
-- **15 pass both** binding + humanness
-- **11 near-misses** pass binding but humanness 0.78–0.80
-- After CDR liability filters → only a handful survive
+| Rank | ID | Type | Boltz-2 ipTM | Protenix ipTM | Agreement | Humanness | Interface |
+|------|-----|------|-------------|---------------|-----------|-----------|-----------|
+| 1 | vhh_1XIW_0001 | VHH | 0.616 | 0.299 | DISAGREE | 0.816 | 2,080 Å² |
+| 2 | **fab_1XIW_0003** | Fab | **0.720** | **0.686** | **AGREE** | **0.830** | 2,640 Å² |
+| 3 | vhh_1XIW_0019_hudiff_0 | VHH | 0.330 | 0.294 | AGREE | 0.821 | 2,880 Å² |
+| 4 | vhh_1SY6_0013_hudiff_0 | VHH | 0.354 | 0.389 | AGREE | 0.818 | 2,560 Å² |
+| 5 | vhh_1SY6_0019_hudiff_2 | VHH | 0.347 | 0.333 | AGREE | 0.815 | 2,320 Å² |
+| 6 | vhh_1XIW_0019_hudiff_2 | VHH | 0.700 | 0.382 | DISAGREE | 0.815 | 3,920 Å² |
+| 7 | vhh_1XIW_0019_hudiff_4 | VHH | 0.165 | 0.316 | DISAGREE | 0.814 | 2,240 Å² |
+| 8 | vhh_1SY6_0013_hudiff_4 | VHH | 0.223 | 0.453 | DISAGREE | 0.812 | 2,240 Å² |
+| 9 | vhh_1SY6_0033_hudiff_4 | VHH | 0.474 | 0.227 | DISAGREE | 0.810 | 4,560 Å² |
+| 10 | vhh_1SY6_0045_hudiff_0 | VHH | 0.200 | 0.320 | DISAGREE | 0.808 | 2,880 Å² |
 
-**Key insight**: Humanness is the binding bottleneck, not structural quality. BoltzGen CDR redesign on fully-human scaffolds achieves ≥0.8 humanness only ~17% of the time because redesigned CDR loops introduce non-human motifs. Both Fab candidates that passed have Protenix ipTM ~0.69 — the highest observed across all runs.
+**Priority for synthesis**: The 4 candidates where Boltz-2 and Protenix agree (delta ≤0.1) are most trustworthy. **fab_1XIW_0003** is the standout — highest ipTM from both models, best humanness.
 
-**Options to increase yield**:
-1. Lower humanness threshold to 0.78 — recovers 11+ candidates with strong binding
-2. Scale up (100+100) — at ~15% pass rate yields ~30 candidates pre-liability filtering
-3. Post-hoc humanization — accept lower humanness, apply back-mutations later
+### HuDiff Humanization Analysis
 
-### Previous Enhancements (still active)
-- **Step 04a** (pre-filter + scoring): Hard pre-filter → ProteinMPNN + AntiFold + Protenix scoring before ranking
-- **Dual Fab prediction**: Fabs predicted as both scFv (2-chain) and VH+VL+target (3-chain)
-- **Validation scores in ranking**: ProteinMPNN, AntiFold, Protenix ipTM now used as ranking metrics (not just informational)
-- **Calibration validation baselines**: ProteinMPNN, AntiFold, Protenix scored on known controls
-- **Ranking auto-fallback**: `method: boltzgen` primary, `secondary_method: worst_metric_rank` when boltzgen_rank unavailable
+- **VHH success rate ~40%** vs **Fab ~15%** — HuDiff works much better on nanobodies
+- **Common mutations** (IMGT numbering): pos 15 (FR1), 23 (FR1, canonical Cys), 40 (FR2), 54 (FR2), 104 (FR3, canonical Cys)
+- **Disulfide restoration**: HuDiff introduces Cys at IMGT 23+104, restoring the canonical human VH intradomain disulfide bond absent in camelid VHH
+- **Best Protenix scores ever**: vhh_1XIW_0007_hudiff_2 ipTM=0.937, vhh_1XIW_0034_hudiff_0 ipTM=0.876 (not in final 10 due to diversity selection)
+
+### All Pipeline Steps
 
 ```bash
 conda activate cd3-binder
@@ -54,9 +61,10 @@ python3 scripts/00_run_calibration.py              # ✅ Working (+ validation b
 python3 scripts/02_run_denovo_design.py --config config.yaml  # ✅ VHH + Fab working
 python3 scripts/03_run_optimization.py --config config.yaml   # ✅ Working (reformats known antibodies)
 python3 scripts/04_predict_structures.py --config config.yaml # ✅ Working (+ dual Fab prediction)
-python3 scripts/04a_score_candidates.py --config config.yaml  # ✅ NEW: Pre-filter + scoring
-python3 scripts/05_filter_candidates.py --config config.yaml  # ✅ Working (+ validation in ranking)
-python3 scripts/05b_validate_candidates.py --config config.yaml # ✅ Refactored: cross-validation only
+python3 scripts/04a_score_candidates.py --config config.yaml  # ✅ Pre-filter + scoring
+python3 scripts/04b_humanize_candidates.py --config config.yaml # ✅ NEW: HuDiff humanization
+python3 scripts/05_filter_candidates.py --config config.yaml  # ✅ Working (reads humanized input)
+python3 scripts/05b_validate_candidates.py --config config.yaml # ✅ Cross-validation only
 python3 scripts/06_format_bispecifics.py --config config.yaml # ✅ Working
 python3 scripts/07_generate_report.py --config config.yaml    # ✅ Working
 ```
@@ -474,17 +482,18 @@ data/outputs/
 ├── structures/
 │   ├── candidates_with_structures.json          # Boltz-2 predictions (+ 3-chain for Fabs)
 │   ├── candidates_with_scores.json              # After 04a: pre-filtered + scored
+│   ├── candidates_humanized.json                # After 04b: original + humanized variants (381 total)
 │   ├── cif/                                     # Boltz-2 CIF files (~316 files)
-│   └── protenix_cif/                            # Protenix CIF files
+│   └── protenix_cif/                            # Protenix CIF files (including humanized)
 ├── filtered/
-│   └── filtered_candidates.json                 # Final candidates after ranking
+│   └── filtered_candidates.json                 # Final 10 candidates after ranking
 ├── validated/
 │   └── validated_candidates.json                # Cross-validated candidates
-├── formatted/                                    # Bispecific constructs
+├── formatted/                                    # 26 bispecific constructs
 └── reports/
-    ├── report_20260210_165549.html              # HTML report ← LATEST
-    ├── report_20260210_165549.json              # JSON report
-    ├── scorecards/                               # Per-candidate scorecards
+    ├── report_20260214_080140.html              # HTML report ← LATEST
+    ├── report_20260214_080140.json              # JSON report
+    ├── scorecards/                               # Per-candidate scorecards (10)
     └── (earlier reports)
 ```
 
@@ -535,12 +544,16 @@ Five changes to the pipeline:
 
 ### Pipeline Steps (Updated)
 ```
-00 → 01 → 02 → 03 → 04 → 04a → 05 → 05b → 06 → 07
-                              ↑ NEW
+00 → 01 → 02 → 03 → 04 → 04a → 04b → 05 → 05b → 06 → 07
+                              ↑        ↑
+                           scoring  humanization
 ```
 
 ### Files Created
 - `scripts/04a_score_candidates.py` — Pre-filter + ProteinMPNN/AntiFold/Protenix scoring
+- `scripts/04b_humanize_candidates.py` — HuDiff post-hoc humanization of near-miss candidates
+- `modal/hudiff_app.py` — HuDiff deployment on Modal (A100, micromamba image for ANARCI)
+- `src/analysis/humanization.py` — Core humanization logic (identify near-misses, prepare input, parse output)
 
 ### Files Modified
 - `modal/boltz2_app.py` — Added `predict_complex_multichain()` + `calculate_interface_metrics_multichain()`

@@ -117,65 +117,6 @@
         ],
         "notes": "CrossMab format with CH1-CL swap on CD3 arm for correct LC pairing. Knob-in-hole mutations for HC heterodimerization."
       }
-    },
-    {
-      "candidate_id": "fab_1SY6_0011",
-      "format": "crossmab",
-      "construct": {
-        "name": "fab_1SY6_0011_crossmab",
-        "format_type": "crossmab",
-        "target_1": "HER2 (ERBB2)",
-        "target_2": "CD3",
-        "chains": [
-          {
-            "name": "HC1_target_knob",
-            "sequence": "EVQLVESGGGLVQPGGSLRLSCAASGFNIKDTYIHWVRQAPGKGLEWVARIYPTNGYTRYADSVKGRFTISADTSKNTAYLQMNSLRAEDTAVYYCSRWGGDGFYAMDYWGQGTLVTVSSASTKGPSVFPLAPSSKSTSGGTAALGCLVKDYFPEPVTVSWNSGALTSGVHTFPAVLQSSGLYSLSSVVTVPSSSLGTQTYICNVNHKPSNTKVDKRVEPKSCDKTHTCPPCPAPELLGGPSVFLFPPKPKDTLMISRTPEVTCVVVDVSHEDPEVKFNWYVDGVEVHNAKTKPREEQYNSTYRVVSVLTVLHQDWLNGKEYKCKVSNKALPAPIEKTISKAKGQPREPQVYTLPPSREEMTKNQVSLTCLVKGFYPSDIAVEWESNGQPENNYKTTPPVLDSDGSFFLYSKLWVDKSRWQQGNVFSCSVMHEALHNHYTQKSLSLSPGK",
-            "chain_type": "heavy",
-            "components": [
-              "VH(target)",
-              "CH1",
-              "Hinge",
-              "CH2",
-              "CH3(Knob)"
-            ],
-            "length": 450
-          },
-          {
-            "name": "HC2_CD3_hole_crossmab",
-            "sequence": "QVQLQESGPGLVKPSQTLSLTCTVSGFSLTSGYYWSWIRQPPGKGLEWIGYISSKYSPPYTDYNPSLKSRVTMSVDTSKNQFSLKVNSVTAADTAVYYCARDWKYWGQGTLVTVSSRTVAAPSVFIFPPSDEQLKSGTASVVCLLNNFYPREAKVQWKVDNALQSGNSQESVTEQDSKDSTYSLSSTLTLSKADYEKHKVYACEVTHQGLSSPVTKSFNRGECEPKSCDKTHTCPPCPAPELLGGPSVFLFPPKPKDTLMISRTPEVTCVVVDVSHEDPEVKFNWYVDGVEVHNAKTKPREEQYNSTYRVVSVLTVLHQDWLNGKEYKCKVSNKALPAPIEKTISKAKGQPREPQVYTLPPSREEMTKNQVSLTCLVKGFYPSDIAVEWESNGQPENNYKTTPPVLDSDGSFFLYSKLSVDKSRWQQGNVFSCSVMHEAAHNVYTQKSLSLSPGK",
-            "chain_type": "heavy",
-            "components": [
-              "VH(CD3)",
-              "CL(CrossMab)",
-              "Hinge",
-              "CH2",
-              "CH3(Hole)"
-            ],
-            "length": 455
-          },
-          {
-            "name": "LC1_target",
-            "sequence": "DIQMTQSPSSLSASVGDRVTITCRASQDVNTAVAWYQQKPGKAPKLLIYSASFLYSGVPSRFSGSRSGTDFTLTISSLQPEDFATYYCQQHYTTPPTFGQGTKVEIKRTVAAPSVFIFPPSDEQLKSGTASVVCLLNNFYPREAKVQWKVDNALQSGNSQESVTEQDSKDSTYSLSSTLTLSKADYEKHKVYACEVTHQGLSSPVTKSFNRGEC",
-            "chain_type": "light",
-            "components": [
-              "VL(target)",
-              "CL"
-            ],
-            "length": 214
-          },
-          {
-            "name": "LC2_CD3_crossmab",
-            "sequence": "EIVMTQSPATLSLSPGERATLSCRASQSISNNLAWYQQKPGQAPRLLIYYASNLASGIPARFSGSGSGTDFTLTISSLEPEDFAVYYCQQYSGVLPYTFGGGTKAEIKASTKGPSVFPLAPSSKSTSGGTAALGCLVKDYFPEPVTVSWNSGALTSGVHTFPAVLQSSGLYSLSSVVTVPSSSLGTQTYICNVNHKPSNTKVDKRV",
-            "chain_type": "light",
-            "components": [
-              "VL(CD3)",
-              "CH1(CrossMab)"
-            ],
-            "length": 206
-          }
-        ],
-        "notes": "CrossMab format with CH1-CL swap on CD3 arm for correct LC pairing. Knob-in-hole mutations for HC heterodimerization."
-      }
     }
   ],
   "fab_scfv": [
@@ -260,54 +201,6 @@
               "CH3(Hole)"
             ],
             "length": 475
-          },
-          {
-            "name": "LC_target",
-            "sequence": "DIQMTQSPSSLSASVGDRVTITCRASQDVNTAVAWYQQKPGKAPKLLIYSASFLYSGVPSRFSGSRSGTDFTLTISSLQPEDFATYYCQQHYTTPPTFGQGTKVEIKRTVAAPSVFIFPPSDEQLKSGTASVVCLLNNFYPREAKVQWKVDNALQSGNSQESVTEQDSKDSTYSLSSTLTLSKADYEKHKVYACEVTHQGLSSPVTKSFNRGEC",
-            "chain_type": "light",
-            "components": [
-              "VL(target)",
-              "CL"
-            ],
-            "length": 214
-          }
-        ],
-        "notes": "Asymmetric Fab + scFv format. Target arm is Fab, CD3 arm is scFv fused to Fc. Knob-in-hole for HC heterodimerization. scFv linker: GGGGSGGGGSGGGGS"
-      }
-    },
-    {
-      "candidate_id": "fab_1SY6_0011",
-      "format": "fab_scfv",
-      "construct": {
-        "name": "fab_1SY6_0011_fab_scfv",
-        "format_type": "fab_scfv",
-        "target_1": "HER2 (ERBB2)",
-        "target_2": "CD3",
-        "chains": [
-          {
-            "name": "HC1_target_fab_knob",
-            "sequence": "EVQLVESGGGLVQPGGSLRLSCAASGFNIKDTYIHWVRQAPGKGLEWVARIYPTNGYTRYADSVKGRFTISADTSKNTAYLQMNSLRAEDTAVYYCSRWGGDGFYAMDYWGQGTLVTVSSASTKGPSVFPLAPSSKSTSGGTAALGCLVKDYFPEPVTVSWNSGALTSGVHTFPAVLQSSGLYSLSSVVTVPSSSLGTQTYICNVNHKPSNTKVDKRVEPKSCDKTHTCPPCPAPELLGGPSVFLFPPKPKDTLMISRTPEVTCVVVDVSHEDPEVKFNWYVDGVEVHNAKTKPREEQYNSTYRVVSVLTVLHQDWLNGKEYKCKVSNKALPAPIEKTISKAKGQPREPQVYTLPPSREEMTKNQVSLTCLVKGFYPSDIAVEWESNGQPENNYKTTPPVLDSDGSFFLYSKLWVDKSRWQQGNVFSCSVMHEALHNHYTQKSLSLSPGK",
-            "chain_type": "heavy",
-            "components": [
-              "VH(target)",
-              "CH1",
-              "Hinge",
-              "CH2",
-              "CH3(Knob)"
-            ],
-            "length": 450
-          },
-          {
-            "name": "HC2_CD3_scfv_hole",
-            "sequence": "QVQLQESGPGLVKPSQTLSLTCTVSGFSLTSGYYWSWIRQPPGKGLEWIGYISSKYSPPYTDYNPSLKSRVTMSVDTSKNQFSLKVNSVTAADTAVYYCARDWKYWGQGTLVTVSSGGGGSGGGGSGGGGSEIVMTQSPATLSLSPGERATLSCRASQSISNNLAWYQQKPGQAPRLLIYYASNLASGIPARFSGSGSGTDFTLTISSLEPEDFAVYYCQQYSGVLPYTFGGGTKAEIKEPKSCDKTHTCPPCPAPELLGGPSVFLFPPKPKDTLMISRTPEVTCVVVDVSHEDPEVKFNWYVDGVEVHNAKTKPREEQYNSTYRVVSVLTVLHQDWLNGKEYKCKVSNKALPAPIEKTISKAKGQPREPQVYTLPPSREEMTKNQVSLTCLVKGFYPSDIAVEWESNGQPENNYKTTPPVLDSDGSFFLYSKLSVDKSRWQQGNVFSCSVMHEAAHNVYTQKSLSLSPGK",
-            "chain_type": "heavy",
-            "components": [
-              "scFv(CD3)",
-              "Hinge",
-              "CH2",
-              "CH3(Hole)"
-            ],
-            "length": 471
           },
           {
             "name": "LC_target",
@@ -422,10 +315,10 @@
       }
     },
     {
-      "candidate_id": "fab_1SY6_0011",
+      "candidate_id": "vhh_1XIW_0019_hudiff_0",
       "format": "fab_vhh",
       "construct": {
-        "name": "fab_1SY6_0011_fab_vhh",
+        "name": "vhh_1XIW_0019_hudiff_0_fab_vhh",
         "format_type": "fab_vhh",
         "target_1": "HER2 (ERBB2)",
         "target_2": "CD3",
@@ -445,7 +338,7 @@
           },
           {
             "name": "HC2_CD3_vhh_hole",
-            "sequence": "QVQLQESGPGLVKPSQTLSLTCTVSGFSLTSGYYWSWIRQPPGKGLEWIGYISSKYSPPYTDYNPSLKSRVTMSVDTSKNQFSLKVNSVTAADTAVYYCARDWKYWGQGTLVTVSSEPKSCDKTHTCPPCPAPELLGGPSVFLFPPKPKDTLMISRTPEVTCVVVDVSHEDPEVKFNWYVDGVEVHNAKTKPREEQYNSTYRVVSVLTVLHQDWLNGKEYKCKVSNKALPAPIEKTISKAKGQPREPQVYTLPPSREEMTKNQVSLTCLVKGFYPSDIAVEWESNGQPENNYKTTPPVLDSDGSFFLYSKLSVDKSRWQQGNVFSCSVMHEAAHNVYTQKSLSLSPGK",
+            "sequence": "EVQLVESGGGLVQPGGSLRLSCAASGFTFSSYSMNWVRQAPGKGGEFVSSISYSGSYTDYADSVKGRFTISRDNAKNTLYLQMNSLKAEDTAVYYCAAGNPPYWGQGTLVTVSSEPKSCDKTHTCPPCPAPELLGGPSVFLFPPKPKDTLMISRTPEVTCVVVDVSHEDPEVKFNWYVDGVEVHNAKTKPREEQYNSTYRVVSVLTVLHQDWLNGKEYKCKVSNKALPAPIEKTISKAKGQPREPQVYTLPPSREEMTKNQVSLTCLVKGFYPSDIAVEWESNGQPENNYKTTPPVLDSDGSFFLYSKLSVDKSRWQQGNVFSCSVMHEAAHNVYTQKSLSLSPGK",
             "chain_type": "heavy",
             "components": [
               "VHH(CD3)",
@@ -453,7 +346,343 @@
               "CH2",
               "CH3(Hole)"
             ],
-            "length": 348
+            "length": 346
+          },
+          {
+            "name": "LC_target",
+            "sequence": "DIQMTQSPSSLSASVGDRVTITCRASQDVNTAVAWYQQKPGKAPKLLIYSASFLYSGVPSRFSGSRSGTDFTLTISSLQPEDFATYYCQQHYTTPPTFGQGTKVEIKRTVAAPSVFIFPPSDEQLKSGTASVVCLLNNFYPREAKVQWKVDNALQSGNSQESVTEQDSKDSTYSLSSTLTLSKADYEKHKVYACEVTHQGLSSPVTKSFNRGEC",
+            "chain_type": "light",
+            "components": [
+              "VL(target)",
+              "CL"
+            ],
+            "length": 214
+          }
+        ],
+        "notes": "Asymmetric Fab + VHH format. Target arm is Fab, CD3 arm is single-domain VHH fused to Fc. Knob-in-hole for HC heterodimerization. Smallest asymmetric bispecific format."
+      }
+    },
+    {
+      "candidate_id": "vhh_1SY6_0013_hudiff_0",
+      "format": "fab_vhh",
+      "construct": {
+        "name": "vhh_1SY6_0013_hudiff_0_fab_vhh",
+        "format_type": "fab_vhh",
+        "target_1": "HER2 (ERBB2)",
+        "target_2": "CD3",
+        "chains": [
+          {
+            "name": "HC1_target_fab_knob",
+            "sequence": "EVQLVESGGGLVQPGGSLRLSCAASGFNIKDTYIHWVRQAPGKGLEWVARIYPTNGYTRYADSVKGRFTISADTSKNTAYLQMNSLRAEDTAVYYCSRWGGDGFYAMDYWGQGTLVTVSSASTKGPSVFPLAPSSKSTSGGTAALGCLVKDYFPEPVTVSWNSGALTSGVHTFPAVLQSSGLYSLSSVVTVPSSSLGTQTYICNVNHKPSNTKVDKRVEPKSCDKTHTCPPCPAPELLGGPSVFLFPPKPKDTLMISRTPEVTCVVVDVSHEDPEVKFNWYVDGVEVHNAKTKPREEQYNSTYRVVSVLTVLHQDWLNGKEYKCKVSNKALPAPIEKTISKAKGQPREPQVYTLPPSREEMTKNQVSLTCLVKGFYPSDIAVEWESNGQPENNYKTTPPVLDSDGSFFLYSKLWVDKSRWQQGNVFSCSVMHEALHNHYTQKSLSLSPGK",
+            "chain_type": "heavy",
+            "components": [
+              "VH(target)",
+              "CH1",
+              "Hinge",
+              "CH2",
+              "CH3(Knob)"
+            ],
+            "length": 450
+          },
+          {
+            "name": "HC2_CD3_vhh_hole",
+            "sequence": "EVQLVESGGGLVQPGGSLRLSCAASGFTFSSYGMNWYRQAPGKERELVSSISSSGGSTYYADSVKGRFTISRDNAKNTLYLQMNSLRAEDTAVYYCAASSTSGSYSPFDYWGQGTQVTVSSEPKSCDKTHTCPPCPAPELLGGPSVFLFPPKPKDTLMISRTPEVTCVVVDVSHEDPEVKFNWYVDGVEVHNAKTKPREEQYNSTYRVVSVLTVLHQDWLNGKEYKCKVSNKALPAPIEKTISKAKGQPREPQVYTLPPSREEMTKNQVSLTCLVKGFYPSDIAVEWESNGQPENNYKTTPPVLDSDGSFFLYSKLSVDKSRWQQGNVFSCSVMHEAAHNVYTQKSLSLSPGK",
+            "chain_type": "heavy",
+            "components": [
+              "VHH(CD3)",
+              "Hinge",
+              "CH2",
+              "CH3(Hole)"
+            ],
+            "length": 353
+          },
+          {
+            "name": "LC_target",
+            "sequence": "DIQMTQSPSSLSASVGDRVTITCRASQDVNTAVAWYQQKPGKAPKLLIYSASFLYSGVPSRFSGSRSGTDFTLTISSLQPEDFATYYCQQHYTTPPTFGQGTKVEIKRTVAAPSVFIFPPSDEQLKSGTASVVCLLNNFYPREAKVQWKVDNALQSGNSQESVTEQDSKDSTYSLSSTLTLSKADYEKHKVYACEVTHQGLSSPVTKSFNRGEC",
+            "chain_type": "light",
+            "components": [
+              "VL(target)",
+              "CL"
+            ],
+            "length": 214
+          }
+        ],
+        "notes": "Asymmetric Fab + VHH format. Target arm is Fab, CD3 arm is single-domain VHH fused to Fc. Knob-in-hole for HC heterodimerization. Smallest asymmetric bispecific format."
+      }
+    },
+    {
+      "candidate_id": "vhh_1SY6_0019_hudiff_2",
+      "format": "fab_vhh",
+      "construct": {
+        "name": "vhh_1SY6_0019_hudiff_2_fab_vhh",
+        "format_type": "fab_vhh",
+        "target_1": "HER2 (ERBB2)",
+        "target_2": "CD3",
+        "chains": [
+          {
+            "name": "HC1_target_fab_knob",
+            "sequence": "EVQLVESGGGLVQPGGSLRLSCAASGFNIKDTYIHWVRQAPGKGLEWVARIYPTNGYTRYADSVKGRFTISADTSKNTAYLQMNSLRAEDTAVYYCSRWGGDGFYAMDYWGQGTLVTVSSASTKGPSVFPLAPSSKSTSGGTAALGCLVKDYFPEPVTVSWNSGALTSGVHTFPAVLQSSGLYSLSSVVTVPSSSLGTQTYICNVNHKPSNTKVDKRVEPKSCDKTHTCPPCPAPELLGGPSVFLFPPKPKDTLMISRTPEVTCVVVDVSHEDPEVKFNWYVDGVEVHNAKTKPREEQYNSTYRVVSVLTVLHQDWLNGKEYKCKVSNKALPAPIEKTISKAKGQPREPQVYTLPPSREEMTKNQVSLTCLVKGFYPSDIAVEWESNGQPENNYKTTPPVLDSDGSFFLYSKLWVDKSRWQQGNVFSCSVMHEALHNHYTQKSLSLSPGK",
+            "chain_type": "heavy",
+            "components": [
+              "VH(target)",
+              "CH1",
+              "Hinge",
+              "CH2",
+              "CH3(Knob)"
+            ],
+            "length": 450
+          },
+          {
+            "name": "HC2_CD3_vhh_hole",
+            "sequence": "EVQLVESGGGLVQPGGSLRLSCAASGFTFSSYGMNWVRQAPGKGREGVSGISGSGSTTGYADSVKGRFTISRDNAKNTLYLQMNSLGAEDTAVYYCARGYGGGGGAGADYWGQGTQVTVSSEPKSCDKTHTCPPCPAPELLGGPSVFLFPPKPKDTLMISRTPEVTCVVVDVSHEDPEVKFNWYVDGVEVHNAKTKPREEQYNSTYRVVSVLTVLHQDWLNGKEYKCKVSNKALPAPIEKTISKAKGQPREPQVYTLPPSREEMTKNQVSLTCLVKGFYPSDIAVEWESNGQPENNYKTTPPVLDSDGSFFLYSKLSVDKSRWQQGNVFSCSVMHEAAHNVYTQKSLSLSPGK",
+            "chain_type": "heavy",
+            "components": [
+              "VHH(CD3)",
+              "Hinge",
+              "CH2",
+              "CH3(Hole)"
+            ],
+            "length": 353
+          },
+          {
+            "name": "LC_target",
+            "sequence": "DIQMTQSPSSLSASVGDRVTITCRASQDVNTAVAWYQQKPGKAPKLLIYSASFLYSGVPSRFSGSRSGTDFTLTISSLQPEDFATYYCQQHYTTPPTFGQGTKVEIKRTVAAPSVFIFPPSDEQLKSGTASVVCLLNNFYPREAKVQWKVDNALQSGNSQESVTEQDSKDSTYSLSSTLTLSKADYEKHKVYACEVTHQGLSSPVTKSFNRGEC",
+            "chain_type": "light",
+            "components": [
+              "VL(target)",
+              "CL"
+            ],
+            "length": 214
+          }
+        ],
+        "notes": "Asymmetric Fab + VHH format. Target arm is Fab, CD3 arm is single-domain VHH fused to Fc. Knob-in-hole for HC heterodimerization. Smallest asymmetric bispecific format."
+      }
+    },
+    {
+      "candidate_id": "vhh_1XIW_0019_hudiff_2",
+      "format": "fab_vhh",
+      "construct": {
+        "name": "vhh_1XIW_0019_hudiff_2_fab_vhh",
+        "format_type": "fab_vhh",
+        "target_1": "HER2 (ERBB2)",
+        "target_2": "CD3",
+        "chains": [
+          {
+            "name": "HC1_target_fab_knob",
+            "sequence": "EVQLVESGGGLVQPGGSLRLSCAASGFNIKDTYIHWVRQAPGKGLEWVARIYPTNGYTRYADSVKGRFTISADTSKNTAYLQMNSLRAEDTAVYYCSRWGGDGFYAMDYWGQGTLVTVSSASTKGPSVFPLAPSSKSTSGGTAALGCLVKDYFPEPVTVSWNSGALTSGVHTFPAVLQSSGLYSLSSVVTVPSSSLGTQTYICNVNHKPSNTKVDKRVEPKSCDKTHTCPPCPAPELLGGPSVFLFPPKPKDTLMISRTPEVTCVVVDVSHEDPEVKFNWYVDGVEVHNAKTKPREEQYNSTYRVVSVLTVLHQDWLNGKEYKCKVSNKALPAPIEKTISKAKGQPREPQVYTLPPSREEMTKNQVSLTCLVKGFYPSDIAVEWESNGQPENNYKTTPPVLDSDGSFFLYSKLWVDKSRWQQGNVFSCSVMHEALHNHYTQKSLSLSPGK",
+            "chain_type": "heavy",
+            "components": [
+              "VH(target)",
+              "CH1",
+              "Hinge",
+              "CH2",
+              "CH3(Knob)"
+            ],
+            "length": 450
+          },
+          {
+            "name": "HC2_CD3_vhh_hole",
+            "sequence": "EVQLVESGGGLVQPGGSLRLSCAASGFTFSSYSMNWVRQAPGKGGEFVSSISYSGSYTDYADSVKGRFTISRDNAKNTLYLQMNSLKPEDTAVYYCAAGNPPYWGQGTLVTVSSEPKSCDKTHTCPPCPAPELLGGPSVFLFPPKPKDTLMISRTPEVTCVVVDVSHEDPEVKFNWYVDGVEVHNAKTKPREEQYNSTYRVVSVLTVLHQDWLNGKEYKCKVSNKALPAPIEKTISKAKGQPREPQVYTLPPSREEMTKNQVSLTCLVKGFYPSDIAVEWESNGQPENNYKTTPPVLDSDGSFFLYSKLSVDKSRWQQGNVFSCSVMHEAAHNVYTQKSLSLSPGK",
+            "chain_type": "heavy",
+            "components": [
+              "VHH(CD3)",
+              "Hinge",
+              "CH2",
+              "CH3(Hole)"
+            ],
+            "length": 346
+          },
+          {
+            "name": "LC_target",
+            "sequence": "DIQMTQSPSSLSASVGDRVTITCRASQDVNTAVAWYQQKPGKAPKLLIYSASFLYSGVPSRFSGSRSGTDFTLTISSLQPEDFATYYCQQHYTTPPTFGQGTKVEIKRTVAAPSVFIFPPSDEQLKSGTASVVCLLNNFYPREAKVQWKVDNALQSGNSQESVTEQDSKDSTYSLSSTLTLSKADYEKHKVYACEVTHQGLSSPVTKSFNRGEC",
+            "chain_type": "light",
+            "components": [
+              "VL(target)",
+              "CL"
+            ],
+            "length": 214
+          }
+        ],
+        "notes": "Asymmetric Fab + VHH format. Target arm is Fab, CD3 arm is single-domain VHH fused to Fc. Knob-in-hole for HC heterodimerization. Smallest asymmetric bispecific format."
+      }
+    },
+    {
+      "candidate_id": "vhh_1XIW_0019_hudiff_4",
+      "format": "fab_vhh",
+      "construct": {
+        "name": "vhh_1XIW_0019_hudiff_4_fab_vhh",
+        "format_type": "fab_vhh",
+        "target_1": "HER2 (ERBB2)",
+        "target_2": "CD3",
+        "chains": [
+          {
+            "name": "HC1_target_fab_knob",
+            "sequence": "EVQLVESGGGLVQPGGSLRLSCAASGFNIKDTYIHWVRQAPGKGLEWVARIYPTNGYTRYADSVKGRFTISADTSKNTAYLQMNSLRAEDTAVYYCSRWGGDGFYAMDYWGQGTLVTVSSASTKGPSVFPLAPSSKSTSGGTAALGCLVKDYFPEPVTVSWNSGALTSGVHTFPAVLQSSGLYSLSSVVTVPSSSLGTQTYICNVNHKPSNTKVDKRVEPKSCDKTHTCPPCPAPELLGGPSVFLFPPKPKDTLMISRTPEVTCVVVDVSHEDPEVKFNWYVDGVEVHNAKTKPREEQYNSTYRVVSVLTVLHQDWLNGKEYKCKVSNKALPAPIEKTISKAKGQPREPQVYTLPPSREEMTKNQVSLTCLVKGFYPSDIAVEWESNGQPENNYKTTPPVLDSDGSFFLYSKLWVDKSRWQQGNVFSCSVMHEALHNHYTQKSLSLSPGK",
+            "chain_type": "heavy",
+            "components": [
+              "VH(target)",
+              "CH1",
+              "Hinge",
+              "CH2",
+              "CH3(Knob)"
+            ],
+            "length": 450
+          },
+          {
+            "name": "HC2_CD3_vhh_hole",
+            "sequence": "EVQLVESGGGLVQPGGSLRLSCAASGFTFSSYSMNWVRQAPGKGGEFVSSISYSGSYTDYADSVKGRFTISRDNAKNTLYLQMNSLKAEDTAVYYCAAGNPPYWGQGTQVTVSSEPKSCDKTHTCPPCPAPELLGGPSVFLFPPKPKDTLMISRTPEVTCVVVDVSHEDPEVKFNWYVDGVEVHNAKTKPREEQYNSTYRVVSVLTVLHQDWLNGKEYKCKVSNKALPAPIEKTISKAKGQPREPQVYTLPPSREEMTKNQVSLTCLVKGFYPSDIAVEWESNGQPENNYKTTPPVLDSDGSFFLYSKLSVDKSRWQQGNVFSCSVMHEAAHNVYTQKSLSLSPGK",
+            "chain_type": "heavy",
+            "components": [
+              "VHH(CD3)",
+              "Hinge",
+              "CH2",
+              "CH3(Hole)"
+            ],
+            "length": 346
+          },
+          {
+            "name": "LC_target",
+            "sequence": "DIQMTQSPSSLSASVGDRVTITCRASQDVNTAVAWYQQKPGKAPKLLIYSASFLYSGVPSRFSGSRSGTDFTLTISSLQPEDFATYYCQQHYTTPPTFGQGTKVEIKRTVAAPSVFIFPPSDEQLKSGTASVVCLLNNFYPREAKVQWKVDNALQSGNSQESVTEQDSKDSTYSLSSTLTLSKADYEKHKVYACEVTHQGLSSPVTKSFNRGEC",
+            "chain_type": "light",
+            "components": [
+              "VL(target)",
+              "CL"
+            ],
+            "length": 214
+          }
+        ],
+        "notes": "Asymmetric Fab + VHH format. Target arm is Fab, CD3 arm is single-domain VHH fused to Fc. Knob-in-hole for HC heterodimerization. Smallest asymmetric bispecific format."
+      }
+    },
+    {
+      "candidate_id": "vhh_1SY6_0013_hudiff_4",
+      "format": "fab_vhh",
+      "construct": {
+        "name": "vhh_1SY6_0013_hudiff_4_fab_vhh",
+        "format_type": "fab_vhh",
+        "target_1": "HER2 (ERBB2)",
+        "target_2": "CD3",
+        "chains": [
+          {
+            "name": "HC1_target_fab_knob",
+            "sequence": "EVQLVESGGGLVQPGGSLRLSCAASGFNIKDTYIHWVRQAPGKGLEWVARIYPTNGYTRYADSVKGRFTISADTSKNTAYLQMNSLRAEDTAVYYCSRWGGDGFYAMDYWGQGTLVTVSSASTKGPSVFPLAPSSKSTSGGTAALGCLVKDYFPEPVTVSWNSGALTSGVHTFPAVLQSSGLYSLSSVVTVPSSSLGTQTYICNVNHKPSNTKVDKRVEPKSCDKTHTCPPCPAPELLGGPSVFLFPPKPKDTLMISRTPEVTCVVVDVSHEDPEVKFNWYVDGVEVHNAKTKPREEQYNSTYRVVSVLTVLHQDWLNGKEYKCKVSNKALPAPIEKTISKAKGQPREPQVYTLPPSREEMTKNQVSLTCLVKGFYPSDIAVEWESNGQPENNYKTTPPVLDSDGSFFLYSKLWVDKSRWQQGNVFSCSVMHEALHNHYTQKSLSLSPGK",
+            "chain_type": "heavy",
+            "components": [
+              "VH(target)",
+              "CH1",
+              "Hinge",
+              "CH2",
+              "CH3(Knob)"
+            ],
+            "length": 450
+          },
+          {
+            "name": "HC2_CD3_vhh_hole",
+            "sequence": "EVQLVESGGGLVQPGGSLRLSCAASGFTFSSYGMNWYRQAPGKERELVSSISSSGGSTYYADSVKGRFTISRDNAKNTLYLQMNSLRPEDTAVYYCAASSTSGSYSPFDYWGQGTQVTVSSEPKSCDKTHTCPPCPAPELLGGPSVFLFPPKPKDTLMISRTPEVTCVVVDVSHEDPEVKFNWYVDGVEVHNAKTKPREEQYNSTYRVVSVLTVLHQDWLNGKEYKCKVSNKALPAPIEKTISKAKGQPREPQVYTLPPSREEMTKNQVSLTCLVKGFYPSDIAVEWESNGQPENNYKTTPPVLDSDGSFFLYSKLSVDKSRWQQGNVFSCSVMHEAAHNVYTQKSLSLSPGK",
+            "chain_type": "heavy",
+            "components": [
+              "VHH(CD3)",
+              "Hinge",
+              "CH2",
+              "CH3(Hole)"
+            ],
+            "length": 353
+          },
+          {
+            "name": "LC_target",
+            "sequence": "DIQMTQSPSSLSASVGDRVTITCRASQDVNTAVAWYQQKPGKAPKLLIYSASFLYSGVPSRFSGSRSGTDFTLTISSLQPEDFATYYCQQHYTTPPTFGQGTKVEIKRTVAAPSVFIFPPSDEQLKSGTASVVCLLNNFYPREAKVQWKVDNALQSGNSQESVTEQDSKDSTYSLSSTLTLSKADYEKHKVYACEVTHQGLSSPVTKSFNRGEC",
+            "chain_type": "light",
+            "components": [
+              "VL(target)",
+              "CL"
+            ],
+            "length": 214
+          }
+        ],
+        "notes": "Asymmetric Fab + VHH format. Target arm is Fab, CD3 arm is single-domain VHH fused to Fc. Knob-in-hole for HC heterodimerization. Smallest asymmetric bispecific format."
+      }
+    },
+    {
+      "candidate_id": "vhh_1SY6_0033_hudiff_4",
+      "format": "fab_vhh",
+      "construct": {
+        "name": "vhh_1SY6_0033_hudiff_4_fab_vhh",
+        "format_type": "fab_vhh",
+        "target_1": "HER2 (ERBB2)",
+        "target_2": "CD3",
+        "chains": [
+          {
+            "name": "HC1_target_fab_knob",
+            "sequence": "EVQLVESGGGLVQPGGSLRLSCAASGFNIKDTYIHWVRQAPGKGLEWVARIYPTNGYTRYADSVKGRFTISADTSKNTAYLQMNSLRAEDTAVYYCSRWGGDGFYAMDYWGQGTLVTVSSASTKGPSVFPLAPSSKSTSGGTAALGCLVKDYFPEPVTVSWNSGALTSGVHTFPAVLQSSGLYSLSSVVTVPSSSLGTQTYICNVNHKPSNTKVDKRVEPKSCDKTHTCPPCPAPELLGGPSVFLFPPKPKDTLMISRTPEVTCVVVDVSHEDPEVKFNWYVDGVEVHNAKTKPREEQYNSTYRVVSVLTVLHQDWLNGKEYKCKVSNKALPAPIEKTISKAKGQPREPQVYTLPPSREEMTKNQVSLTCLVKGFYPSDIAVEWESNGQPENNYKTTPPVLDSDGSFFLYSKLWVDKSRWQQGNVFSCSVMHEALHNHYTQKSLSLSPGK",
+            "chain_type": "heavy",
+            "components": [
+              "VH(target)",
+              "CH1",
+              "Hinge",
+              "CH2",
+              "CH3(Knob)"
+            ],
+            "length": 450
+          },
+          {
+            "name": "HC2_CD3_vhh_hole",
+            "sequence": "EVQLVESGGGLVQPGGSLRLSCAASGFTFSSYGMNWYRQAPGKGREGVSAISSSGGSTYYAYSVKGRFTISRDNSKNTLYLQMNSLRAEDTAVYYCAAGSYAVGGAADYWGQGTQVTVSEPKSCDKTHTCPPCPAPELLGGPSVFLFPPKPKDTLMISRTPEVTCVVVDVSHEDPEVKFNWYVDGVEVHNAKTKPREEQYNSTYRVVSVLTVLHQDWLNGKEYKCKVSNKALPAPIEKTISKAKGQPREPQVYTLPPSREEMTKNQVSLTCLVKGFYPSDIAVEWESNGQPENNYKTTPPVLDSDGSFFLYSKLSVDKSRWQQGNVFSCSVMHEAAHNVYTQKSLSLSPGK",
+            "chain_type": "heavy",
+            "components": [
+              "VHH(CD3)",
+              "Hinge",
+              "CH2",
+              "CH3(Hole)"
+            ],
+            "length": 351
+          },
+          {
+            "name": "LC_target",
+            "sequence": "DIQMTQSPSSLSASVGDRVTITCRASQDVNTAVAWYQQKPGKAPKLLIYSASFLYSGVPSRFSGSRSGTDFTLTISSLQPEDFATYYCQQHYTTPPTFGQGTKVEIKRTVAAPSVFIFPPSDEQLKSGTASVVCLLNNFYPREAKVQWKVDNALQSGNSQESVTEQDSKDSTYSLSSTLTLSKADYEKHKVYACEVTHQGLSSPVTKSFNRGEC",
+            "chain_type": "light",
+            "components": [
+              "VL(target)",
+              "CL"
+            ],
+            "length": 214
+          }
+        ],
+        "notes": "Asymmetric Fab + VHH format. Target arm is Fab, CD3 arm is single-domain VHH fused to Fc. Knob-in-hole for HC heterodimerization. Smallest asymmetric bispecific format."
+      }
+    },
+    {
+      "candidate_id": "vhh_1SY6_0045_hudiff_0",
+      "format": "fab_vhh",
+      "construct": {
+        "name": "vhh_1SY6_0045_hudiff_0_fab_vhh",
+        "format_type": "fab_vhh",
+        "target_1": "HER2 (ERBB2)",
+        "target_2": "CD3",
+        "chains": [
+          {
+            "name": "HC1_target_fab_knob",
+            "sequence": "EVQLVESGGGLVQPGGSLRLSCAASGFNIKDTYIHWVRQAPGKGLEWVARIYPTNGYTRYADSVKGRFTISADTSKNTAYLQMNSLRAEDTAVYYCSRWGGDGFYAMDYWGQGTLVTVSSASTKGPSVFPLAPSSKSTSGGTAALGCLVKDYFPEPVTVSWNSGALTSGVHTFPAVLQSSGLYSLSSVVTVPSSSLGTQTYICNVNHKPSNTKVDKRVEPKSCDKTHTCPPCPAPELLGGPSVFLFPPKPKDTLMISRTPEVTCVVVDVSHEDPEVKFNWYVDGVEVHNAKTKPREEQYNSTYRVVSVLTVLHQDWLNGKEYKCKVSNKALPAPIEKTISKAKGQPREPQVYTLPPSREEMTKNQVSLTCLVKGFYPSDIAVEWESNGQPENNYKTTPPVLDSDGSFFLYSKLWVDKSRWQQGNVFSCSVMHEALHNHYTQKSLSLSPGK",
+            "chain_type": "heavy",
+            "components": [
+              "VH(target)",
+              "CH1",
+              "Hinge",
+              "CH2",
+              "CH3(Knob)"
+            ],
+            "length": 450
+          },
+          {
+            "name": "HC2_CD3_vhh_hole",
+            "sequence": "EVQLVESGGGLVQPGGSLRLSCAASGFTFSSYAMSWLRQAPGKGREGVSGIGSGGGTYYADSVKGRFTISRDNAKNTLYLQMNSLRAEDTAVYYCAAGYSIGGEGANEAWGQGTQVTVSEPKSCDKTHTCPPCPAPELLGGPSVFLFPPKPKDTLMISRTPEVTCVVVDVSHEDPEVKFNWYVDGVEVHNAKTKPREEQYNSTYRVVSVLTVLHQDWLNGKEYKCKVSNKALPAPIEKTISKAKGQPREPQVYTLPPSREEMTKNQVSLTCLVKGFYPSDIAVEWESNGQPENNYKTTPPVLDSDGSFFLYSKLSVDKSRWQQGNVFSCSVMHEAAHNVYTQKSLSLSPGK",
+            "chain_type": "heavy",
+            "components": [
+              "VHH(CD3)",
+              "Hinge",
+              "CH2",
+              "CH3(Hole)"
+            ],
+            "length": 351
           },
           {
             "name": "LC_target",
@@ -532,44 +761,6 @@
               "scFv(CD3)"
             ],
             "length": 703
-          },
-          {
-            "name": "LC_target",
-            "sequence": "DIQMTQSPSSLSASVGDRVTITCRASQDVNTAVAWYQQKPGKAPKLLIYSASFLYSGVPSRFSGSRSGTDFTLTISSLQPEDFATYYCQQHYTTPPTFGQGTKVEIKRTVAAPSVFIFPPSDEQLKSGTASVVCLLNNFYPREAKVQWKVDNALQSGNSQESVTEQDSKDSTYSLSSTLTLSKADYEKHKVYACEVTHQGLSSPVTKSFNRGEC",
-            "chain_type": "light",
-            "components": [
-              "VL(target)",
-              "CL"
-            ],
-            "length": 214
-          }
-        ],
-        "notes": "IgG-(scFv)2 Morrison format (symmetric). Bivalent for both targets: 2x Fab(target), 2x scFv(CD3). scFv fused to C-terminus of both heavy chains. scFv linker: GGGGSGGGGSGGGGS, Fc fusion linker: GGGGSGGGGS"
-      }
-    },
-    {
-      "candidate_id": "fab_1SY6_0011",
-      "format": "igg_scfv",
-      "construct": {
-        "name": "fab_1SY6_0011_igg_scfv",
-        "format_type": "igg_scfv",
-        "target_1": "HER2 (ERBB2)",
-        "target_2": "CD3",
-        "chains": [
-          {
-            "name": "HC_target_igg_scfv",
-            "sequence": "EVQLVESGGGLVQPGGSLRLSCAASGFNIKDTYIHWVRQAPGKGLEWVARIYPTNGYTRYADSVKGRFTISADTSKNTAYLQMNSLRAEDTAVYYCSRWGGDGFYAMDYWGQGTLVTVSSASTKGPSVFPLAPSSKSTSGGTAALGCLVKDYFPEPVTVSWNSGALTSGVHTFPAVLQSSGLYSLSSVVTVPSSSLGTQTYICNVNHKPSNTKVDKRVEPKSCDKTHTCPPCPAPELLGGPSVFLFPPKPKDTLMISRTPEVTCVVVDVSHEDPEVKFNWYVDGVEVHNAKTKPREEQYNSTYRVVSVLTVLHQDWLNGKEYKCKVSNKALPAPIEKTISKAKGQPREPQVYTLPPSREEMTKNQVSLTCLVKGFYPSDIAVEWESNGQPENNYKTTPPVLDSDGSFFLYSKLTVDKSRWQQGNVFSCSVMHEALHNHYTQKSLSLSPGKGGGGSGGGGSQVQLQESGPGLVKPSQTLSLTCTVSGFSLTSGYYWSWIRQPPGKGLEWIGYISSKYSPPYTDYNPSLKSRVTMSVDTSKNQFSLKVNSVTAADTAVYYCARDWKYWGQGTLVTVSSGGGGSGGGGSGGGGSEIVMTQSPATLSLSPGERATLSCRASQSISNNLAWYQQKPGQAPRLLIYYASNLASGIPARFSGSGSGTDFTLTISSLEPEDFAVYYCQQYSGVLPYTFGGGTKAEIK",
-            "chain_type": "heavy",
-            "components": [
-              "VH(target)",
-              "CH1",
-              "Hinge",
-              "CH2",
-              "CH3",
-              "Linker(10aa)",
-              "scFv(CD3)"
-            ],
-            "length": 699
           },
           {
             "name": "LC_target",
@@ -664,17 +855,17 @@
       }
     },
     {
-      "candidate_id": "fab_1SY6_0011",
+      "candidate_id": "vhh_1XIW_0019_hudiff_0",
       "format": "igg_vhh",
       "construct": {
-        "name": "fab_1SY6_0011_igg_vhh",
+        "name": "vhh_1XIW_0019_hudiff_0_igg_vhh",
         "format_type": "igg_vhh",
         "target_1": "HER2 (ERBB2)",
         "target_2": "CD3",
         "chains": [
           {
             "name": "HC_target_igg_vhh",
-            "sequence": "EVQLVESGGGLVQPGGSLRLSCAASGFNIKDTYIHWVRQAPGKGLEWVARIYPTNGYTRYADSVKGRFTISADTSKNTAYLQMNSLRAEDTAVYYCSRWGGDGFYAMDYWGQGTLVTVSSASTKGPSVFPLAPSSKSTSGGTAALGCLVKDYFPEPVTVSWNSGALTSGVHTFPAVLQSSGLYSLSSVVTVPSSSLGTQTYICNVNHKPSNTKVDKRVEPKSCDKTHTCPPCPAPELLGGPSVFLFPPKPKDTLMISRTPEVTCVVVDVSHEDPEVKFNWYVDGVEVHNAKTKPREEQYNSTYRVVSVLTVLHQDWLNGKEYKCKVSNKALPAPIEKTISKAKGQPREPQVYTLPPSREEMTKNQVSLTCLVKGFYPSDIAVEWESNGQPENNYKTTPPVLDSDGSFFLYSKLTVDKSRWQQGNVFSCSVMHEALHNHYTQKSLSLSPGKGGGGSGGGGSQVQLQESGPGLVKPSQTLSLTCTVSGFSLTSGYYWSWIRQPPGKGLEWIGYISSKYSPPYTDYNPSLKSRVTMSVDTSKNQFSLKVNSVTAADTAVYYCARDWKYWGQGTLVTVSS",
+            "sequence": "EVQLVESGGGLVQPGGSLRLSCAASGFNIKDTYIHWVRQAPGKGLEWVARIYPTNGYTRYADSVKGRFTISADTSKNTAYLQMNSLRAEDTAVYYCSRWGGDGFYAMDYWGQGTLVTVSSASTKGPSVFPLAPSSKSTSGGTAALGCLVKDYFPEPVTVSWNSGALTSGVHTFPAVLQSSGLYSLSSVVTVPSSSLGTQTYICNVNHKPSNTKVDKRVEPKSCDKTHTCPPCPAPELLGGPSVFLFPPKPKDTLMISRTPEVTCVVVDVSHEDPEVKFNWYVDGVEVHNAKTKPREEQYNSTYRVVSVLTVLHQDWLNGKEYKCKVSNKALPAPIEKTISKAKGQPREPQVYTLPPSREEMTKNQVSLTCLVKGFYPSDIAVEWESNGQPENNYKTTPPVLDSDGSFFLYSKLTVDKSRWQQGNVFSCSVMHEALHNHYTQKSLSLSPGKGGGGSGGGGSEVQLVESGGGLVQPGGSLRLSCAASGFTFSSYSMNWVRQAPGKGGEFVSSISYSGSYTDYADSVKGRFTISRDNAKNTLYLQMNSLKAEDTAVYYCAAGNPPYWGQGTLVTVSS",
             "chain_type": "heavy",
             "components": [
               "VH(target)",
@@ -685,7 +876,273 @@
               "Linker(10aa)",
               "VHH(CD3)"
             ],
-            "length": 576
+            "length": 574
+          },
+          {
+            "name": "LC_target",
+            "sequence": "DIQMTQSPSSLSASVGDRVTITCRASQDVNTAVAWYQQKPGKAPKLLIYSASFLYSGVPSRFSGSRSGTDFTLTISSLQPEDFATYYCQQHYTTPPTFGQGTKVEIKRTVAAPSVFIFPPSDEQLKSGTASVVCLLNNFYPREAKVQWKVDNALQSGNSQESVTEQDSKDSTYSLSSTLTLSKADYEKHKVYACEVTHQGLSSPVTKSFNRGEC",
+            "chain_type": "light",
+            "components": [
+              "VL(target)",
+              "CL"
+            ],
+            "length": 214
+          }
+        ],
+        "notes": "IgG-(VHH)2 Morrison format (symmetric). Bivalent for both targets: 2x Fab(target), 2x VHH(CD3). VHH fused to C-terminus of both heavy chains. Fc fusion linker: GGGGSGGGGS"
+      }
+    },
+    {
+      "candidate_id": "vhh_1SY6_0013_hudiff_0",
+      "format": "igg_vhh",
+      "construct": {
+        "name": "vhh_1SY6_0013_hudiff_0_igg_vhh",
+        "format_type": "igg_vhh",
+        "target_1": "HER2 (ERBB2)",
+        "target_2": "CD3",
+        "chains": [
+          {
+            "name": "HC_target_igg_vhh",
+            "sequence": "EVQLVESGGGLVQPGGSLRLSCAASGFNIKDTYIHWVRQAPGKGLEWVARIYPTNGYTRYADSVKGRFTISADTSKNTAYLQMNSLRAEDTAVYYCSRWGGDGFYAMDYWGQGTLVTVSSASTKGPSVFPLAPSSKSTSGGTAALGCLVKDYFPEPVTVSWNSGALTSGVHTFPAVLQSSGLYSLSSVVTVPSSSLGTQTYICNVNHKPSNTKVDKRVEPKSCDKTHTCPPCPAPELLGGPSVFLFPPKPKDTLMISRTPEVTCVVVDVSHEDPEVKFNWYVDGVEVHNAKTKPREEQYNSTYRVVSVLTVLHQDWLNGKEYKCKVSNKALPAPIEKTISKAKGQPREPQVYTLPPSREEMTKNQVSLTCLVKGFYPSDIAVEWESNGQPENNYKTTPPVLDSDGSFFLYSKLTVDKSRWQQGNVFSCSVMHEALHNHYTQKSLSLSPGKGGGGSGGGGSEVQLVESGGGLVQPGGSLRLSCAASGFTFSSYGMNWYRQAPGKERELVSSISSSGGSTYYADSVKGRFTISRDNAKNTLYLQMNSLRAEDTAVYYCAASSTSGSYSPFDYWGQGTQVTVSS",
+            "chain_type": "heavy",
+            "components": [
+              "VH(target)",
+              "CH1",
+              "Hinge",
+              "CH2",
+              "CH3",
+              "Linker(10aa)",
+              "VHH(CD3)"
+            ],
+            "length": 581
+          },
+          {
+            "name": "LC_target",
+            "sequence": "DIQMTQSPSSLSASVGDRVTITCRASQDVNTAVAWYQQKPGKAPKLLIYSASFLYSGVPSRFSGSRSGTDFTLTISSLQPEDFATYYCQQHYTTPPTFGQGTKVEIKRTVAAPSVFIFPPSDEQLKSGTASVVCLLNNFYPREAKVQWKVDNALQSGNSQESVTEQDSKDSTYSLSSTLTLSKADYEKHKVYACEVTHQGLSSPVTKSFNRGEC",
+            "chain_type": "light",
+            "components": [
+              "VL(target)",
+              "CL"
+            ],
+            "length": 214
+          }
+        ],
+        "notes": "IgG-(VHH)2 Morrison format (symmetric). Bivalent for both targets: 2x Fab(target), 2x VHH(CD3). VHH fused to C-terminus of both heavy chains. Fc fusion linker: GGGGSGGGGS"
+      }
+    },
+    {
+      "candidate_id": "vhh_1SY6_0019_hudiff_2",
+      "format": "igg_vhh",
+      "construct": {
+        "name": "vhh_1SY6_0019_hudiff_2_igg_vhh",
+        "format_type": "igg_vhh",
+        "target_1": "HER2 (ERBB2)",
+        "target_2": "CD3",
+        "chains": [
+          {
+            "name": "HC_target_igg_vhh",
+            "sequence": "EVQLVESGGGLVQPGGSLRLSCAASGFNIKDTYIHWVRQAPGKGLEWVARIYPTNGYTRYADSVKGRFTISADTSKNTAYLQMNSLRAEDTAVYYCSRWGGDGFYAMDYWGQGTLVTVSSASTKGPSVFPLAPSSKSTSGGTAALGCLVKDYFPEPVTVSWNSGALTSGVHTFPAVLQSSGLYSLSSVVTVPSSSLGTQTYICNVNHKPSNTKVDKRVEPKSCDKTHTCPPCPAPELLGGPSVFLFPPKPKDTLMISRTPEVTCVVVDVSHEDPEVKFNWYVDGVEVHNAKTKPREEQYNSTYRVVSVLTVLHQDWLNGKEYKCKVSNKALPAPIEKTISKAKGQPREPQVYTLPPSREEMTKNQVSLTCLVKGFYPSDIAVEWESNGQPENNYKTTPPVLDSDGSFFLYSKLTVDKSRWQQGNVFSCSVMHEALHNHYTQKSLSLSPGKGGGGSGGGGSEVQLVESGGGLVQPGGSLRLSCAASGFTFSSYGMNWVRQAPGKGREGVSGISGSGSTTGYADSVKGRFTISRDNAKNTLYLQMNSLGAEDTAVYYCARGYGGGGGAGADYWGQGTQVTVSS",
+            "chain_type": "heavy",
+            "components": [
+              "VH(target)",
+              "CH1",
+              "Hinge",
+              "CH2",
+              "CH3",
+              "Linker(10aa)",
+              "VHH(CD3)"
+            ],
+            "length": 581
+          },
+          {
+            "name": "LC_target",
+            "sequence": "DIQMTQSPSSLSASVGDRVTITCRASQDVNTAVAWYQQKPGKAPKLLIYSASFLYSGVPSRFSGSRSGTDFTLTISSLQPEDFATYYCQQHYTTPPTFGQGTKVEIKRTVAAPSVFIFPPSDEQLKSGTASVVCLLNNFYPREAKVQWKVDNALQSGNSQESVTEQDSKDSTYSLSSTLTLSKADYEKHKVYACEVTHQGLSSPVTKSFNRGEC",
+            "chain_type": "light",
+            "components": [
+              "VL(target)",
+              "CL"
+            ],
+            "length": 214
+          }
+        ],
+        "notes": "IgG-(VHH)2 Morrison format (symmetric). Bivalent for both targets: 2x Fab(target), 2x VHH(CD3). VHH fused to C-terminus of both heavy chains. Fc fusion linker: GGGGSGGGGS"
+      }
+    },
+    {
+      "candidate_id": "vhh_1XIW_0019_hudiff_2",
+      "format": "igg_vhh",
+      "construct": {
+        "name": "vhh_1XIW_0019_hudiff_2_igg_vhh",
+        "format_type": "igg_vhh",
+        "target_1": "HER2 (ERBB2)",
+        "target_2": "CD3",
+        "chains": [
+          {
+            "name": "HC_target_igg_vhh",
+            "sequence": "EVQLVESGGGLVQPGGSLRLSCAASGFNIKDTYIHWVRQAPGKGLEWVARIYPTNGYTRYADSVKGRFTISADTSKNTAYLQMNSLRAEDTAVYYCSRWGGDGFYAMDYWGQGTLVTVSSASTKGPSVFPLAPSSKSTSGGTAALGCLVKDYFPEPVTVSWNSGALTSGVHTFPAVLQSSGLYSLSSVVTVPSSSLGTQTYICNVNHKPSNTKVDKRVEPKSCDKTHTCPPCPAPELLGGPSVFLFPPKPKDTLMISRTPEVTCVVVDVSHEDPEVKFNWYVDGVEVHNAKTKPREEQYNSTYRVVSVLTVLHQDWLNGKEYKCKVSNKALPAPIEKTISKAKGQPREPQVYTLPPSREEMTKNQVSLTCLVKGFYPSDIAVEWESNGQPENNYKTTPPVLDSDGSFFLYSKLTVDKSRWQQGNVFSCSVMHEALHNHYTQKSLSLSPGKGGGGSGGGGSEVQLVESGGGLVQPGGSLRLSCAASGFTFSSYSMNWVRQAPGKGGEFVSSISYSGSYTDYADSVKGRFTISRDNAKNTLYLQMNSLKPEDTAVYYCAAGNPPYWGQGTLVTVSS",
+            "chain_type": "heavy",
+            "components": [
+              "VH(target)",
+              "CH1",
+              "Hinge",
+              "CH2",
+              "CH3",
+              "Linker(10aa)",
+              "VHH(CD3)"
+            ],
+            "length": 574
+          },
+          {
+            "name": "LC_target",
+            "sequence": "DIQMTQSPSSLSASVGDRVTITCRASQDVNTAVAWYQQKPGKAPKLLIYSASFLYSGVPSRFSGSRSGTDFTLTISSLQPEDFATYYCQQHYTTPPTFGQGTKVEIKRTVAAPSVFIFPPSDEQLKSGTASVVCLLNNFYPREAKVQWKVDNALQSGNSQESVTEQDSKDSTYSLSSTLTLSKADYEKHKVYACEVTHQGLSSPVTKSFNRGEC",
+            "chain_type": "light",
+            "components": [
+              "VL(target)",
+              "CL"
+            ],
+            "length": 214
+          }
+        ],
+        "notes": "IgG-(VHH)2 Morrison format (symmetric). Bivalent for both targets: 2x Fab(target), 2x VHH(CD3). VHH fused to C-terminus of both heavy chains. Fc fusion linker: GGGGSGGGGS"
+      }
+    },
+    {
+      "candidate_id": "vhh_1XIW_0019_hudiff_4",
+      "format": "igg_vhh",
+      "construct": {
+        "name": "vhh_1XIW_0019_hudiff_4_igg_vhh",
+        "format_type": "igg_vhh",
+        "target_1": "HER2 (ERBB2)",
+        "target_2": "CD3",
+        "chains": [
+          {
+            "name": "HC_target_igg_vhh",
+            "sequence": "EVQLVESGGGLVQPGGSLRLSCAASGFNIKDTYIHWVRQAPGKGLEWVARIYPTNGYTRYADSVKGRFTISADTSKNTAYLQMNSLRAEDTAVYYCSRWGGDGFYAMDYWGQGTLVTVSSASTKGPSVFPLAPSSKSTSGGTAALGCLVKDYFPEPVTVSWNSGALTSGVHTFPAVLQSSGLYSLSSVVTVPSSSLGTQTYICNVNHKPSNTKVDKRVEPKSCDKTHTCPPCPAPELLGGPSVFLFPPKPKDTLMISRTPEVTCVVVDVSHEDPEVKFNWYVDGVEVHNAKTKPREEQYNSTYRVVSVLTVLHQDWLNGKEYKCKVSNKALPAPIEKTISKAKGQPREPQVYTLPPSREEMTKNQVSLTCLVKGFYPSDIAVEWESNGQPENNYKTTPPVLDSDGSFFLYSKLTVDKSRWQQGNVFSCSVMHEALHNHYTQKSLSLSPGKGGGGSGGGGSEVQLVESGGGLVQPGGSLRLSCAASGFTFSSYSMNWVRQAPGKGGEFVSSISYSGSYTDYADSVKGRFTISRDNAKNTLYLQMNSLKAEDTAVYYCAAGNPPYWGQGTQVTVSS",
+            "chain_type": "heavy",
+            "components": [
+              "VH(target)",
+              "CH1",
+              "Hinge",
+              "CH2",
+              "CH3",
+              "Linker(10aa)",
+              "VHH(CD3)"
+            ],
+            "length": 574
+          },
+          {
+            "name": "LC_target",
+            "sequence": "DIQMTQSPSSLSASVGDRVTITCRASQDVNTAVAWYQQKPGKAPKLLIYSASFLYSGVPSRFSGSRSGTDFTLTISSLQPEDFATYYCQQHYTTPPTFGQGTKVEIKRTVAAPSVFIFPPSDEQLKSGTASVVCLLNNFYPREAKVQWKVDNALQSGNSQESVTEQDSKDSTYSLSSTLTLSKADYEKHKVYACEVTHQGLSSPVTKSFNRGEC",
+            "chain_type": "light",
+            "components": [
+              "VL(target)",
+              "CL"
+            ],
+            "length": 214
+          }
+        ],
+        "notes": "IgG-(VHH)2 Morrison format (symmetric). Bivalent for both targets: 2x Fab(target), 2x VHH(CD3). VHH fused to C-terminus of both heavy chains. Fc fusion linker: GGGGSGGGGS"
+      }
+    },
+    {
+      "candidate_id": "vhh_1SY6_0013_hudiff_4",
+      "format": "igg_vhh",
+      "construct": {
+        "name": "vhh_1SY6_0013_hudiff_4_igg_vhh",
+        "format_type": "igg_vhh",
+        "target_1": "HER2 (ERBB2)",
+        "target_2": "CD3",
+        "chains": [
+          {
+            "name": "HC_target_igg_vhh",
+            "sequence": "EVQLVESGGGLVQPGGSLRLSCAASGFNIKDTYIHWVRQAPGKGLEWVARIYPTNGYTRYADSVKGRFTISADTSKNTAYLQMNSLRAEDTAVYYCSRWGGDGFYAMDYWGQGTLVTVSSASTKGPSVFPLAPSSKSTSGGTAALGCLVKDYFPEPVTVSWNSGALTSGVHTFPAVLQSSGLYSLSSVVTVPSSSLGTQTYICNVNHKPSNTKVDKRVEPKSCDKTHTCPPCPAPELLGGPSVFLFPPKPKDTLMISRTPEVTCVVVDVSHEDPEVKFNWYVDGVEVHNAKTKPREEQYNSTYRVVSVLTVLHQDWLNGKEYKCKVSNKALPAPIEKTISKAKGQPREPQVYTLPPSREEMTKNQVSLTCLVKGFYPSDIAVEWESNGQPENNYKTTPPVLDSDGSFFLYSKLTVDKSRWQQGNVFSCSVMHEALHNHYTQKSLSLSPGKGGGGSGGGGSEVQLVESGGGLVQPGGSLRLSCAASGFTFSSYGMNWYRQAPGKERELVSSISSSGGSTYYADSVKGRFTISRDNAKNTLYLQMNSLRPEDTAVYYCAASSTSGSYSPFDYWGQGTQVTVSS",
+            "chain_type": "heavy",
+            "components": [
+              "VH(target)",
+              "CH1",
+              "Hinge",
+              "CH2",
+              "CH3",
+              "Linker(10aa)",
+              "VHH(CD3)"
+            ],
+            "length": 581
+          },
+          {
+            "name": "LC_target",
+            "sequence": "DIQMTQSPSSLSASVGDRVTITCRASQDVNTAVAWYQQKPGKAPKLLIYSASFLYSGVPSRFSGSRSGTDFTLTISSLQPEDFATYYCQQHYTTPPTFGQGTKVEIKRTVAAPSVFIFPPSDEQLKSGTASVVCLLNNFYPREAKVQWKVDNALQSGNSQESVTEQDSKDSTYSLSSTLTLSKADYEKHKVYACEVTHQGLSSPVTKSFNRGEC",
+            "chain_type": "light",
+            "components": [
+              "VL(target)",
+              "CL"
+            ],
+            "length": 214
+          }
+        ],
+        "notes": "IgG-(VHH)2 Morrison format (symmetric). Bivalent for both targets: 2x Fab(target), 2x VHH(CD3). VHH fused to C-terminus of both heavy chains. Fc fusion linker: GGGGSGGGGS"
+      }
+    },
+    {
+      "candidate_id": "vhh_1SY6_0033_hudiff_4",
+      "format": "igg_vhh",
+      "construct": {
+        "name": "vhh_1SY6_0033_hudiff_4_igg_vhh",
+        "format_type": "igg_vhh",
+        "target_1": "HER2 (ERBB2)",
+        "target_2": "CD3",
+        "chains": [
+          {
+            "name": "HC_target_igg_vhh",
+            "sequence": "EVQLVESGGGLVQPGGSLRLSCAASGFNIKDTYIHWVRQAPGKGLEWVARIYPTNGYTRYADSVKGRFTISADTSKNTAYLQMNSLRAEDTAVYYCSRWGGDGFYAMDYWGQGTLVTVSSASTKGPSVFPLAPSSKSTSGGTAALGCLVKDYFPEPVTVSWNSGALTSGVHTFPAVLQSSGLYSLSSVVTVPSSSLGTQTYICNVNHKPSNTKVDKRVEPKSCDKTHTCPPCPAPELLGGPSVFLFPPKPKDTLMISRTPEVTCVVVDVSHEDPEVKFNWYVDGVEVHNAKTKPREEQYNSTYRVVSVLTVLHQDWLNGKEYKCKVSNKALPAPIEKTISKAKGQPREPQVYTLPPSREEMTKNQVSLTCLVKGFYPSDIAVEWESNGQPENNYKTTPPVLDSDGSFFLYSKLTVDKSRWQQGNVFSCSVMHEALHNHYTQKSLSLSPGKGGGGSGGGGSEVQLVESGGGLVQPGGSLRLSCAASGFTFSSYGMNWYRQAPGKGREGVSAISSSGGSTYYAYSVKGRFTISRDNSKNTLYLQMNSLRAEDTAVYYCAAGSYAVGGAADYWGQGTQVTVS",
+            "chain_type": "heavy",
+            "components": [
+              "VH(target)",
+              "CH1",
+              "Hinge",
+              "CH2",
+              "CH3",
+              "Linker(10aa)",
+              "VHH(CD3)"
+            ],
+            "length": 579
+          },
+          {
+            "name": "LC_target",
+            "sequence": "DIQMTQSPSSLSASVGDRVTITCRASQDVNTAVAWYQQKPGKAPKLLIYSASFLYSGVPSRFSGSRSGTDFTLTISSLQPEDFATYYCQQHYTTPPTFGQGTKVEIKRTVAAPSVFIFPPSDEQLKSGTASVVCLLNNFYPREAKVQWKVDNALQSGNSQESVTEQDSKDSTYSLSSTLTLSKADYEKHKVYACEVTHQGLSSPVTKSFNRGEC",
+            "chain_type": "light",
+            "components": [
+              "VL(target)",
+              "CL"
+            ],
+            "length": 214
+          }
+        ],
+        "notes": "IgG-(VHH)2 Morrison format (symmetric). Bivalent for both targets: 2x Fab(target), 2x VHH(CD3). VHH fused to C-terminus of both heavy chains. Fc fusion linker: GGGGSGGGGS"
+      }
+    },
+    {
+      "candidate_id": "vhh_1SY6_0045_hudiff_0",
+      "format": "igg_vhh",
+      "construct": {
+        "name": "vhh_1SY6_0045_hudiff_0_igg_vhh",
+        "format_type": "igg_vhh",
+        "target_1": "HER2 (ERBB2)",
+        "target_2": "CD3",
+        "chains": [
+          {
+            "name": "HC_target_igg_vhh",
+            "sequence": "EVQLVESGGGLVQPGGSLRLSCAASGFNIKDTYIHWVRQAPGKGLEWVARIYPTNGYTRYADSVKGRFTISADTSKNTAYLQMNSLRAEDTAVYYCSRWGGDGFYAMDYWGQGTLVTVSSASTKGPSVFPLAPSSKSTSGGTAALGCLVKDYFPEPVTVSWNSGALTSGVHTFPAVLQSSGLYSLSSVVTVPSSSLGTQTYICNVNHKPSNTKVDKRVEPKSCDKTHTCPPCPAPELLGGPSVFLFPPKPKDTLMISRTPEVTCVVVDVSHEDPEVKFNWYVDGVEVHNAKTKPREEQYNSTYRVVSVLTVLHQDWLNGKEYKCKVSNKALPAPIEKTISKAKGQPREPQVYTLPPSREEMTKNQVSLTCLVKGFYPSDIAVEWESNGQPENNYKTTPPVLDSDGSFFLYSKLTVDKSRWQQGNVFSCSVMHEALHNHYTQKSLSLSPGKGGGGSGGGGSEVQLVESGGGLVQPGGSLRLSCAASGFTFSSYAMSWLRQAPGKGREGVSGIGSGGGTYYADSVKGRFTISRDNAKNTLYLQMNSLRAEDTAVYYCAAGYSIGGEGANEAWGQGTQVTVS",
+            "chain_type": "heavy",
+            "components": [
+              "VH(target)",
+              "CH1",
+              "Hinge",
+              "CH2",
+              "CH3",
+              "Linker(10aa)",
+              "VHH(CD3)"
+            ],
+            "length": 579
           },
           {
             "name": "LC_target",
